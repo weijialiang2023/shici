@@ -1,0 +1,2414 @@
+{
+  "units": [
+    {
+      "id": 1,
+      "title": "校园与成长",
+      "en": "Campus & Growth",
+      "caption": "从课堂到自习室",
+      "description": "把每天都用得到的校园词，收进自己的表达里。",
+      "icon": "notebook",
+      "accent": "#315A4A",
+      "tint": "#E5EADF"
+    },
+    {
+      "id": 2,
+      "title": "情绪与性格",
+      "en": "Inside Out",
+      "caption": "更懂自己，也更懂别人",
+      "description": "用更准确的词描述感受，也理解每一种性格。",
+      "icon": "heart",
+      "accent": "#B45F42",
+      "tint": "#F4DFD4"
+    },
+    {
+      "id": 3,
+      "title": "科技与未来",
+      "en": "Future Lab",
+      "caption": "读懂正在发生的未来",
+      "description": "从人工智能到太空探索，读懂科技语境里的高频词。",
+      "icon": "cpu",
+      "accent": "#3F6B7F",
+      "tint": "#DDE9ED"
+    },
+    {
+      "id": 4,
+      "title": "自然与环境",
+      "en": "Wild Earth",
+      "caption": "用英语谈论我们共同的地球",
+      "description": "气候、物种与资源，把环保议题说得清楚。",
+      "icon": "leaf",
+      "accent": "#6C7A41",
+      "tint": "#E8E8D3"
+    },
+    {
+      "id": 5,
+      "title": "社会与文化",
+      "en": "Human Stories",
+      "caption": "穿过语言，看见文化",
+      "description": "理解传统、身份与社群，让表达更有厚度。",
+      "icon": "globe",
+      "accent": "#92703C",
+      "tint": "#F2E4CE"
+    },
+    {
+      "id": 6,
+      "title": "阅读与表达",
+      "en": "Sharp Words",
+      "caption": "读懂言外之意，写清自己的观点",
+      "description": "阅读题和议论文里反复出现的那些关键词。",
+      "icon": "quote",
+      "accent": "#8B5B65",
+      "tint": "#EFDFE1"
+    }
+  ],
+  "words": [
+    {
+      "id": "assembly",
+      "word": "assembly",
+      "ipa": "/əˈsembli/",
+      "pos": "n.",
+      "meanings": [
+        "集会；晨会",
+        "装配；组装"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "Our principal reminded us at the morning assembly to stay curious.",
+      "translation": "校长在晨会上提醒我们要保持好奇心。",
+      "collocations": [
+        "morning assembly 晨会",
+        "school assembly 学校集会"
+      ],
+      "family": "assemble v. 集合；组装 → assembly n. 集会",
+      "tip": "as-（向）＋ sembl（一起）→ 人聚到一起，就是集会。"
+    },
+    {
+      "id": "assignment",
+      "word": "assignment",
+      "ipa": "/əˈsaɪnmənt/",
+      "pos": "n.",
+      "meanings": [
+        "作业；任务",
+        "分配；指派"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "I finished the history assignment earlier so I could review my notes.",
+      "translation": "我提前完成了历史作业，好留出时间复习笔记。",
+      "collocations": [
+        "complete an assignment 完成作业",
+        "hand in an assignment 交作业"
+      ],
+      "family": "assign v. 分配 → assignment n. 任务",
+      "tip": "assign（分配）＋ -ment（名词后缀）→ 分配下来的任务。"
+    },
+    {
+      "id": "academic",
+      "word": "academic",
+      "ipa": "/ˌækəˈdemɪk/",
+      "pos": "adj.",
+      "meanings": [
+        "学业的；学术的"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "Academic progress depends on steady effort, not last-minute cramming.",
+      "translation": "学业进步靠的是持续努力，而不是考前突击。",
+      "collocations": [
+        "academic performance 学业表现",
+        "academic year 学年"
+      ],
+      "family": "academy n. 学院 → academic adj. 学术的 → academically adv. 学业上",
+      "tip": "表示“学业、学术”时用 academic；泛指“学校”时用 school。"
+    },
+    {
+      "id": "compulsory",
+      "word": "compulsory",
+      "ipa": "/kəmˈpʌlsəri/",
+      "pos": "adj.",
+      "meanings": [
+        "必修的；强制的"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "PE is a compulsory course in our school, so everyone gets some exercise.",
+      "translation": "体育在我们学校是必修课，所以每个人都能活动一下。",
+      "collocations": [
+        "compulsory course 必修课",
+        "compulsory education 义务教育"
+      ],
+      "family": "compel v. 迫使 → compulsory adj. 强制的",
+      "tip": "compuls（推）＋ -ory → 被推着去做 → 强制的。"
+    },
+    {
+      "id": "elective",
+      "word": "elective",
+      "ipa": "/ɪˈlektɪv/",
+      "pos": "n. / adj.",
+      "meanings": [
+        "选修课",
+        "选修的；由选举产生的"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "I chose photography as an elective because I wanted a break from textbooks.",
+      "translation": "我选了摄影作为选修课，因为想让眼睛离开课本歇一歇。",
+      "collocations": [
+        "an elective course 选修课",
+        "take an elective 选修一门课"
+      ],
+      "family": "elect v. 选择 → elective adj. 可选择的；选修的",
+      "tip": "elect（选择）＋ -ive → 由自己选择的课，就是选修课。"
+    },
+    {
+      "id": "curriculum",
+      "word": "curriculum",
+      "ipa": "/kəˈrɪkjələm/",
+      "pos": "n.",
+      "meanings": [
+        "课程体系；全部课程"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "The new curriculum includes more projects and fewer tests.",
+      "translation": "新的课程体系加入了更多项目式学习，减少了考试。",
+      "collocations": [
+        "school curriculum 学校课程",
+        "curriculum design 课程设计"
+      ],
+      "family": "curricular adj. 课程的；复数 curricula",
+      "tip": "来自拉丁语“跑道”，课程就是一段安排好的学习路线。"
+    },
+    {
+      "id": "semester",
+      "word": "semester",
+      "ipa": "/sɪˈmestə/",
+      "pos": "n.",
+      "meanings": [
+        "学期"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "This semester I'm trying to speak English for five minutes every day.",
+      "translation": "这个学期，我试着每天说五分钟英语。",
+      "collocations": [
+        "this semester 这个学期",
+        "the end of the semester 学期末"
+      ],
+      "family": "semestral adj. 学期的",
+      "tip": "源自拉丁语“六个月”，一学期通常就是半个学年。"
+    },
+    {
+      "id": "scholarship",
+      "word": "scholarship",
+      "ipa": "/ˈskɒləʃɪp/",
+      "pos": "n.",
+      "meanings": [
+        "奖学金",
+        "学术研究；学问"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "She won a scholarship that covers most of her university tuition.",
+      "translation": "她获得了一笔奖学金，足以支付大学的大部分学费。",
+      "collocations": [
+        "win a scholarship 获得奖学金",
+        "a full scholarship 全额奖学金"
+      ],
+      "family": "scholar n. 学者 → scholarship n. 奖学金；学术",
+      "tip": "-ship 常表示“身份、状态”，scholar 的“身份”延伸为奖学金。"
+    },
+    {
+      "id": "graduate",
+      "word": "graduate",
+      "ipa": "/ˈɡrædʒueɪt/",
+      "pos": "v.",
+      "meanings": [
+        "毕业；获得学位"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "My sister will graduate from high school in June.",
+      "translation": "我姐姐将在六月高中毕业。",
+      "collocations": [
+        "graduate from 从……毕业",
+        "a recent graduate 应届毕业生"
+      ],
+      "family": "graduation n. 毕业；graduate n. 毕业生（读音尾音为 /ət/）",
+      "tip": "固定搭配是 graduate from，不要直接跟学校名；名词读音会变成 /ət/。"
+    },
+    {
+      "id": "discipline",
+      "word": "discipline",
+      "ipa": "/ˈdɪsəplɪn/",
+      "pos": "n.",
+      "meanings": [
+        "纪律；自律",
+        "学科；训练"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "Learning an instrument takes discipline, especially on busy days.",
+      "translation": "学一门乐器需要自律，尤其是在忙碌的日子里。",
+      "collocations": [
+        "self-discipline 自律",
+        "strict discipline 严格的纪律"
+      ],
+      "family": "disciplined adj. 自律的 → disciplinary adj. 纪律的",
+      "tip": "和 disciple（门徒）同源：跟着学，就得守纪律。"
+    },
+    {
+      "id": "motivate",
+      "word": "motivate",
+      "ipa": "/ˈməʊtɪveɪt/",
+      "pos": "v.",
+      "meanings": [
+        "激励；促使"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "A small goal can motivate you to get started.",
+      "translation": "一个小目标就能推动你开始行动。",
+      "collocations": [
+        "motivate sb to do sth 激励某人做某事",
+        "highly motivated 积极性很高的"
+      ],
+      "family": "motive n. 动机 → motivate v. 激励 → motivation n. 动力",
+      "tip": "motive（动机）＋ -ate → 给人一个动机。"
+    },
+    {
+      "id": "participate",
+      "word": "participate",
+      "ipa": "/pɑːˈtɪsɪpeɪt/",
+      "pos": "v.",
+      "meanings": [
+        "参加；参与"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "Don't be afraid to participate in class discussions, even with imperfect grammar.",
+      "translation": "不要害怕参与课堂讨论，哪怕语法还不完美。",
+      "collocations": [
+        "participate in 参加",
+        "active participation 积极参与"
+      ],
+      "family": "participant n. 参与者 → participation n. 参与",
+      "tip": "part（部分）＋ cip（拿）＋ -ate → 拿走其中一部分，就是参与。"
+    },
+    {
+      "id": "concentrate",
+      "word": "concentrate",
+      "ipa": "/ˈkɒnsəntreɪt/",
+      "pos": "v.",
+      "meanings": [
+        "集中注意力",
+        "浓缩；集中"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "I turn off my phone so I can concentrate on my homework.",
+      "translation": "我会关掉手机，好让自己专心写作业。",
+      "collocations": [
+        "concentrate on 专注于",
+        "lose concentration 走神"
+      ],
+      "family": "concentration n. 专注；浓度 → concentrated adj. 浓缩的",
+      "tip": "con-（共同）＋ centr（中心）→ 把注意力拉回中心。"
+    },
+    {
+      "id": "memorize",
+      "word": "memorize",
+      "ipa": "/ˈmeməraɪz/",
+      "pos": "v.",
+      "meanings": [
+        "记住；背诵"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "Don't just memorize the word list; use each new word in a sentence.",
+      "translation": "不要只是背词表，把每个新词放进句子里用一次。",
+      "collocations": [
+        "memorize vocabulary 背单词",
+        "memorize a passage 背诵文章"
+      ],
+      "family": "memory n. 记忆 → memorize v. 记住 → memorization n. 记忆过程",
+      "tip": "和 memory 同源：-ize 表示“使……”，使进入记忆。"
+    },
+    {
+      "id": "revise",
+      "word": "revise",
+      "ipa": "/rɪˈvaɪz/",
+      "pos": "v.",
+      "meanings": [
+        "复习（英式）",
+        "修改；修订"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "I revise my notes every night instead of waiting before the exam.",
+      "translation": "我每天晚上复习笔记，而不是等考试前才突击。",
+      "collocations": [
+        "revise for an exam 复习备考",
+        "revise an essay 修改文章"
+      ],
+      "family": "revision n. 复习；修订",
+      "tip": "re-（再一次）＋ vis（看）→ 再看一遍，既能复习也能修改。"
+    },
+    {
+      "id": "feedback",
+      "word": "feedback",
+      "ipa": "/ˈfiːdbæk/",
+      "pos": "n.",
+      "meanings": [
+        "反馈；意见"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "Our teacher gives useful feedback on every draft.",
+      "translation": "老师会针对每一稿给出有用的反馈。",
+      "collocations": [
+        "give feedback on 对……给出反馈",
+        "positive feedback 正面反馈"
+      ],
+      "family": "feed back v. 反馈 → feedback n. 反馈（不可数）",
+      "tip": "feed（喂）＋ back（回来）→ 把信息送回来。"
+    },
+    {
+      "id": "potential",
+      "word": "potential",
+      "ipa": "/pəˈtenʃl/",
+      "pos": "n. / adj.",
+      "meanings": [
+        "潜力；可能性",
+        "潜在的"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "Every student has the potential to improve with the right practice.",
+      "translation": "每个学生都有潜力，只要练习方法得当。",
+      "collocations": [
+        "realize your potential 发挥潜力",
+        "potential to do sth 做某事的潜力"
+      ],
+      "family": "potent adj. 有力的 → potential adj./n. 潜在的；潜力",
+      "tip": "和 potent（有力量的）同源：潜力是还没被用出来的力量。"
+    },
+    {
+      "id": "achievement",
+      "word": "achievement",
+      "ipa": "/əˈtʃiːvmənt/",
+      "pos": "n.",
+      "meanings": [
+        "成就；成绩",
+        "达成"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "Finishing a difficult book gave me a real sense of achievement.",
+      "translation": "读完一本难读的书，让我获得了真正的成就感。",
+      "collocations": [
+        "a sense of achievement 成就感",
+        "great achievement 了不起的成就"
+      ],
+      "family": "achieve v. 取得；实现 → achievement n. 成就",
+      "tip": "achieve 的名词拼写是 achievement：先 i 后 e。"
+    },
+    {
+      "id": "independent",
+      "word": "independent",
+      "ipa": "/ˌɪndɪˈpendənt/",
+      "pos": "adj.",
+      "meanings": [
+        "独立的；自主的"
+      ],
+      "unit": 1,
+      "level": 2,
+      "example": "Independent learners ask questions and find answers on their own.",
+      "translation": "独立的学习者会提问，也会自己寻找答案。",
+      "collocations": [
+        "independent thinking 独立思考",
+        "be independent of 不依赖……"
+      ],
+      "family": "in-（不）＋ depend（依赖）＋ -ent → independence n. 独立",
+      "tip": "注意搭配是 be independent of，不是 be independent from。"
+    },
+    {
+      "id": "deadline",
+      "word": "deadline",
+      "ipa": "/ˈdedlaɪn/",
+      "pos": "n.",
+      "meanings": [
+        "截止日期；最后期限"
+      ],
+      "unit": 1,
+      "level": 1,
+      "example": "Set a deadline for each task, or it will keep growing.",
+      "translation": "给每项任务设一个截止时间，否则它会一直膨胀。",
+      "collocations": [
+        "meet a deadline 赶上截止日期",
+        "a tight deadline 很紧的期限"
+      ],
+      "family": "dead + line；deadline 引申为“不能越过的最后界线”",
+      "tip": "meet a deadline 是“按时完成”，不是“遇见一个期限”。"
+    },
+    {
+      "id": "ambitious",
+      "word": "ambitious",
+      "ipa": "/æmˈbɪʃəs/",
+      "pos": "adj.",
+      "meanings": [
+        "有雄心的；有野心的",
+        "目标宏大的"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "She is ambitious enough to aim for a top university, but she knows rest matters too.",
+      "translation": "她有足够的雄心瞄准顶尖大学，但也明白休息同样重要。",
+      "collocations": [
+        "an ambitious plan 宏大的计划",
+        "be ambitious for sb 对某人有期望"
+      ],
+      "family": "ambition n. 雄心 → ambitious adj. 有抱负的",
+      "tip": "ambition 是“向前争取”，ambitious 既可以夸人有志向，也可指计划宏大。"
+    },
+    {
+      "id": "anxious",
+      "word": "anxious",
+      "ipa": "/ˈæŋkʃəs/",
+      "pos": "adj.",
+      "meanings": [
+        "焦虑的；担心的",
+        "渴望的"
+      ],
+      "unit": 2,
+      "level": 1,
+      "example": "I felt anxious before the speech, so I took three slow breaths.",
+      "translation": "演讲前我感到焦虑，于是做了三次深呼吸。",
+      "collocations": [
+        "be anxious about 为……担忧",
+        "be anxious to do 渴望做"
+      ],
+      "family": "anxiety n. 焦虑；anxiously adv. 焦虑地",
+      "tip": "be anxious about 是担心，be anxious to do 却是渴望，不要混淆。"
+    },
+    {
+      "id": "appreciate",
+      "word": "appreciate",
+      "ipa": "/əˈpriːʃieɪt/",
+      "pos": "v.",
+      "meanings": [
+        "感激；感谢",
+        "欣赏；理解"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "I really appreciate the teacher who stayed after class to explain the problem.",
+      "translation": "我很感激那位课后留下来给我讲题的老师。",
+      "collocations": [
+        "appreciate sb's help 感激某人的帮助",
+        "appreciate the beauty of 欣赏……之美"
+      ],
+      "family": "appreciation n. 欣赏；感激 → appreciative adj. 感激的",
+      "tip": "appreciate 后直接跟人或事，不说 appreciate you to do；说 appreciate it if...。"
+    },
+    {
+      "id": "cautious",
+      "word": "cautious",
+      "ipa": "/ˈkɔːʃəs/",
+      "pos": "adj.",
+      "meanings": [
+        "谨慎的；小心的"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "Be cautious about spending too much time online before exams.",
+      "translation": "考试前要谨慎安排上网时间，别刷太久。",
+      "collocations": [
+        "be cautious about 对……谨慎",
+        "a cautious approach 谨慎的做法"
+      ],
+      "family": "caution n. 谨慎 → cautious adj. 谨慎的 → cautiously adv. 小心地",
+      "tip": "cautious 是“因为看见风险而小心”，比 careful 更强调警惕。"
+    },
+    {
+      "id": "confident",
+      "word": "confident",
+      "ipa": "/ˈkɒnfɪdənt/",
+      "pos": "adj.",
+      "meanings": [
+        "自信的",
+        "确定的；有把握的"
+      ],
+      "unit": 2,
+      "level": 1,
+      "example": "Practice made me more confident when speaking English.",
+      "translation": "练习让我说英语时更自信了。",
+      "collocations": [
+        "be confident in/about 对……有信心",
+        "self-confident 自信的"
+      ],
+      "family": "confidence n. 自信 → confident adj. 自信的 → confidently adv. 自信地",
+      "tip": "名词是 confidence，形容词是 confident：结尾 -ce 与 -t 要分清。"
+    },
+    {
+      "id": "curious",
+      "word": "curious",
+      "ipa": "/ˈkjʊəriəs/",
+      "pos": "adj.",
+      "meanings": [
+        "好奇的",
+        "奇特的"
+      ],
+      "unit": 2,
+      "level": 1,
+      "example": "Stay curious about the world; it makes learning easier.",
+      "translation": "对世界保持好奇，这会让学习变得轻松些。",
+      "collocations": [
+        "be curious about 对……好奇",
+        "curious minds 好奇的头脑"
+      ],
+      "family": "curiosity n. 好奇心 → curious adj. 好奇的 → curiously adv. 好奇地",
+      "tip": "curious 来自 cure（关心）：因为关心，所以想知道。"
+    },
+    {
+      "id": "deliberate",
+      "word": "deliberate",
+      "ipa": "/dɪˈlɪbərət/",
+      "pos": "adj.",
+      "meanings": [
+        "故意的",
+        "深思熟虑的；从容的"
+      ],
+      "unit": 2,
+      "level": 3,
+      "example": "Her decision to apologize was deliberate, not forced.",
+      "translation": "她道歉是经过认真考虑的，并非被迫。",
+      "collocations": [
+        "a deliberate choice 有意的选择",
+        "deliberate attempt 蓄意尝试"
+      ],
+      "family": "deliberation n. 深思；deliberately adv. 故意地",
+      "tip": "“故意的”与“深思熟虑的”是同一底层含义：先想清楚了才做。"
+    },
+    {
+      "id": "enthusiastic",
+      "word": "enthusiastic",
+      "ipa": "/ɪnˌθjuːziˈæstɪk/",
+      "pos": "adj.",
+      "meanings": [
+        "热情的；热心的"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "He is always enthusiastic about group projects and brings new ideas.",
+      "translation": "他总是对小组项目充满热情，还会带来新点子。",
+      "collocations": [
+        "be enthusiastic about 对……热情",
+        "enthusiastic support 热烈支持"
+      ],
+      "family": "enthusiasm n. 热情 → enthusiast n. 爱好者 → enthusiastic adj. 热情的",
+      "tip": "enthusiasm 的形容词是 enthusiastic，重音落在 -as- 上。"
+    },
+    {
+      "id": "generous",
+      "word": "generous",
+      "ipa": "/ˈdʒenərəs/",
+      "pos": "adj.",
+      "meanings": [
+        "慷慨的；大方的",
+        "宽厚的"
+      ],
+      "unit": 2,
+      "level": 1,
+      "example": "She was generous with her time and helped classmates with math.",
+      "translation": "她慷慨地付出时间，帮助同学学数学。",
+      "collocations": [
+        "be generous with 在……上很慷慨",
+        "a generous gift 一份慷慨的礼物"
+      ],
+      "family": "generosity n. 慷慨；generously adv. 慷慨地",
+      "tip": "generous 不只指钱：be generous with time / praise 也很常见。"
+    },
+    {
+      "id": "grateful",
+      "word": "grateful",
+      "ipa": "/ˈɡreɪtfl/",
+      "pos": "adj.",
+      "meanings": [
+        "感激的；感谢的"
+      ],
+      "unit": 2,
+      "level": 1,
+      "example": "I'm grateful for my parents' support, even when they don't understand my choices.",
+      "translation": "我感激父母的支持，即使他们有时不理解我的选择。",
+      "collocations": [
+        "be grateful for 因……而感激",
+        "be grateful to sb 感激某人"
+      ],
+      "family": "gratitude n. 感激；gratefully adv. 感激地",
+      "tip": "grateful 和 gratitude 都表示感激；be grateful for + 事，to + 人。"
+    },
+    {
+      "id": "hesitate",
+      "word": "hesitate",
+      "ipa": "/ˈhezɪteɪt/",
+      "pos": "v.",
+      "meanings": [
+        "犹豫；迟疑"
+      ],
+      "unit": 2,
+      "level": 1,
+      "example": "Don't hesitate to ask a question when something is unclear.",
+      "translation": "有问题不清楚时，不要犹豫，尽管问。",
+      "collocations": [
+        "hesitate to do sth 犹豫做某事",
+        "without hesitation 毫不犹豫"
+      ],
+      "family": "hesitation n. 犹豫；hesitant adj. 迟疑的",
+      "tip": "hesitate to ask 是“犹豫着不敢问”，与 refuse 的主动拒绝不同。"
+    },
+    {
+      "id": "humble",
+      "word": "humble",
+      "ipa": "/ˈhʌmbl/",
+      "pos": "adj.",
+      "meanings": [
+        "谦逊的；虚心的",
+        "（地位）低微的；简陋的"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "He is top of the class but stays humble and listens to others.",
+      "translation": "他成绩全班第一，却依然谦逊，愿意听别人说话。",
+      "collocations": [
+        "stay humble 保持谦逊",
+        "a humble person 谦逊的人"
+      ],
+      "family": "humility n. 谦逊；humbly adv. 谦逊地",
+      "tip": "humble 不是“自卑”，而是不把自己看得过重。"
+    },
+    {
+      "id": "optimistic",
+      "word": "optimistic",
+      "ipa": "/ˌɒptɪˈmɪstɪk/",
+      "pos": "adj.",
+      "meanings": [
+        "乐观的；抱有希望的"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "Although the exam was hard, she remained optimistic about the next one.",
+      "translation": "虽然这次考试很难，她对下一次仍然保持乐观。",
+      "collocations": [
+        "be optimistic about 对……乐观",
+        "an optimistic outlook 乐观的看法"
+      ],
+      "family": "optimism n. 乐观 → optimist n. 乐观者 → optimistic adj. 乐观的",
+      "tip": "反义词是 pessimistic；optimistic 的重音在 -mɪs-。"
+    },
+    {
+      "id": "patient",
+      "word": "patient",
+      "ipa": "/ˈpeɪʃnt/",
+      "pos": "adj. / n.",
+      "meanings": [
+        "有耐心的",
+        "病人；患者"
+      ],
+      "unit": 2,
+      "level": 1,
+      "example": "Be patient with yourself when a new word doesn't stick right away.",
+      "translation": "一个新词没能马上记住时，要对自己有耐心。",
+      "collocations": [
+        "be patient with 对……有耐心",
+        "a patient listener 耐心的倾听者"
+      ],
+      "family": "patience n. 耐心 → patient adj. 有耐心的；n. 病人",
+      "tip": "名词 patience 与形容词 patient 只差结尾：-ence 和 -ent。"
+    },
+    {
+      "id": "sensitive",
+      "word": "sensitive",
+      "ipa": "/ˈsensətɪv/",
+      "pos": "adj.",
+      "meanings": [
+        "敏感的；体贴的",
+        "易受伤害的"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "A good friend is sensitive to how others feel.",
+      "translation": "好朋友能敏锐地察觉别人的感受。",
+      "collocations": [
+        "be sensitive to 对……敏感",
+        "a sensitive topic 敏感话题"
+      ],
+      "family": "sense n. 感觉 → sensitive adj. 敏感的 → sensitivity n. 敏感性",
+      "tip": "人“敏感、体贴”用 sensitive；事情“合情合理”用 sensible，别混用。"
+    },
+    {
+      "id": "stubborn",
+      "word": "stubborn",
+      "ipa": "/ˈstʌbən/",
+      "pos": "adj.",
+      "meanings": [
+        "固执的；倔强的",
+        "难以改变的"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "He was too stubborn to admit that he had missed the point.",
+      "translation": "他太固执了，不肯承认自己没抓住重点。",
+      "collocations": [
+        "be stubborn about 在……上固执",
+        "stubborn resistance 顽固的抵抗"
+      ],
+      "family": "stubbornly adv. 固执地；stubbornness n. 倔强",
+      "tip": "stubborn 常用于“不肯改变主意”，有时也形容难题“顽固难解”。"
+    },
+    {
+      "id": "sympathy",
+      "word": "sympathy",
+      "ipa": "/ˈsɪmpəθi/",
+      "pos": "n.",
+      "meanings": [
+        "同情；理解",
+        "支持；赞同"
+      ],
+      "unit": 2,
+      "level": 2,
+      "example": "I have sympathy for anyone who feels nervous before a test.",
+      "translation": "我理解任何在考试前感到紧张的人。",
+      "collocations": [
+        "have sympathy for 同情……",
+        "a letter of sympathy 慰问信"
+      ],
+      "family": "sympathize v. 同情 → sympathetic adj. 同情的 → sympathy n. 同情",
+      "tip": "sym-（共同）＋ path（感受）→ 一起感受，就是共情与同情。"
+    },
+    {
+      "id": "tolerate",
+      "word": "tolerate",
+      "ipa": "/ˈtɒləreɪt/",
+      "pos": "v.",
+      "meanings": [
+        "容忍；忍受",
+        "容许不同意见"
+      ],
+      "unit": 2,
+      "level": 3,
+      "example": "I can't tolerate noise when I'm trying to memorize words.",
+      "translation": "我在背单词时无法忍受噪音。",
+      "collocations": [
+        "tolerate behavior 容忍某种行为",
+        "tolerate differences 包容差异"
+      ],
+      "family": "tolerance n. 宽容 → tolerant adj. 宽容的 → tolerate v. 容忍",
+      "tip": "tolerance 常褒义（包容），tolerate 有时暗示“勉强忍受”。"
+    },
+    {
+      "id": "vulnerable",
+      "word": "vulnerable",
+      "ipa": "/ˈvʌlnərəbl/",
+      "pos": "adj.",
+      "meanings": [
+        "脆弱的；易受伤害的"
+      ],
+      "unit": 2,
+      "level": 3,
+      "example": "It's okay to feel vulnerable; sharing it often makes you stronger.",
+      "translation": "感到脆弱没关系，把这种感受说出来反而会让你更强大。",
+      "collocations": [
+        "feel vulnerable 感到脆弱",
+        "be vulnerable to 易受……影响"
+      ],
+      "family": "vulnerability n. 脆弱；vulnerably adv. 易受伤地",
+      "tip": "vulnerable 不只是“软弱”，也指“开放、不武装自己”的勇气。"
+    },
+    {
+      "id": "resilient",
+      "word": "resilient",
+      "ipa": "/rɪˈzɪliənt/",
+      "pos": "adj.",
+      "meanings": [
+        "有韧性的；能迅速恢复的"
+      ],
+      "unit": 2,
+      "level": 3,
+      "example": "Resilient students don't pretend to be fine—they rest, learn, and try again.",
+      "translation": "有韧性的学生不会假装没事，他们会休息、总结，然后再试一次。",
+      "collocations": [
+        "be resilient to 能适应……",
+        "a resilient community 有韧性的社区"
+      ],
+      "family": "resilience n. 韧性；resiliently adv. 有韧性地",
+      "tip": "resilient 来自“弹回去”：受挫后有弹性地恢复，而不是从不受伤。"
+    },
+    {
+      "id": "artificial",
+      "word": "artificial",
+      "ipa": "/ˌɑːtɪˈfɪʃl/",
+      "pos": "adj.",
+      "meanings": [
+        "人工的；人造的",
+        "虚假的；不自然的"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "Artificial intelligence can help us translate, but it can't replace real understanding.",
+      "translation": "人工智能能帮我们翻译，却无法替代真正的理解。",
+      "collocations": [
+        "artificial intelligence 人工智能",
+        "artificial light 人造光"
+      ],
+      "family": "art n. 技艺 → artificial adj. 人造的 → artificially adv. 人工地",
+      "tip": "art（技艺）＋ fic（做）→ 用技术做出来的，即人造的。"
+    },
+    {
+      "id": "automate",
+      "word": "automate",
+      "ipa": "/ˈɔːtəmeɪt/",
+      "pos": "v.",
+      "meanings": [
+        "使自动化；自动操作"
+      ],
+      "unit": 3,
+      "level": 3,
+      "example": "Many factories now automate tasks that used to need hundreds of workers.",
+      "translation": "许多工厂如今把过去需要数百名工人的工序自动化了。",
+      "collocations": [
+        "automate a process 使流程自动化",
+        "fully automated 全自动的"
+      ],
+      "family": "automatic adj. 自动的 → automate v. 自动化 → automation n. 自动化",
+      "tip": "auto-（自己）＋ mate（运作）→ 机器自己动起来。"
+    },
+    {
+      "id": "breakthrough",
+      "word": "breakthrough",
+      "ipa": "/ˈbreɪkθruː/",
+      "pos": "n.",
+      "meanings": [
+        "突破；重大进展"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "Scientists made a breakthrough in cleaner battery technology.",
+      "translation": "科学家在更清洁的电池技术上取得了突破。",
+      "collocations": [
+        "make a breakthrough 取得突破",
+        "a major breakthrough 重大突破"
+      ],
+      "family": "break through v. 突破 → breakthrough n. 突破",
+      "tip": "break（打破）＋ through（穿过）→ 打破原来的限制。"
+    },
+    {
+      "id": "digital",
+      "word": "digital",
+      "ipa": "/ˈdɪdʒɪtl/",
+      "pos": "adj.",
+      "meanings": [
+        "数字的；数码的"
+      ],
+      "unit": 3,
+      "level": 1,
+      "example": "Digital tools make it easier to organize our notes.",
+      "translation": "数字工具让整理笔记变得更容易。",
+      "collocations": [
+        "digital devices 数码设备",
+        "the digital age 数字时代"
+      ],
+      "family": "digit n. 数字；手指 → digital adj. 数字的",
+      "tip": "digit 既指“数字”，也指“手指”——古代用手指计数。"
+    },
+    {
+      "id": "efficient",
+      "word": "efficient",
+      "ipa": "/ɪˈfɪʃnt/",
+      "pos": "adj.",
+      "meanings": [
+        "高效的；有效率的"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "An efficient study plan leaves room for rest.",
+      "translation": "高效的学习计划会给休息留出空间。",
+      "collocations": [
+        "highly efficient 非常高效的",
+        "energy-efficient 节能的"
+      ],
+      "family": "efficiency n. 效率 → efficient adj. 高效的 → efficiently adv. 高效地",
+      "tip": "efficient 强调“用更少资源完成”；effective 强调“达到了效果”。"
+    },
+    {
+      "id": "experiment",
+      "word": "experiment",
+      "ipa": "/ɪkˈsperɪmənt/",
+      "pos": "n. / v.",
+      "meanings": [
+        "实验；试验",
+        "做实验；尝试"
+      ],
+      "unit": 3,
+      "level": 1,
+      "example": "We carried out an experiment to test which soil holds water best.",
+      "translation": "我们做了一个实验，测试哪种土壤保水性最好。",
+      "collocations": [
+        "conduct an experiment 做实验",
+        "experiment with 尝试……"
+      ],
+      "family": "experimental adj. 实验性的；experimentation n. 实验",
+      "tip": "搭配是 do / carry out / conduct an experiment，不要用 make an experiment。"
+    },
+    {
+      "id": "innovation",
+      "word": "innovation",
+      "ipa": "/ˌɪnəˈveɪʃn/",
+      "pos": "n.",
+      "meanings": [
+        "创新；革新",
+        "新事物；新方法"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "True innovation starts with asking better questions.",
+      "translation": "真正的创新，始于提出更好的问题。",
+      "collocations": [
+        "technological innovation 科技创新",
+        "encourage innovation 鼓励创新"
+      ],
+      "family": "innovate v. 创新 → innovation n. 创新 → innovative adj. 有创意的",
+      "tip": "in-（进入）＋ nov（新）→ 把新东西带进来。"
+    },
+    {
+      "id": "intelligence",
+      "word": "intelligence",
+      "ipa": "/ɪnˈtelɪdʒəns/",
+      "pos": "n.",
+      "meanings": [
+        "智力；智能",
+        "情报"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "Emotional intelligence matters as much as exam scores.",
+      "translation": "情商和考试成绩同样重要。",
+      "collocations": [
+        "artificial intelligence 人工智能",
+        "emotional intelligence 情商"
+      ],
+      "family": "intelligent adj. 聪明的 → intelligence n. 智力；intelligently adv. 聪明地",
+      "tip": "intelligence 既指“聪明才智”，也可指军事情报；形容词是 intelligent。"
+    },
+    {
+      "id": "navigation",
+      "word": "navigation",
+      "ipa": "/ˌnævɪˈɡeɪʃn/",
+      "pos": "n.",
+      "meanings": [
+        "导航；航行",
+        "领航术"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "The app's navigation saved us when we got lost downtown.",
+      "translation": "我们在市中心迷路时，这个应用的导航救了场。",
+      "collocations": [
+        "GPS navigation GPS 导航",
+        "a navigation system 导航系统"
+      ],
+      "family": "navigate v. 导航；航行 → navigation n. 导航 → navigator n. 领航员",
+      "tip": "nav（船）＋ ig（驾驶）→ 驾驶船只找到方向。"
+    },
+    {
+      "id": "orbit",
+      "word": "orbit",
+      "ipa": "/ˈɔːbɪt/",
+      "pos": "n. / v.",
+      "meanings": [
+        "轨道",
+        "沿轨道运行；环绕"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "The satellite moves in a fixed orbit around Earth.",
+      "translation": "这颗卫星沿着固定轨道绕地球运行。",
+      "collocations": [
+        "in orbit 在轨道上",
+        "orbit the earth 绕地球运行"
+      ],
+      "family": "orbital adj. 轨道的",
+      "tip": "orbit 可以作动词，直接接天体：The moon orbits the earth."
+    },
+    {
+      "id": "privacy",
+      "word": "privacy",
+      "ipa": "/ˈprɪvəsi/",
+      "pos": "n.",
+      "meanings": [
+        "隐私；私密"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "Companies should ask before collecting personal data that affects privacy.",
+      "translation": "企业在收集涉及隐私的个人数据前，应先征得同意。",
+      "collocations": [
+        "protect privacy 保护隐私",
+        "privacy settings 隐私设置"
+      ],
+      "family": "private adj. 私人的 → privacy n. 隐私",
+      "tip": "private 是“私人的”，privacy 是“不被打扰、不被公开的状态”。"
+    },
+    {
+      "id": "relevant",
+      "word": "relevant",
+      "ipa": "/ˈreləvənt/",
+      "pos": "adj.",
+      "meanings": [
+        "相关的；切题的"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "Use evidence that is relevant to the question you are answering.",
+      "translation": "使用与你所回答问题相关的证据。",
+      "collocations": [
+        "be relevant to 与……相关",
+        "relevant information 相关信息"
+      ],
+      "family": "relevance n. 相关性 → relevant adj. 相关的 → relevantly adv. 相关地",
+      "tip": "relevant 是“切题、有关联”，不等于“重要的”；固定搭配 be relevant to。"
+    },
+    {
+      "id": "satellite",
+      "word": "satellite",
+      "ipa": "/ˈsætəlaɪt/",
+      "pos": "n.",
+      "meanings": [
+        "卫星",
+        "卫星城；附属机构"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "Weather satellites help us predict storms earlier.",
+      "translation": "气象卫星帮助我们更早预测风暴。",
+      "collocations": [
+        "a weather satellite 气象卫星",
+        "satellite images 卫星图像"
+      ],
+      "family": "satellite-based adj. 基于卫星的",
+      "tip": "satellite 既可指人造卫星，也可指天然卫星，如 the Moon。"
+    },
+    {
+      "id": "software",
+      "word": "software",
+      "ipa": "/ˈsɒftweə/",
+      "pos": "n.",
+      "meanings": [
+        "软件"
+      ],
+      "unit": 3,
+      "level": 1,
+      "example": "The school installed new software for online experiments.",
+      "translation": "学校为在线实验安装了新软件。",
+      "collocations": [
+        "install software 安装软件",
+        "a piece of software 一个软件"
+      ],
+      "family": "hardware n. 硬件；software developer 软件开发者",
+      "tip": "software 是不可数名词：a piece of software，不说 a software。"
+    },
+    {
+      "id": "virtual",
+      "word": "virtual",
+      "ipa": "/ˈvɜːtʃuəl/",
+      "pos": "adj.",
+      "meanings": [
+        "虚拟的；模拟的",
+        "实际上的；几乎的"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "A virtual museum tour let us see the exhibition from home.",
+      "translation": "一场虚拟博物馆之旅让我们在家也能看展。",
+      "collocations": [
+        "virtual reality 虚拟现实",
+        "a virtual world 虚拟世界"
+      ],
+      "family": "virtually adv. 几乎；实际上；virtualize v. 虚拟化",
+      "tip": "virtual 不只指电脑里的“虚拟”，virtually 还常表示“实际上、几乎”。"
+    },
+    {
+      "id": "wireless",
+      "word": "wireless",
+      "ipa": "/ˈwaɪələs/",
+      "pos": "adj.",
+      "meanings": [
+        "无线的"
+      ],
+      "unit": 3,
+      "level": 1,
+      "example": "The wireless network is faster in the library than in the dorm.",
+      "translation": "图书馆的无线网络比宿舍快。",
+      "collocations": [
+        "wireless network 无线网络",
+        "wireless charging 无线充电"
+      ],
+      "family": "wire n. 电线 → wireless adj. 无线的",
+      "tip": "wire（线）＋ -less（没有）→ 不需要线的。"
+    },
+    {
+      "id": "transform",
+      "word": "transform",
+      "ipa": "/trænsˈfɔːm/",
+      "pos": "v.",
+      "meanings": [
+        "彻底改变；使转化"
+      ],
+      "unit": 3,
+      "level": 2,
+      "example": "A single book can transform the way you see a problem.",
+      "translation": "一本书就可能彻底改变你看待问题的方式。",
+      "collocations": [
+        "transform A into B 把 A 变成 B",
+        "digital transformation 数字化转型"
+      ],
+      "family": "transformation n. 转变 → transformative adj. 带来变革的",
+      "tip": "trans-（跨越）＋ form（形状）→ 换一个形态，彻底改变。"
+    },
+    {
+      "id": "algorithm",
+      "word": "algorithm",
+      "ipa": "/ˈælɡərɪðəm/",
+      "pos": "n.",
+      "meanings": [
+        "算法；计算程序"
+      ],
+      "unit": 3,
+      "level": 3,
+      "example": "The recommendation algorithm shows you videos based on what you watch.",
+      "translation": "推荐算法会根据你的观看记录给你推送视频。",
+      "collocations": [
+        "a recommendation algorithm 推荐算法",
+        "design an algorithm 设计算法"
+      ],
+      "family": "algorithmic adj. 算法的",
+      "tip": "algorithm 来自数学家花拉子米的名字，重音在第一个音节。"
+    },
+    {
+      "id": "device",
+      "word": "device",
+      "ipa": "/dɪˈvaɪs/",
+      "pos": "n.",
+      "meanings": [
+        "设备；装置",
+        "方法；手段"
+      ],
+      "unit": 3,
+      "level": 1,
+      "example": "Keep your device away during revision so you can focus.",
+      "translation": "复习时把设备放远一点，好让自己专注。",
+      "collocations": [
+        "mobile device 移动设备",
+        "electronic device 电子设备"
+      ],
+      "family": "devise v. 设计；发明",
+      "tip": "device 是名词，devise 是动词“设计”；拼写只差一个 s。"
+    },
+    {
+      "id": "data",
+      "word": "data",
+      "ipa": "/ˈdeɪtə/",
+      "pos": "n.",
+      "meanings": [
+        "数据；资料"
+      ],
+      "unit": 3,
+      "level": 1,
+      "example": "The data shows that students who sleep well perform better.",
+      "translation": "数据显示，睡眠充足的学生表现更好。",
+      "collocations": [
+        "collect data 收集数据",
+        "personal data 个人数据"
+      ],
+      "family": "database n. 数据库；data-driven adj. 数据驱动的",
+      "tip": "data 是 datum 的复数，作“数据”时常搭配单数动词，口语中单复数用法都常见。"
+    },
+    {
+      "id": "atmosphere",
+      "word": "atmosphere",
+      "ipa": "/ˈætməsfɪə/",
+      "pos": "n.",
+      "meanings": [
+        "大气；大气层",
+        "气氛；氛围"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "The atmosphere protects us from harmful radiation.",
+      "translation": "大气层保护我们免受有害辐射的伤害。",
+      "collocations": [
+        "the Earth's atmosphere 地球大气层",
+        "a relaxed atmosphere 轻松的氛围"
+      ],
+      "family": "atmospheric adj. 大气的；有氛围的",
+      "tip": "同一个词，在地理里是“大气层”，在生活里是“气氛”，看语境判断。"
+    },
+    {
+      "id": "conserve",
+      "word": "conserve",
+      "ipa": "/kənˈsɜːv/",
+      "pos": "v.",
+      "meanings": [
+        "节约；保护（资源）"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "Turn off the tap to conserve water.",
+      "translation": "关掉水龙头，节约用水。",
+      "collocations": [
+        "conserve energy 节约能源",
+        "conserve water 节约用水"
+      ],
+      "family": "conservation n. 保护；节约 → conservationist n. 环保主义者",
+      "tip": "conserve 强调“节约使用、防止浪费”；preserve 更强调“保存原状”。"
+    },
+    {
+      "id": "climate",
+      "word": "climate",
+      "ipa": "/ˈklaɪmət/",
+      "pos": "n.",
+      "meanings": [
+        "气候",
+        "风气；氛围"
+      ],
+      "unit": 4,
+      "level": 1,
+      "example": "Climate change is affecting rainfall patterns around the world.",
+      "translation": "气候变化正在影响世界各地的降雨模式。",
+      "collocations": [
+        "climate change 气候变化",
+        "a mild climate 温和的气候"
+      ],
+      "family": "climatic adj. 气候的",
+      "tip": "climate 是长期的气候；weather 是某一天的具体天气。"
+    },
+    {
+      "id": "creature",
+      "word": "creature",
+      "ipa": "/ˈkriːtʃə/",
+      "pos": "n.",
+      "meanings": [
+        "生物；动物",
+        "（有特定特征的）人"
+      ],
+      "unit": 4,
+      "level": 1,
+      "example": "Some deep-sea creatures can survive without sunlight.",
+      "translation": "有些深海生物在没有阳光的环境中也能生存。",
+      "collocations": [
+        "a sea creature 海洋生物",
+        "a living creature 生物"
+      ],
+      "family": "create v. 创造 → creature n. 被创造出的生命",
+      "tip": "creature 来自 create（创造）：被创造出来的生命体。"
+    },
+    {
+      "id": "drought",
+      "word": "drought",
+      "ipa": "/draʊt/",
+      "pos": "n.",
+      "meanings": [
+        "干旱；旱灾",
+        "长期缺乏"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "The drought lasted for months and dried up the river.",
+      "translation": "干旱持续了数月，河流都干涸了。",
+      "collocations": [
+        "severe drought 严重干旱",
+        "drought-hit areas 受灾干旱地区"
+      ],
+      "family": "drought-resistant adj. 抗旱的",
+      "tip": "drought 的字母组合是 -ought，和 brought 一样，注意拼写。"
+    },
+    {
+      "id": "ecosystem",
+      "word": "ecosystem",
+      "ipa": "/ˈiːkəʊsɪstəm/",
+      "pos": "n.",
+      "meanings": [
+        "生态系统"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "A single species can play a key role in an ecosystem.",
+      "translation": "一个物种就可能在一个生态系统中发挥关键作用。",
+      "collocations": [
+        "marine ecosystem 海洋生态系统",
+        "a fragile ecosystem 脆弱的生态系统"
+      ],
+      "family": "eco-（生态）＋ system（系统）",
+      "tip": "eco- 表示“生态、环境”，常见于 ecology、eco-friendly。"
+    },
+    {
+      "id": "endangered",
+      "word": "endangered",
+      "ipa": "/ɪnˈdeɪndʒəd/",
+      "pos": "adj.",
+      "meanings": [
+        "濒危的；受到威胁的"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "The park was created to protect endangered animals.",
+      "translation": "这座公园的建立是为了保护濒危动物。",
+      "collocations": [
+        "endangered species 濒危物种",
+        "critically endangered 极度濒危的"
+      ],
+      "family": "endanger v. 危及 → endangered adj. 濒危的；danger n. 危险",
+      "tip": "in danger 是“处于危险中”；endangered 是“被置于危险中的”，常修饰物种。"
+    },
+    {
+      "id": "extinction",
+      "word": "extinction",
+      "ipa": "/ɪkˈstɪŋkʃn/",
+      "pos": "n.",
+      "meanings": [
+        "灭绝；消亡"
+      ],
+      "unit": 4,
+      "level": 3,
+      "example": "Many species are now at risk of extinction.",
+      "translation": "许多物种现在面临灭绝的风险。",
+      "collocations": [
+        "face extinction 面临灭绝",
+        "prevent extinction 防止灭绝"
+      ],
+      "family": "extinct adj. 灭绝的 → extinction n. 灭绝 → extinctive adj. 使灭绝的",
+      "tip": "extinct 是形容词“已灭绝的”，extinction 是名词“灭绝过程”。"
+    },
+    {
+      "id": "habitat",
+      "word": "habitat",
+      "ipa": "/ˈhæbɪtæt/",
+      "pos": "n.",
+      "meanings": [
+        "栖息地；生活环境"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "Building roads can destroy the natural habitat of wild animals.",
+      "translation": "修路可能会破坏野生动物的自然栖息地。",
+      "collocations": [
+        "natural habitat 自然栖息地",
+        "habitat loss 栖息地丧失"
+      ],
+      "family": "habitable adj. 适合居住的 → habitat n. 栖息地",
+      "tip": "habitat 不是 habit（习惯），结尾是 -tat；habitat loss 是常见搭配。"
+    },
+    {
+      "id": "pollution",
+      "word": "pollution",
+      "ipa": "/pəˈluːʃn/",
+      "pos": "n.",
+      "meanings": [
+        "污染；污染物"
+      ],
+      "unit": 4,
+      "level": 1,
+      "example": "Plastic pollution threatens birds and fish.",
+      "translation": "塑料污染威胁着鸟类和鱼类。",
+      "collocations": [
+        "reduce pollution 减少污染",
+        "air pollution 空气污染"
+      ],
+      "family": "pollute v. 污染 → pollution n. 污染 → pollutant n. 污染物",
+      "tip": "pollute 的过去分词 polluted 是“被污染的”，不要漏掉 -ed。"
+    },
+    {
+      "id": "preserve",
+      "word": "preserve",
+      "ipa": "/prɪˈzɜːv/",
+      "pos": "v.",
+      "meanings": [
+        "保护；保存",
+        "维持；保留"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "We need to preserve forests for future generations.",
+      "translation": "我们需要为子孙后代保护森林。",
+      "collocations": [
+        "preserve the environment 保护环境",
+        "preserve tradition 保留传统"
+      ],
+      "family": "preservation n. 保存 → preservative n. 防腐剂",
+      "tip": "pre-（预先）＋ serv（保持）→ 提前保护，让它保持不变。"
+    },
+    {
+      "id": "recycle",
+      "word": "recycle",
+      "ipa": "/ˌriːˈsaɪkl/",
+      "pos": "v.",
+      "meanings": [
+        "回收利用；再循环"
+      ],
+      "unit": 4,
+      "level": 1,
+      "example": "Our class recycles paper and uses both sides of every sheet.",
+      "translation": "我们班回收纸张，每张纸都双面使用。",
+      "collocations": [
+        "recycle waste 回收废物",
+        "recycled materials 再生材料"
+      ],
+      "family": "recycling n. 回收利用 → recyclable adj. 可回收的",
+      "tip": "re-（再）＋ cycle（循环）→ 让资源重新进入循环。"
+    },
+    {
+      "id": "renewable",
+      "word": "renewable",
+      "ipa": "/rɪˈnjuːəbl/",
+      "pos": "adj.",
+      "meanings": [
+        "可再生的；可续期的"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "Solar power is a renewable source of energy.",
+      "translation": "太阳能是一种可再生能源。",
+      "collocations": [
+        "renewable energy 可再生能源",
+        "renewable resources 可再生资源"
+      ],
+      "family": "renew v. 更新；续期 → renewable adj. 可再生的",
+      "tip": "re-（再）＋ new（新）→ 能够不断更新、再生的。"
+    },
+    {
+      "id": "resource",
+      "word": "resource",
+      "ipa": "/rɪˈsɔːs/",
+      "pos": "n.",
+      "meanings": [
+        "资源；资料",
+        "应变能力"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "Fresh water is a limited resource, not an endless one.",
+      "translation": "淡水是一种有限资源，并非取之不尽。",
+      "collocations": [
+        "natural resources 自然资源",
+        "a valuable resource 宝贵的资源"
+      ],
+      "family": "resourceful adj. 足智多谋的；resourcefulness n. 机智",
+      "tip": "resourceful 不是“资源丰富的”，而是形容人“有办法、机灵的”。"
+    },
+    {
+      "id": "species",
+      "word": "species",
+      "ipa": "/ˈspiːʃiːz/",
+      "pos": "n.",
+      "meanings": [
+        "物种；种类"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "The island is home to several rare bird species.",
+      "translation": "这座岛屿是几种珍稀鸟类的家园。",
+      "collocations": [
+        "endangered species 濒危物种",
+        "a species of ……的一种"
+      ],
+      "family": "subspecies n. 亚种",
+      "tip": "species 的单复数是同一个词形：one species, two species。"
+    },
+    {
+      "id": "sustainable",
+      "word": "sustainable",
+      "ipa": "/səˈsteɪnəbl/",
+      "pos": "adj.",
+      "meanings": [
+        "可持续的；能长期维持的"
+      ],
+      "unit": 4,
+      "level": 3,
+      "example": "Sustainable choices today keep the planet livable tomorrow.",
+      "translation": "今天可持续的选择，让地球明天依然宜居。",
+      "collocations": [
+        "sustainable development 可持续发展",
+        "a sustainable lifestyle 可持续的生活方式"
+      ],
+      "family": "sustain v. 维持 → sustainable adj. 可持续的 → sustainability n. 可持续性",
+      "tip": "sustain（支撑、维持）＋ -able（能够）→ 能长期撑下去的。"
+    },
+    {
+      "id": "threaten",
+      "word": "threaten",
+      "ipa": "/ˈθretn/",
+      "pos": "v.",
+      "meanings": [
+        "威胁；危及",
+        "恐吓"
+      ],
+      "unit": 4,
+      "level": 2,
+      "example": "Loud boats threaten the whales that live near the coast.",
+      "translation": "嘈杂的船只威胁着生活在海岸附近的鲸鱼。",
+      "collocations": [
+        "threaten to do 威胁要做",
+        "threaten wildlife 危及野生动物"
+      ],
+      "family": "threat n. 威胁 → threaten v. 威胁 → threatening adj. 险恶的",
+      "tip": "threaten 后既可接人（恐吓），也可接事物（危及），看宾语判断。"
+    },
+    {
+      "id": "wildlife",
+      "word": "wildlife",
+      "ipa": "/ˈwaɪldlaɪf/",
+      "pos": "n.",
+      "meanings": [
+        "野生动物；野生生物"
+      ],
+      "unit": 4,
+      "level": 1,
+      "example": "The reserve gives wildlife a safe place to live.",
+      "translation": "保护区为野生动物提供了安全的栖息地。",
+      "collocations": [
+        "protect wildlife 保护野生动物",
+        "wildlife conservation 野生动物保护"
+      ],
+      "family": "wild adj. 野生的 + life n. 生命",
+      "tip": "wildlife 是不可数名词，通常不写 wildlifes。"
+    },
+    {
+      "id": "disaster",
+      "word": "disaster",
+      "ipa": "/dɪˈzɑːstə/",
+      "pos": "n.",
+      "meanings": [
+        "灾难；灾害",
+        "彻底的失败"
+      ],
+      "unit": 4,
+      "level": 1,
+      "example": "The flood was a natural disaster that changed the town forever.",
+      "translation": "那场洪水是一场永远改变了小镇的自然灾害。",
+      "collocations": [
+        "natural disaster 自然灾害",
+        "disaster relief 灾害救援"
+      ],
+      "family": "disastrous adj. 灾难性的；disastrously adv. 灾难性地",
+      "tip": "dis-（坏）＋ aster（星）→ 古人认为星象不吉会带来灾祸。"
+    },
+    {
+      "id": "carbon",
+      "word": "carbon",
+      "ipa": "/ˈkɑːbən/",
+      "pos": "n.",
+      "meanings": [
+        "碳",
+        "碳元素；碳足迹相关"
+      ],
+      "unit": 4,
+      "level": 1,
+      "example": "Cycling to school is a simple way to reduce your carbon footprint.",
+      "translation": "骑车上学是减少碳足迹的一种简单方式。",
+      "collocations": [
+        "carbon footprint 碳足迹",
+        "carbon emissions 碳排放"
+      ],
+      "family": "carbon-neutral adj. 碳中和的；low-carbon adj. 低碳的",
+      "tip": "carbon 是元素“碳”；carbon footprint 指个人或组织产生的碳排放总量。"
+    },
+    {
+      "id": "ancient",
+      "word": "ancient",
+      "ipa": "/ˈeɪnʃənt/",
+      "pos": "adj.",
+      "meanings": [
+        "古代的；古老的",
+        "年代久远的"
+      ],
+      "unit": 5,
+      "level": 1,
+      "example": "The ancient city was buried under the sand for centuries.",
+      "translation": "这座古城被埋在沙下数百年。",
+      "collocations": [
+        "ancient civilization 古代文明",
+        "ancient history 古代史"
+      ],
+      "family": "anciently adv. 古时；antiquity n. 古代",
+      "tip": "ancient 表示“古代”，不是“陈旧过时”；modern 才是它的常见反义。"
+    },
+    {
+      "id": "architecture",
+      "word": "architecture",
+      "ipa": "/ˈɑːkɪtektʃə/",
+      "pos": "n.",
+      "meanings": [
+        "建筑；建筑学",
+        "结构；架构"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "The old town is famous for its wood-and-stone architecture.",
+      "translation": "这座老城以木石结构的建筑闻名。",
+      "collocations": [
+        "traditional architecture 传统建筑",
+        "study architecture 学习建筑学"
+      ],
+      "family": "architect n. 建筑师 → architecture n. 建筑学 → architectural adj. 建筑的",
+      "tip": "architect 是建筑师，architecture 指建筑风格或建筑学；computer architecture 则指计算机架构。"
+    },
+    {
+      "id": "ceremony",
+      "word": "ceremony",
+      "ipa": "/ˈserəməni/",
+      "pos": "n.",
+      "meanings": [
+        "仪式；典礼",
+        "礼节；客套"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "The opening ceremony included a traditional dragon dance.",
+      "translation": "开幕式上表演了传统舞龙。",
+      "collocations": [
+        "opening ceremony 开幕式",
+        "hold a ceremony 举行仪式"
+      ],
+      "family": "ceremonial adj. 仪式的；ceremonious adj. 讲究礼仪的",
+      "tip": "ceremony 是正式的仪式；celebration 更强调庆祝活动本身。"
+    },
+    {
+      "id": "civilization",
+      "word": "civilization",
+      "ipa": "/ˌsɪvəlaɪˈzeɪʃn/",
+      "pos": "n.",
+      "meanings": [
+        "文明；文明社会"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "The river helped an ancient civilization grow.",
+      "translation": "这条河流哺育了一个古代文明。",
+      "collocations": [
+        "ancient civilization 古代文明",
+        "human civilization 人类文明"
+      ],
+      "family": "civilize v. 使文明 → civilization n. 文明 → civilized adj. 文明的",
+      "tip": "civil（公民的）→ civilization：人们聚居、形成城市与制度的过程。"
+    },
+    {
+      "id": "community",
+      "word": "community",
+      "ipa": "/kəˈmjuːnəti/",
+      "pos": "n.",
+      "meanings": [
+        "社区；群体",
+        "共同体"
+      ],
+      "unit": 5,
+      "level": 1,
+      "example": "Our community organized a book drive for the village school.",
+      "translation": "我们社区为乡村学校组织了一次图书捐赠活动。",
+      "collocations": [
+        "local community 当地社区",
+        "a sense of community 归属感"
+      ],
+      "family": "communal adj. 公共的；commune n. 公社",
+      "tip": "community 既可以指居住的“社区”，也可以指有共同身份的“群体”。"
+    },
+    {
+      "id": "cultural",
+      "word": "cultural",
+      "ipa": "/ˈkʌltʃərəl/",
+      "pos": "adj.",
+      "meanings": [
+        "文化的；与文化有关的"
+      ],
+      "unit": 5,
+      "level": 1,
+      "example": "Food is a window into cultural identity.",
+      "translation": "食物是了解文化认同的一扇窗口。",
+      "collocations": [
+        "cultural heritage 文化遗产",
+        "cultural differences 文化差异"
+      ],
+      "family": "culture n. 文化 → cultural adj. 文化的 → culturally adv. 文化上",
+      "tip": "cultural 是形容词，culture 是名词；常见的固定说法是 culture shock（文化冲击）。"
+    },
+    {
+      "id": "custom",
+      "word": "custom",
+      "ipa": "/ˈkʌstəm/",
+      "pos": "n.",
+      "meanings": [
+        "习俗；风俗",
+        "个人习惯"
+      ],
+      "unit": 5,
+      "level": 1,
+      "example": "It is a local custom to give red envelopes during Spring Festival.",
+      "translation": "春节期间发红包是当地的习俗。",
+      "collocations": [
+        "local custom 当地习俗",
+        "follow a custom 遵循习俗"
+      ],
+      "family": "customary adj. 习惯性的；customer n. 顾客",
+      "tip": "custom 是习俗；customs 还可指海关。customer 是顾客，来自“常来的人”。"
+    },
+    {
+      "id": "heritage",
+      "word": "heritage",
+      "ipa": "/ˈherɪtɪdʒ/",
+      "pos": "n.",
+      "meanings": [
+        "遗产；传统"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "The language carries a heritage that cannot be replaced.",
+      "translation": "这门语言承载着无法被替代的遗产。",
+      "collocations": [
+        "cultural heritage 文化遗产",
+        "a world heritage site 世界遗产地"
+      ],
+      "family": "inherit v. 继承 → heritage n. 遗产",
+      "tip": "heritage 强调“继承下来的文化与传统”，不只是金钱遗产。"
+    },
+    {
+      "id": "immigrant",
+      "word": "immigrant",
+      "ipa": "/ˈɪmɪɡrənt/",
+      "pos": "n.",
+      "meanings": [
+        "移民；外来移居者"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "Many immigrants brought their food and music to the city.",
+      "translation": "许多移民把他们的食物和音乐带到了这座城市。",
+      "collocations": [
+        "an immigrant family 移民家庭",
+        "immigrants from 来自……的移民"
+      ],
+      "family": "immigrate v. 移入 → immigrant n. 移民；emigrant n. 移出者",
+      "tip": "im-（向内）→ immigrant 是“移入者”；e-（向外）→ emigrant 是“移出者”。"
+    },
+    {
+      "id": "legend",
+      "word": "legend",
+      "ipa": "/ˈledʒənd/",
+      "pos": "n.",
+      "meanings": [
+        "传说；传奇故事",
+        "传奇人物"
+      ],
+      "unit": 5,
+      "level": 1,
+      "example": "According to legend, the mountain was formed by a dragon.",
+      "translation": "传说这座山是由一条龙化成的。",
+      "collocations": [
+        "according to legend 据传说",
+        "a local legend 当地传说"
+      ],
+      "family": "legendary adj. 传奇的 → legend n. 传说",
+      "tip": "legend 既可指故事“传说”，也可指人“传奇”，如 a living legend。"
+    },
+    {
+      "id": "literature",
+      "word": "literature",
+      "ipa": "/ˈlɪtrətʃə/",
+      "pos": "n.",
+      "meanings": [
+        "文学；文学作品",
+        "文献；资料"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "Chinese literature is full of stories about friendship and courage.",
+      "translation": "中国文学中有许多关于友谊和勇气的故事。",
+      "collocations": [
+        "classical literature 古典文学",
+        "study literature 学习文学"
+      ],
+      "family": "literary adj. 文学的 → literature n. 文学；literate adj. 识字的",
+      "tip": "literature 除了“文学”，在学术语境也可泛指某领域的“文献”。"
+    },
+    {
+      "id": "minority",
+      "word": "minority",
+      "ipa": "/maɪˈnɒrəti/",
+      "pos": "n.",
+      "meanings": [
+        "少数群体；少数民族",
+        "少数；少数派"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "The school celebrates the languages of minority groups.",
+      "translation": "学校庆祝少数族群的语言。",
+      "collocations": [
+        "ethnic minority 少数民族",
+        "a small minority 极少数"
+      ],
+      "family": "minor adj. 较小的 → minority n. 少数；反义 majority n. 多数",
+      "tip": "minor（较小的）＋ -ity → 少数；与 majority 成对记忆。"
+    },
+    {
+      "id": "reflect",
+      "word": "reflect",
+      "ipa": "/rɪˈflekt/",
+      "pos": "v.",
+      "meanings": [
+        "反映；映出",
+        "认真思考；反思"
+      ],
+      "unit": 5,
+      "level": 1,
+      "example": "The exhibition reflects the changing role of women in society.",
+      "translation": "这场展览反映了女性在社会中不断变化的角色。",
+      "collocations": [
+        "reflect a change 反映变化",
+        "reflect on 反思；思考"
+      ],
+      "family": "reflection n. 倒影；反思 → reflective adj. 反思的；反光的",
+      "tip": "reflect on 才是“反思”；只说 reflect 常表示“反映、映出”。"
+    },
+    {
+      "id": "ritual",
+      "word": "ritual",
+      "ipa": "/ˈrɪtʃuəl/",
+      "pos": "n. / adj.",
+      "meanings": [
+        "仪式；惯例",
+        "仪式性的"
+      ],
+      "unit": 5,
+      "level": 3,
+      "example": "Tea drinking is a daily ritual in many families.",
+      "translation": "喝茶在许多家庭里是一种日常仪式。",
+      "collocations": [
+        "a daily ritual 日常仪式",
+        "religious ritual 宗教仪式"
+      ],
+      "family": "ritually adv. 仪式性地",
+      "tip": "ritual 比 ceremony 更强调“按固定步骤反复进行”，也可以指个人习惯。"
+    },
+    {
+      "id": "sculpture",
+      "word": "sculpture",
+      "ipa": "/ˈskʌlptʃə/",
+      "pos": "n.",
+      "meanings": [
+        "雕塑；雕刻品",
+        "雕塑艺术"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "The sculpture in the square honors a local hero.",
+      "translation": "广场上的雕塑纪念着一位当地的英雄。",
+      "collocations": [
+        "a stone sculpture 石雕",
+        "create a sculpture 创作雕塑"
+      ],
+      "family": "sculpt v. 雕刻 → sculptor n. 雕塑家 → sculpture n. 雕塑",
+      "tip": "sculptor 是“雕塑家”，sculpture 是“雕塑作品或艺术”；不要写成 sculpter。"
+    },
+    {
+      "id": "symbolize",
+      "word": "symbolize",
+      "ipa": "/ˈsɪmbəlaɪz/",
+      "pos": "v.",
+      "meanings": [
+        "象征；代表"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "In many cultures, the dove symbolizes peace.",
+      "translation": "在许多文化中，鸽子象征和平。",
+      "collocations": [
+        "symbolize peace 象征和平",
+        "be symbolized by 由……象征"
+      ],
+      "family": "symbol n. 象征 → symbolize v. 象征 → symbolic adj. 象征性的",
+      "tip": "symbol（象征）＋ -ize（使成为）→ 使某物成为象征。"
+    },
+    {
+      "id": "tradition",
+      "word": "tradition",
+      "ipa": "/trəˈdɪʃn/",
+      "pos": "n.",
+      "meanings": [
+        "传统；惯例"
+      ],
+      "unit": 5,
+      "level": 1,
+      "example": "Keeping the tradition alive takes effort from the whole community.",
+      "translation": "让传统延续下去，需要整个社区共同努力。",
+      "collocations": [
+        "a family tradition 家族传统",
+        "keep a tradition alive 让传统延续"
+      ],
+      "family": "traditional adj. 传统的 → traditionally adv. 传统上",
+      "tip": "tradition 可数：某一种具体传统可以说 a tradition，泛指则用 tradition。"
+    },
+    {
+      "id": "diverse",
+      "word": "diverse",
+      "ipa": "/daɪˈvɜːs/",
+      "pos": "adj.",
+      "meanings": [
+        "多样的；不同的"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "London is one of the most diverse cities in the world.",
+      "translation": "伦敦是世界上最多元的城市之一。",
+      "collocations": [
+        "culturally diverse 文化多元的",
+        "a diverse range of 各种各样的"
+      ],
+      "family": "diversity n. 多样性 → diversify v. 使多样化 → diverse adj. 多样的",
+      "tip": "diverse 强调“种类多、彼此不同”；不要与 divert（转移）混淆。"
+    },
+    {
+      "id": "influence",
+      "word": "influence",
+      "ipa": "/ˈɪnfluəns/",
+      "pos": "n. / v.",
+      "meanings": [
+        "影响；作用",
+        "影响某人"
+      ],
+      "unit": 5,
+      "level": 1,
+      "example": "Pop music has a strong influence on the way young people speak.",
+      "translation": "流行音乐对年轻人的说话方式有很大影响。",
+      "collocations": [
+        "have an influence on 对……有影响",
+        "influence sb to do 促使某人做"
+      ],
+      "family": "influential adj. 有影响力的 → influence n./v. 影响",
+      "tip": "名词搭配 have an influence on；动词直接及物：influence young people。"
+    },
+    {
+      "id": "identity",
+      "word": "identity",
+      "ipa": "/aɪˈdentəti/",
+      "pos": "n.",
+      "meanings": [
+        "身份；认同",
+        "特征；同一性"
+      ],
+      "unit": 5,
+      "level": 2,
+      "example": "Language is an important part of cultural identity.",
+      "translation": "语言是文化认同的重要组成部分。",
+      "collocations": [
+        "cultural identity 文化认同",
+        "a sense of identity 身份认同感"
+      ],
+      "family": "identify v. 辨认；确认 → identity n. 身份 → identical adj. 完全相同的",
+      "tip": "identity 是“身份、认同”，identify 是动词“识别”；注意拼写中的 -tity。"
+    },
+    {
+      "id": "advocate",
+      "word": "advocate",
+      "ipa": "/ˈædvəkeɪt/",
+      "pos": "v. / n.",
+      "meanings": [
+        "提倡；主张",
+        "拥护者；倡导者"
+      ],
+      "unit": 6,
+      "level": 3,
+      "example": "The editorial advocates protecting green spaces in the city.",
+      "translation": "这篇社论主张保护城市里的绿地。",
+      "collocations": [
+        "advocate doing sth 主张做某事",
+        "an advocate of/for ……的拥护者"
+      ],
+      "family": "advocacy n. 倡导；advocate n. 拥护者",
+      "tip": "advocate 后常接动名词：advocate doing，不常接 to do。"
+    },
+    {
+      "id": "argument",
+      "word": "argument",
+      "ipa": "/ˈɑːɡjumənt/",
+      "pos": "n.",
+      "meanings": [
+        "论点；论据",
+        "争论；争吵"
+      ],
+      "unit": 6,
+      "level": 1,
+      "example": "A clear argument needs evidence, not just strong feelings.",
+      "translation": "清晰的论点需要证据，而不只是强烈的情感。",
+      "collocations": [
+        "make an argument 提出论点",
+        "a powerful argument 有力的论证"
+      ],
+      "family": "argue v. 争论；主张 → argument n. 论点；争吵",
+      "tip": "argument 不一定是“吵架”，议论文中的 argument 多指“论点、论证”。"
+    },
+    {
+      "id": "clarify",
+      "word": "clarify",
+      "ipa": "/ˈklærəfaɪ/",
+      "pos": "v.",
+      "meanings": [
+        "澄清；阐明",
+        "使清晰"
+      ],
+      "unit": 6,
+      "level": 2,
+      "example": "Could you clarify what you mean by 'success'?",
+      "translation": "你能说明一下你说的“成功”是什么意思吗？",
+      "collocations": [
+        "clarify a point 澄清观点",
+        "to clarify 确切地说"
+      ],
+      "family": "clear adj. 清楚的 → clarify v. 澄清 → clarity n. 清晰",
+      "tip": "clarify 不是“分类”，而是把含混的地方说清楚；名词 clarity。"
+    },
+    {
+      "id": "conclusion",
+      "word": "conclusion",
+      "ipa": "/kənˈkluːʒn/",
+      "pos": "n.",
+      "meanings": [
+        "结论；推论",
+        "结尾；结束"
+      ],
+      "unit": 6,
+      "level": 1,
+      "example": "The writer reaches the conclusion that small choices matter.",
+      "translation": "作者得出结论：微小的选择也很重要。",
+      "collocations": [
+        "draw a conclusion 得出结论",
+        "in conclusion 总之"
+      ],
+      "family": "conclude v. 推断；结束 → conclusion n. 结论",
+      "tip": "draw / reach / come to a conclusion 都可表示“得出结论”。"
+    },
+    {
+      "id": "criticism",
+      "word": "criticism",
+      "ipa": "/ˈkrɪtɪsɪzəm/",
+      "pos": "n.",
+      "meanings": [
+        "批评；指责",
+        "评论；评析"
+      ],
+      "unit": 6,
+      "level": 2,
+      "example": "He accepted the criticism and improved his essay.",
+      "translation": "他接受了批评，并改进了自己的文章。",
+      "collocations": [
+        "constructive criticism 建设性批评",
+        "face criticism 面对批评"
+      ],
+      "family": "criticize v. 批评 → criticism n. 批评 → critical adj. 批判性的；关键的",
+      "tip": "criticism 可以是中性的“评析”，constructive criticism 就是有用的反馈。"
+    },
+    {
+      "id": "evidence",
+      "word": "evidence",
+      "ipa": "/ˈevɪdəns/",
+      "pos": "n.",
+      "meanings": [
+        "证据；证明"
+      ],
+      "unit": 6,
+      "level": 1,
+      "example": "There is strong evidence that sleep improves memory.",
+      "translation": "有充分证据表明睡眠能改善记忆。",
+      "collocations": [
+        "provide evidence 提供证据",
+        "scientific evidence 科学证据"
+      ],
+      "family": "evident adj. 明显的 → evidence n. 证据 → evidently adv. 显然",
+      "tip": "evidence 通常不可数：a piece of evidence，不用 an evidence。"
+    },
+    {
+      "id": "exaggerate",
+      "word": "exaggerate",
+      "ipa": "/ɪɡˈzædʒəreɪt/",
+      "pos": "v.",
+      "meanings": [
+        "夸大；夸张"
+      ],
+      "unit": 6,
+      "level": 3,
+      "example": "Don't exaggerate the problem; describe what actually happened.",
+      "translation": "不要夸大问题，客观描述实际发生了什么。",
+      "collocations": [
+        "exaggerate the importance 夸大重要性",
+        "without exaggerating 不夸张地说"
+      ],
+      "family": "exaggeration n. 夸张 → exaggerated adj. 夸张的",
+      "tip": "ex-（向外）＋ agger（堆）→ 往外堆得太多，就是夸大。"
+    },
+    {
+      "id": "illustrate",
+      "word": "illustrate",
+      "ipa": "/ˈɪləstreɪt/",
+      "pos": "v.",
+      "meanings": [
+        "说明；阐明",
+        "为……加插图"
+      ],
+      "unit": 6,
+      "level": 2,
+      "example": "The chart illustrates how study time changes during exam week.",
+      "translation": "这张图表说明了考试周学习时间的变化。",
+      "collocations": [
+        "illustrate a point 说明观点",
+        "an illustrated book 带插图的书籍"
+      ],
+      "family": "illustration n. 插图；说明 → illustrator n. 插画师",
+      "tip": "illustrate 不只是“画插图”，阅读题里常表示“举例说明”。"
+    },
+    {
+      "id": "imply",
+      "word": "imply",
+      "ipa": "/ɪmˈplaɪ/",
+      "pos": "v.",
+      "meanings": [
+        "暗示；意味着"
+      ],
+      "unit": 6,
+      "level": 3,
+      "example": "The last sentence implies that the narrator will leave.",
+      "translation": "最后一句暗示叙述者将会离开。",
+      "collocations": [
+        "imply that 暗示……",
+        "be implied 被暗示"
+      ],
+      "family": "implication n. 含义；暗示 → implied adj. 隐含的",
+      "tip": "作者 imply（暗示），读者 infer（推断）；阅读题常考这两个词的区分。"
+    },
+    {
+      "id": "interpret",
+      "word": "interpret",
+      "ipa": "/ɪnˈtɜːprɪt/",
+      "pos": "v.",
+      "meanings": [
+        "理解；解释",
+        "口译"
+      ],
+      "unit": 6,
+      "level": 3,
+      "example": "Different readers may interpret the ending in different ways.",
+      "translation": "不同的读者可能会以不同方式理解这个结局。",
+      "collocations": [
+        "interpret a text 解读文本",
+        "interpret for sb 为某人口译"
+      ],
+      "family": "interpretation n. 解读；口译 → interpreter n. 口译者",
+      "tip": "interpret 是“解读意义”，而不是简单 translate（翻译字面）。"
+    },
+    {
+      "id": "investigate",
+      "word": "investigate",
+      "ipa": "/ɪnˈvestɪɡeɪt/",
+      "pos": "v.",
+      "meanings": [
+        "调查；研究"
+      ],
+      "unit": 6,
+      "level": 2,
+      "example": "The reporter investigated why so much food was wasted.",
+      "translation": "记者调查了为什么会有这么多食物被浪费。",
+      "collocations": [
+        "investigate a case 调查案件",
+        "investigate how 调查……如何发生"
+      ],
+      "family": "investigation n. 调查 → investigator n. 调查者",
+      "tip": "investigate 是及物动词，直接跟调查对象，不说 investigate about。"
+    },
+    {
+      "id": "perspective",
+      "word": "perspective",
+      "ipa": "/pəˈspektɪv/",
+      "pos": "n.",
+      "meanings": [
+        "视角；观点",
+        "透视法"
+      ],
+      "unit": 6,
+      "level": 3,
+      "example": "From a historical perspective, the change seems small.",
+      "translation": "从历史的视角来看，这个变化似乎很微小。",
+      "collocations": [
+        "from a perspective 从……视角",
+        "a fresh perspective 新的视角"
+      ],
+      "family": "perspectival adj. 视角的；perspective 本身也可作“洞察力”",
+      "tip": "per-（穿过）＋ spect（看）→ 透过某个角度去看。"
+    },
+    {
+      "id": "persuade",
+      "word": "persuade",
+      "ipa": "/pəˈsweɪd/",
+      "pos": "v.",
+      "meanings": [
+        "说服；劝服",
+        "使相信"
+      ],
+      "unit": 6,
+      "level": 2,
+      "example": "Good writing can persuade readers to care about an issue.",
+      "translation": "好的写作能说服读者去关心一个问题。",
+      "collocations": [
+        "persuade sb to do 说服某人做",
+        "be persuaded that 被说服相信"
+      ],
+      "family": "persuasion n. 说服 → persuasive adj. 有说服力的",
+      "tip": "persuade 强调“说服成功”；try to persuade 才是“试图说服”。"
+    },
+    {
+      "id": "precise",
+      "word": "precise",
+      "ipa": "/prɪˈsaɪs/",
+      "pos": "adj.",
+      "meanings": [
+        "精确的；准确的",
+        "严谨的"
+      ],
+      "unit": 6,
+      "level": 2,
+      "example": "Choose precise words instead of vague ones.",
+      "translation": "选择准确的词，而不是含糊的词。",
+      "collocations": [
+        "precise language 准确的语言",
+        "to be precise 确切地说"
+      ],
+      "family": "precision n. 精确 → precise adj. 精确的 → precisely adv. 精确地",
+      "tip": "precise 强调细节“准确”；accurate 强调与事实“相符”，常可互换。"
+    },
+    {
+      "id": "quote",
+      "word": "quote",
+      "ipa": "/kwəʊt/",
+      "pos": "v. / n.",
+      "meanings": [
+        "引用；引述",
+        "引语；报价"
+      ],
+      "unit": 6,
+      "level": 1,
+      "example": "She opened her speech with a quote from a poet.",
+      "translation": "她用一位诗人的话作为演讲的开头。",
+      "collocations": [
+        "quote from 引用……的话",
+        "a famous quote 名言"
+      ],
+      "family": "quotation n. 引语 → quote v. 引用",
+      "tip": "quote 可作名词“引语”；quotation 更正式，也指“报价单”。"
+    },
+    {
+      "id": "summarize",
+      "word": "summarize",
+      "ipa": "/ˈsʌməraɪz/",
+      "pos": "v.",
+      "meanings": [
+        "总结；概括"
+      ],
+      "unit": 6,
+      "level": 1,
+      "example": "In one sentence, summarize the main idea of the passage.",
+      "translation": "用一句话概括文章的主旨。",
+      "collocations": [
+        "summarize the main points 概括要点",
+        "to sum up 总之"
+      ],
+      "family": "summary n. 摘要 → summarize v. 总结 → summarization n. 概括",
+      "tip": "summarize 是动词，summary 是名词；写作结尾常用 to sum up。"
+    },
+    {
+      "id": "straightforward",
+      "word": "straightforward",
+      "ipa": "/ˌstreɪtˈfɔːwəd/",
+      "pos": "adj.",
+      "meanings": [
+        "简单明了的；直接的",
+        "坦率的"
+      ],
+      "unit": 6,
+      "level": 3,
+      "example": "The instructions were straightforward, so we finished quickly.",
+      "translation": "说明简单明了，所以我们很快就完成了。",
+      "collocations": [
+        "a straightforward answer 直截了当的回答",
+        "relatively straightforward 相对简单"
+      ],
+      "family": "straightforwardly adv. 直接地；straightforwardness n. 坦率",
+      "tip": "straight（直）＋ forward（向前）→ 不绕弯子，直截了当。"
+    },
+    {
+      "id": "transition",
+      "word": "transition",
+      "ipa": "/trænˈzɪʃn/",
+      "pos": "n.",
+      "meanings": [
+        "过渡；转变",
+        "过渡句；衔接"
+      ],
+      "unit": 6,
+      "level": 3,
+      "example": "Use a transition to connect your two paragraphs.",
+      "translation": "用一个过渡句把两段连接起来。",
+      "collocations": [
+        "a smooth transition 平稳的过渡",
+        "transition from A to B 从 A 向 B 过渡"
+      ],
+      "family": "transit v./n. 经过 → transition n. 过渡 → transitional adj. 过渡的",
+      "tip": "transition 在写作里指“衔接”，常见信号词有 however、therefore 等。"
+    },
+    {
+      "id": "valid",
+      "word": "valid",
+      "ipa": "/ˈvælɪd/",
+      "pos": "adj.",
+      "meanings": [
+        "有效的；合理的",
+        "有法律效力的"
+      ],
+      "unit": 6,
+      "level": 3,
+      "example": "Your opinion is valid, but the evidence you chose is weak.",
+      "translation": "你的观点是合理的，但你选择的证据不够有力。",
+      "collocations": [
+        "a valid argument 有效的论证",
+        "valid for 对……有效"
+      ],
+      "family": "validity n. 有效性 → validate v. 验证；确认",
+      "tip": "valid 不只指“有效”，也可以指观点“站得住脚、有道理”。"
+    },
+    {
+      "id": "vivid",
+      "word": "vivid",
+      "ipa": "/ˈvɪvɪd/",
+      "pos": "adj.",
+      "meanings": [
+        "生动的；鲜明的",
+        "（记忆）清晰的"
+      ],
+      "unit": 6,
+      "level": 2,
+      "example": "The writer's vivid description made the old street come alive.",
+      "translation": "作者生动的描写让那条老街跃然纸上。",
+      "collocations": [
+        "vivid description 生动的描写",
+        "vivid imagination 丰富的想象力"
+      ],
+      "family": "vividly adv. 生动地；vividness n. 生动",
+      "tip": "vivid 来自“活着”，所以描写 vivid 就像让画面活了起来。"
+    }
+  ]
+}

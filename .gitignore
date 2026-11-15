@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.pyc
+.idea/
+.vscode/
+node_modules/
+playwright-report/
+test-results/
+.playwright-cli/
+tools/source/
+progress/
+*.tmp
