@@ -59,10 +59,14 @@
     return Math.floor((startOfLocalDay(date) - start) / DAY_MS);
   }
 
+  function isChineseBook(bookId) {
+    return bookId === 'wenyan' || bookId === 'curated';
+  }
+
   function getTodayWord() {
     let words = Store.words || [];
     if (!words.length) return null;
-    if (Store.getActiveBookId() === 'wenyan') {
+    if (isChineseBook(Store.getActiveBookId())) {
       const core = words.filter(function (word) { return word.category === 'core'; });
       if (core.length) words = core;
     }
@@ -733,8 +737,8 @@
   }
 
   function startSpellingSession() {
-    if (Store.getActiveBookId() === 'wenyan') {
-      toast('文言实词用卡片和词义检验来记，拼写挑战不适用。', 'info');
+    if (isChineseBook(Store.getActiveBookId())) {
+      toast('文言字词用卡片和词义检验来记，拼写挑战不适用。', 'info');
       return;
     }
     const questions = buildSpellingPool();

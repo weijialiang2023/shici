@@ -51,6 +51,14 @@ def main():
 
     install_script = (ROOT / "tools/deploy_local.sh").read_text()
     require("--exclude 'progress/'" in install_script, "部署脚本必须排除 progress/")
+    book_config = (ROOT / "js/data.js").read_text()
+    require("title: '文言精讲 120'" in book_config, "精讲词书必须明确标注为文言")
+    require("dataUrl: 'data/books/curated.json'" in book_config, "文言精讲必须使用独立的 120 条数据")
+    require("title: '高中文言重点字词 1200'" in book_config, "文言词书名称不得被英语精讲覆盖")
+    require("title: '英语精讲 120'" not in book_config, "不得再把精讲 120 配成英语词书")
+    curated = json.loads((ROOT / "data/books/curated.json").read_text())
+    require(curated.get("id") == "curated" and len(curated.get("words", [])) == 120, "文言精讲必须包含 120 条")
+    require(all(word.get("lang") == "zh" for word in curated["words"]), "文言精讲词条必须全部是中文")
 
     print("project checks: ok")
     print("wenyan: 1200 = 200 editorial + 1000 high-frequency")

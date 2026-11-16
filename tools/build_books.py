@@ -265,7 +265,8 @@ def build_external(path, book_id, curated_map):
     }
 
 
-def build_curated(path):
+def load_english_curated(path):
+    """Load the English enrichment source without publishing it as a book."""
     data = json.loads(Path(path).read_text())
     words = []
     for word in data['words']:
@@ -291,6 +292,30 @@ def build_curated(path):
     }
 
 
+def build_wenyan_curated(wenyan):
+    """Build the focused 120-word Classical Chinese book from the core tier."""
+    words = [
+        dict(word)
+        for word in wenyan['words']
+        if word.get('category') == 'core'
+    ]
+    if len(words) != 120:
+        raise SystemExit(f'expected 120 Classical Chinese core words, got {len(words)}')
+    units = [dict(unit) for unit in wenyan['units'] if unit['id'] <= 6]
+    return {
+        'id': 'curated',
+        'version': 2,
+        'words': words,
+        'units': units,
+        'stats': {
+            'uniqueWords': len(words),
+            'coreWords': len(words),
+            'withExample': sum(1 for word in words if word.get('example')),
+            'withTranslation': sum(1 for word in words if word.get('translation')),
+        },
+    }
+
+
 
 def js_payload(payload, book_id=None):
     raw = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
@@ -307,8 +332,10 @@ def main():
     parser.add_argument('--curated', default=str(Path(__file__).parent / 'curated_source.json'))
     args = parser.parse_args()
 
-    curated = build_curated(args.curated)
-    curated_map = {word['word'].lower(): word for word in curated['words']}
+    english_enrichment = load_english_curated(args.curated)
+    curated_map = {word['word'].lower(): word for word in english_enrichment['words']}
+    wenyan = build_wenyan_book()
+    curated = build_wenyan_curated(wenyan)
     sources = [
         ('GaoZhong_2.json', 'gaokao'),
         ('IELTS_2.json', 'ielts'),
@@ -334,8 +361,7 @@ def main():
     target.write_text(json.dumps(curated, ensure_ascii=False, separators=(',', ':')))
     target.with_suffix('.js').write_text(js_payload(curated, 'curated'))
     index['curated'] = [word['id'] for word in curated['words']]
-    print(f'curated: {len(curated["words"])} words -> {target} ({target.stat().st_size // 1024} KB)')
-    wenyan = build_wenyan_book()
+    print(f'curated: {len(curated["words"])} Classical Chinese core words -> {target} ({target.stat().st_size // 1024} KB)')
     wenyan_path = out_dir / 'wenyan.json'
     wenyan_path.write_text(json.dumps(wenyan, ensure_ascii=False, separators=(',', ':')))
     wenyan_path.with_suffix('.js').write_text(wenyan_js_payload(wenyan))

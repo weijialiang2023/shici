@@ -328,7 +328,7 @@
       '</section>' +
 
       '<section class="units-section">' +
-      '<div class="section-head"><div><h2>' + (activeBook() && activeBook().id === 'curated' ? '按主题，收词' : (activeBook() && activeBook().id === 'wenyan' ? '教材精讲与高频字义' : '乱序词组')) + '</h2><p class="section-head__desc">' + (activeBook() ? activeBook().count + ' 个词，分成 ' + currentUnits().length + ' 组。' : '把词放进句子里记。') + '</p></div>' +
+      '<div class="section-head"><div><h2>' + (activeBook() && activeBook().id === 'curated' ? '文言核心 120 精讲' : (activeBook() && activeBook().id === 'wenyan' ? '教材精讲与高频字义' : '乱序词组')) + '</h2><p class="section-head__desc">' + (activeBook() ? activeBook().count + ' 个词，分成 ' + currentUnits().length + ' 组。' : '把词放进句子里记。') + '</p></div>' +
       '<a class="text-link" href="#library">全部词汇 ' + icon('arrow-right') + '</a></div>' +
       '<div class="unit-grid">' + unitCards + '</div>' +
       '</section>' +
@@ -379,7 +379,7 @@
         '<div class="book-actions">' +
         (isActive
           ? '<a class="btn btn--primary btn--sm" href="#study">继续学习 ' + icon('arrow-right', 'icon--shift') + '</a><a class="text-link" href="#library">查看词库</a>'
-          : '<button class="btn btn--ghost btn--sm" type="button" data-action="switch-book" data-book-id="' + esc(book.id) + '"' + (isLoading ? ' disabled' : '') + '>' + (isLoading ? '正在打开…' : '切换到这本') + ' ' + icon('arrow-right') + '</button>') +
+          : '<button class="btn btn--ghost btn--sm" type="button" data-action="switch-book" data-book-id="' + esc(book.id) + '" aria-label="切换到 ' + esc(book.title) + '"' + (isLoading ? ' disabled' : '') + '>' + (isLoading ? '正在打开…' : '切换到这本') + ' ' + icon('arrow-right') + '</button>') +
         '</div></div>' +
         '</article>';
     }).join('');
@@ -390,7 +390,7 @@
       '<p class="page-head__desc">从高中核心到雅思、四六级，选一本现在需要的。切换词书不会清空已有的学习记录。</p></div>' +
       '<div class="page-head__aside"><span class="pill pill--green">' + books.length + ' 本词书 · ' + totalWords + ' 个词条</span></div>' +
       '</header>' +
-      '<div class="books-note">' + icon('info') + '<p>单词进度按词条分别记录。遇到两本书里都有的词，已经熟悉的记忆会保留下来。每天的复习计划只从当前词书里抽取，并按乱序出现。</p></div>' +
+      '<div class="books-note">' + icon('info') + '<p>英语和文言是两本独立词书：选择“英语精讲 120”会继续显示英语，学习文言请选择“高中文言重点字词 1200”。两本书的进度会分别保留。</p></div>' +
       '<section class="book-grid" aria-label="词书列表">' + cards + '</section>' +
       '<footer class="books-source">词汇与例句整理自公开学习词库，已做去重与简化。词义以常见高中、考试语境为主，仅供学习参考。</footer>';
   }
@@ -424,7 +424,7 @@
 
     const dueCount = overview.due;
     const newCount = overview.newRemaining;
-    const isChineseBook = activeBook().id === 'wenyan';
+    const isChineseBook = activeBook().id === 'wenyan' || activeBook().id === 'curated';
     const modes = [
       {
         action: 'start-new',
