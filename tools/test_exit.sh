@@ -58,6 +58,12 @@ done
   await page.getByRole("article").filter({ has: page.getByRole("heading", { name: "文言精讲 120", exact: true }) }).getByRole("button").click();
   await page.waitForURL(/#home$/);
   await page.getByRole("button", { name: "开始今日学习" }).click();
+  await page.getByRole("button", { name: "退出本轮学习" }).click();
+  await page.getByRole("button", { name: "保存并退出" }).click();
+  if (await page.locator(".study-overlay").count()) {
+    throw new Error("session overlay remained after save and exit");
+  }
+  await page.getByRole("button", { name: "开始今日学习" }).click();
   await page.evaluate(() => {
     sessionStorage.removeItem("shici-test-beforeunload");
     window.addEventListener("beforeunload", event => {
