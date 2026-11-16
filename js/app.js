@@ -8,7 +8,11 @@
 
   const ROUTES = ['home', 'study', 'library', 'books', 'report'];
   const LIBRARY_PAGE_SIZE = 30;
-  const ASSET_VERSION = '13';
+  const ASSET_VERSION = (function () {
+    const source = document.currentScript && document.currentScript.src;
+    const match = source && source.match(/[?&]v=([^&]+)/);
+    return match ? decodeURIComponent(match[1]) : '17';
+  })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
   let bookIndexCache = null;
@@ -29,6 +33,7 @@
       page: 1
     },
     session: null,
+    lastAutoSpokenCardKey: null,
     wordDrawerId: null,
     settingsOpen: false,
     pendingVoiceGender: null,
@@ -731,6 +736,7 @@
     app.session.goal = overview.goal;
     document.body.classList.add('is-session');
     overlayRoot.innerHTML = UI.renderSession(app.session);
+    autoSpeakCurrentCard(app.session);
     syncBodyState();
     window.setTimeout(focusSessionContent, 0);
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -839,6 +845,7 @@
       startSessionQuiz();
     } else {
       overlayRoot.innerHTML = UI.renderSession(app.session);
+      autoSpeakCurrentCard(app.session);
       window.setTimeout(focusSessionContent, 0);
     }
 
@@ -1430,6 +1437,23 @@
     } catch (error) {
       toast('发音暂时没有播放出来，请再试一次。', 'volume');
     }
+  }
+
+  function autoSpeakCurrentCard(session) {
+    if (!session || session.completed || session.phase !== 'cards') return;
+    const item = session.queue[session.index];
+    if (!item) return;
+    const key = String(session.startedAt) + ':' + session.index + ':' + item.id;
+    if (app.lastAutoSpokenCardKey === key) return;
+    app.lastAutoSpokenCardKey = key;
+    const word = Store.getWord(item.id);
+    if (!word || !word.word) return;
+    window.setTimeout(function () {
+      if (app.session !== session || session.completed || session.phase !== 'cards') return;
+      const current = session.queue[session.index];
+      if (!current || current.id !== item.id) return;
+      speakWord(word.word, null);
+    }, 120);
   }
 
   function setVoiceGender(gender, element) {

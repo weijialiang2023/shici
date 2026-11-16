@@ -49,6 +49,8 @@ GitHub Pages 与本机服务属于两个不同的浏览器 origin，各自使用
 
 浏览器实际可用声线由操作系统决定。Safari、Chrome 和 macOS 一般自带美音声线；如果某个浏览器没有返回声线列表，仍会使用该浏览器默认的 `en-US` 朗读。
 
+学习卡每次进入下一张新词时，会自动朗读一次词条本身；翻释义、收藏或返回页面不会重复播放。英文使用当前美音与男女声设置，中文使用中文语音。
+
 ## 自动保存与长期记录
 
 每次作答、收藏、设置或词书切换都会立即写入浏览器 `localStorage`；在本机长期服务模式下，还会自动写入独立目录：
@@ -140,6 +142,12 @@ python3 tools/build_books.py
 - 每一条都有义项；
 - 教材精讲均有例句和现代译文；
 - 高频字义中标注出处的条目均保留书证例句。
+
+自动发音的浏览器回归测试：
+
+```bash
+bash tools/test_autoplay.sh
+```
 
 如需重新生成高频字义目录，下载 `tools/build_wenyan_catalog.py`
 顶部注明版本的 Jiayan 与 Chinese Xinhua Dictionary 源文件后运行：

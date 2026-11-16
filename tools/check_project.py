@@ -59,6 +59,8 @@ def main():
     curated = json.loads((ROOT / "data/books/curated.json").read_text())
     require(curated.get("id") == "curated" and len(curated.get("words", [])) == 120, "文言精讲必须包含 120 条")
     require(all(word.get("lang") == "zh" for word in curated["words"]), "文言精讲词条必须全部是中文")
+    app_js = (ROOT / "js/app.js").read_text()
+    require("document.currentScript" in app_js and "source.match" in app_js, "动态数据版本必须跟随入口脚本，不能写死旧缓存版本")
 
     print("project checks: ok")
     print("wenyan: 1200 = 200 editorial + 1000 high-frequency")
