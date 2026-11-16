@@ -61,6 +61,7 @@ def main():
     require(all(word.get("lang") == "zh" for word in curated["words"]), "文言精讲词条必须全部是中文")
     app_js = (ROOT / "js/app.js").read_text()
     require("document.currentScript" in app_js and "source.match" in app_js, "动态数据版本必须跟随入口脚本，不能写死旧缓存版本")
+    require("window.addEventListener('beforeunload'" not in app_js, "学习会话不得阻止用户关闭页面或退出 Safari")
 
     print("project checks: ok")
     print("wenyan: 1200 = 200 editorial + 1000 high-frequency")

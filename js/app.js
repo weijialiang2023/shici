@@ -11,7 +11,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '17';
+    return match ? decodeURIComponent(match[1]) : '18';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -1909,12 +1909,6 @@
   }
 
   window.addEventListener('hashchange', handleHashChange);
-  window.addEventListener('beforeunload', function (event) {
-    if (app.session && !app.session.completed) {
-      event.preventDefault();
-      event.returnValue = '';
-    }
-  });
 
   window.addEventListener('scroll', function () {
     const topbar = document.getElementById('topbar');

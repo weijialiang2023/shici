@@ -71,6 +71,8 @@ GitHub Pages 与本机服务属于两个不同的浏览器 origin，各自使用
 2. 切换到后台或关闭页面时，用 `sendBeacon`/keepalive 再写一次；
 3. 写入失败后每 8 秒自动重试，设置页会显示当前真实状态，不把失败伪装成成功。
 
+学习会话不会用浏览器 `beforeunload` 对话框阻止关闭标签页或退出 Safari；每次作答和设置变化都已即时保存。
+
 设置页支持「导出当前记录」「导入备份」「从本机恢复」。GitHub Pages 是纯静态站点，没有服务器端数据库，因此公开部署时仍以浏览器保存为主，跨设备迁移请使用导出/导入文件。
 
 ## 本机长期运行
@@ -147,6 +149,7 @@ python3 tools/build_books.py
 
 ```bash
 bash tools/test_autoplay.sh
+bash tools/test_exit.sh
 ```
 
 如需重新生成高频字义目录，下载 `tools/build_wenyan_catalog.py`
