@@ -18,20 +18,27 @@ def require(condition, message):
 def main():
     book = json.loads((ROOT / "data/books/wenyan.json").read_text())
     index = json.loads((ROOT / "data/books/index.json").read_text())
+    catalog = json.loads((ROOT / "tools/wenyan_catalog.json").read_text())
     words = book["words"]
     core = [word for word in words if word.get("category") == "core"]
     extension = [word for word in words if word.get("category") == "extension"]
+    highfreq = [word for word in words if word.get("category") == "highfreq"]
 
-    require(len(words) == 200, "文言词书必须是 200 条")
+    require(len(words) == 1200, "文言词书必须是 1200 条")
     require(len(core) == 120, "核心实词必须是 120 条")
     require(len(extension) == 80, "拓展实词必须是 80 条")
-    require(len({word["id"] for word in words}) == 200, "词条 ID 不得重复")
-    require(len({word["word"] for word in words}) == 200, "词条文本不得重复")
+    require(len(highfreq) == 1000, "经典高频字义必须是 1000 条")
+    require(len({word["id"] for word in words}) == 1200, "词条 ID 不得重复")
+    require(len({word["word"] for word in words}) == 1200, "词条文本不得重复")
     require(all(word.get("meanings") for word in words), "每个词条必须有义项")
-    require(all(word.get("example") for word in words), "每个词条必须有例句")
-    require(all(word.get("translation") for word in words), "每个词条必须有译文")
+    require(all(word.get("example") for word in core + extension), "教材精讲条目必须有例句")
+    require(all(word.get("translation") for word in core + extension), "教材精讲条目必须有译文")
+    require(all(word.get("example") for word in highfreq if word.get("collocations")), "有出处的字义条目必须有例句")
     require(index.get("wenyan") == [word["id"] for word in words], "索引必须与词书一致")
-    require(len(index.get("wenyan", [])) == 200, "索引词数必须是 200")
+    require(len(index.get("wenyan", [])) == 1200, "索引词数必须是 1200")
+    require(len(catalog.get("words", [])) == 1000, "高频字义源目录必须是 1000 条")
+    require(all(row.get("pinyin") and row.get("meanings") for row in catalog["words"]), "高频字义源目录必须有读音和义项")
+    require(all(source.get("license") == "MIT" and source.get("commit") for source in catalog.get("sources", [])), "高频字义数据源必须记录 MIT 授权与固定版本")
 
     for relative in [
         "index.html",
@@ -46,7 +53,7 @@ def main():
     require("--exclude 'progress/'" in install_script, "部署脚本必须排除 progress/")
 
     print("project checks: ok")
-    print("wenyan: 200 = 120 core + 80 extension")
+    print("wenyan: 1200 = 200 editorial + 1000 high-frequency")
     print("deployment: GitHub Pages workflow + local persistent service")
     print("records: progress/ is protected from deployment")
 

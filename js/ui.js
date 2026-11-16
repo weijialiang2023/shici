@@ -328,7 +328,7 @@
       '</section>' +
 
       '<section class="units-section">' +
-      '<div class="section-head"><div><h2>' + (activeBook() && activeBook().id === 'curated' ? '按主题，收词' : '乱序词组') + '</h2><p class="section-head__desc">' + (activeBook() ? activeBook().count + ' 个词，已打乱分成 ' + currentUnits().length + ' 组。每次学习再乱序抽取。' : '把词放进句子里记。') + '</p></div>' +
+      '<div class="section-head"><div><h2>' + (activeBook() && activeBook().id === 'curated' ? '按主题，收词' : (activeBook() && activeBook().id === 'wenyan' ? '教材精讲与高频字义' : '乱序词组')) + '</h2><p class="section-head__desc">' + (activeBook() ? activeBook().count + ' 个词，分成 ' + currentUnits().length + ' 组。' : '把词放进句子里记。') + '</p></div>' +
       '<a class="text-link" href="#library">全部词汇 ' + icon('arrow-right') + '</a></div>' +
       '<div class="unit-grid">' + unitCards + '</div>' +
       '</section>' +

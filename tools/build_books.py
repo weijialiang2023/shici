@@ -340,7 +340,12 @@ def main():
     wenyan_path.write_text(json.dumps(wenyan, ensure_ascii=False, separators=(',', ':')))
     wenyan_path.with_suffix('.js').write_text(wenyan_js_payload(wenyan))
     index['wenyan'] = [word['id'] for word in wenyan['words']]
-    print(f'wenyan: {len(wenyan["words"])} words ({wenyan["stats"]["coreWords"]} core + {wenyan["stats"]["extensionWords"]} extension) -> {wenyan_path}')
+    print(
+        f'wenyan: {len(wenyan["words"])} words '
+        f'({wenyan["stats"]["coreWords"]} core + '
+        f'{wenyan["stats"]["extensionWords"]} extension + '
+        f'{wenyan["stats"]["highfreqWords"]} high-frequency) -> {wenyan_path}'
+    )
     index_target = out_dir / 'index.json'
     index_target.write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')))
     index_target.with_suffix('.js').write_text(js_payload(index))

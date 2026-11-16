@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Build the 200-item high-school Classical Chinese vocabulary book.
+"""Build the 1,200-item high-school Classical Chinese vocabulary book.
 
-The first 120 entries are the standard high-school examination list. The last
-80 entries are additional high-frequency words. Every entry is organised for
-recall: the common classical meanings come first, followed by one textbook
-example and a modern Chinese translation.
+The first 200 entries are editorial entries: 120 core examination words and 80
+additional textbook words, each with a source quote and modern translation.
+The other 1,000 entries are a high-frequency character catalog generated from
+the MIT-licensed Jiayan corpus frequency list and Chinese Xinhua Dictionary.
+The two tiers remain separate so learners can tell curated explanations from
+the broader context-review catalog.
 """
 
 from __future__ import annotations
@@ -15,6 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = ROOT / "data" / "books"
+CATALOG_PATH = ROOT / "tools" / "wenyan_catalog.json"
 
 CORE_WORDS = """
 爱 安 被 倍 本 鄙 兵 病 察 朝 曾 乘 诚 除 辞 从 殆 当 道 得
@@ -246,6 +249,16 @@ EXT_TITLES = [
 ]
 
 
+def load_catalog():
+    payload = json.loads(CATALOG_PATH.read_text())
+    words = payload.get("words") or []
+    if len(words) != 1000:
+        raise ValueError(f"expected 1000 high-frequency catalog entries, got {len(words)}")
+    if len({row.get("word") for row in words}) != 1000:
+        raise ValueError("duplicate high-frequency catalog words")
+    return words
+
+
 def parse_rows():
     rows = []
     for line in RAW.strip().splitlines():
@@ -287,6 +300,12 @@ def parse_rows():
 
 def build_book():
     rows = parse_rows()
+    curated_words = {row["word"] for row in rows}
+    highfreq_rows = load_catalog()
+    overlap = curated_words & {row["word"] for row in highfreq_rows}
+    if overlap:
+        raise ValueError(f"high-frequency catalog overlaps curated words: {sorted(overlap)}")
+
     units = []
     for index, (title, subtitle, en, icon, accent, tint) in enumerate(CORE_TITLES + EXT_TITLES, start=1):
         units.append({
@@ -300,6 +319,30 @@ def build_book():
             "accent": accent,
             "tint": tint,
             "count": 20 if index <= 6 else 40,
+        })
+    highfreq_icons = ["book-open", "leaf", "quote", "book"]
+    highfreq_accents = [
+        ("#6B4F3A", "#EFE9DF"),
+        ("#315A4A", "#E5EADF"),
+        ("#3F6B7F", "#DDE9ED"),
+        ("#92703C", "#F2E4CE"),
+    ]
+    for offset in range(0, len(highfreq_rows), 40):
+        index = len(units) + 1
+        start = offset + 1
+        end = offset + 40
+        accent, tint = highfreq_accents[(index - 9) % len(highfreq_accents)]
+        units.append({
+            "id": index,
+            "title": f"高频 {index - 8:02d}",
+            "subtitle": f"经典高频 {start:04d}–{end:04d}",
+            "en": f"HIGH FREQ {start:03d}–{end:03d}",
+            "caption": f"经典高频 {start:04d}–{end:04d}",
+            "description": "按文言语料使用频率整理，先掌握常用义项，再在句中辨析。",
+            "icon": highfreq_icons[(index - 9) % len(highfreq_icons)],
+            "accent": accent,
+            "tint": tint,
+            "count": 40,
         })
 
     words = []
@@ -328,17 +371,36 @@ def build_book():
             "lang": "zh",
         })
 
+    for index, row in enumerate(highfreq_rows):
+        word = row["word"]
+        words.append({
+            "id": "wy_" + word,
+            "word": word,
+            "ipa": row.get("pinyin", ""),
+            "pos": row.get("pos") or "高频字义",
+            "meanings": row["meanings"],
+            "unit": 9 + index // 40,
+            "example": row.get("example", ""),
+            "translation": "",
+            "collocations": [row["source"]] if row.get("source") else [],
+            "tip": "经典高频字义：先记常用义项，再结合上下文辨析。",
+            "level": 1,
+            "category": "highfreq",
+            "lang": "zh",
+        })
+
     return {
         "id": "wenyan",
-        "version": 2,
-        "title": "高中文言实词 200",
-        "subtitle": "先攻 120 个核心重点，再补 80 个高频拓展",
+        "version": 3,
+        "title": "高中文言重点字词 1200",
+        "subtitle": "200 条教材精讲 + 1000 条经典高频字义",
         "words": words,
         "units": units,
         "stats": {
             "totalWords": len(words),
             "coreWords": core_index,
             "extensionWords": extension_index,
+            "highfreqWords": len(highfreq_rows),
             "withExample": sum(bool(word["example"]) for word in words),
             "withTranslation": sum(bool(word["translation"]) for word in words),
         },
@@ -363,7 +425,12 @@ def main():
     js_path = OUT_DIR / "wenyan.js"
     json_path.write_text(json.dumps(book, ensure_ascii=False, separators=(",", ":")))
     js_path.write_text(js_payload(book))
-    print(f"wenyan: {len(book['words'])} words ({book['stats']['coreWords']} core + {book['stats']['extensionWords']} extension)")
+    print(
+        f"wenyan: {len(book['words'])} words "
+        f"({book['stats']['coreWords']} core + "
+        f"{book['stats']['extensionWords']} extension + "
+        f"{book['stats']['highfreqWords']} high-frequency)"
+    )
     print(f"written: {json_path} ({json_path.stat().st_size // 1024} KB)")
     print(f"written: {js_path} ({js_path.stat().st_size // 1024} KB)")
 

@@ -518,7 +518,7 @@
     activeWords = ordered;
     activeWords.forEach(function (word) { word.bookId = bookId; });
     if (bookId === 'curated' || bookId === 'wenyan') {
-      // 精讲词与文言实词按策划分组组织，保留原始顺序；文言新词队列仍会优先核心 120。
+      // 精讲词与文言字词按策划分组组织，保留原始顺序；新词队列优先核心 120，再进入拓展与高频字义。
       activeUnits = sourceUnits;
     } else {
       // 大词书不再按 A–B、C–D 切分。以持久化的随机种子重排整本书，
@@ -614,8 +614,9 @@
       });
     }
     const core = shuffleCopy(fresh.filter(function (word) { return word.category === 'core'; }));
-    const extension = shuffleCopy(fresh.filter(function (word) { return word.category !== 'core'; }));
-    return core.concat(extension).slice(0, count).map(function (word) {
+    const extension = shuffleCopy(fresh.filter(function (word) { return word.category === 'extension'; }));
+    const highfreq = shuffleCopy(fresh.filter(function (word) { return word.category === 'highfreq'; }));
+    return core.concat(extension, highfreq).slice(0, count).map(function (word) {
       return { id: word.id, kind: 'new' };
     });
   }
