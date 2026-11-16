@@ -4,6 +4,15 @@
 
 > 每天拾一点，表达多一点。
 
+## 在线地址
+
+- GitHub Pages：<https://weijialiang2023.github.io/shici/>
+- GitHub 仓库：<https://github.com/weijialiang2023/shici>
+- 本机长期服务：<http://127.0.0.1:4173/>
+
+GitHub Pages 与本机服务属于两个不同的浏览器 origin，各自使用独立的
+`localStorage`。设置页的导出/导入功能用于在两者之间迁移或备份记录。
+
 ## 当前词书
 
 | 词书 | 词条数 | 定位 |
@@ -103,6 +112,9 @@ GitHub Pages 版本是纯前端模式：
 - 不支持本机 `/api/state` 历史快照；
 - 换浏览器、换设备或清理站点数据前，请从设置页导出 JSON 备份；
 - 不需要构建、数据库或 API Key。
+
+仓库已启用 **Settings → Pages → GitHub Actions**。推送到 `main` 后，
+`.github/workflows/pages.yml` 会自动校验内容并发布。
 
 ## 开发与验证
 
