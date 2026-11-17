@@ -25,6 +25,7 @@
   --orange-deep: #c85d36;
   --orange-soft: #f5ded1;
   --gold: #e6bf6a;
+  --gold-deep: #92703c;
   --gold-soft: #f4e8c8;
   --rose: #c88b8b;
   --blue: #6d91a4;
@@ -2306,7 +2307,7 @@ svg {
 
 .mode-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
   margin-bottom: 25px;
 }
@@ -2376,6 +2377,11 @@ svg {
 .mode-card:nth-child(3) .mode-card__icon {
   color: var(--orange-deep);
   background: var(--orange-soft);
+}
+
+.mode-card:nth-child(4) .mode-card__icon {
+  color: var(--gold-deep);
+  background: var(--gold-soft);
 }
 
 .mode-card__icon .icon {

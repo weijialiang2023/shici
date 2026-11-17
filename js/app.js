@@ -11,7 +11,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '18';
+    return match ? decodeURIComponent(match[1]) : '21';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -666,11 +666,8 @@
     return copy;
   }
 
-  function buildPracticeQueue(limit) {
-    const pool = shuffle(Store.studiedWords()).slice(0, limit || 10);
-    return pool.map(function (word) {
-      return { id: word.id, kind: 'review' };
-    });
+  function buildPracticeQueue() {
+    return Store.buildLearnedReviewQueue();
   }
 
   function buildSpellingPool() {
@@ -715,14 +712,14 @@
       else if (type === 'new') queue = Store.buildNewQueue(Store.getProfile().dailyGoal);
       else if (type === 'extra-new') queue = Store.buildNewQueue(10);
       else if (type === 'review') queue = Store.buildReviewQueue(30);
-      else if (type === 'practice') queue = buildPracticeQueue(10);
+      else if (type === 'practice' || type === 'learned') queue = buildPracticeQueue();
       else if (type === 'single') queue = [];
     }
 
     if (!queue || !queue.length) {
       if (type === 'new' || type === 'extra-new') toast('新词已经全部见过面了，去复习或拼写吧。', 'sparkles');
       else if (type === 'review') toast('今天没有到期的复习，去学几个新词吧。', 'refresh');
-      else if (type === 'practice') toast('先学几个词，再回来自由复习。', 'info');
+      else if (type === 'practice' || type === 'learned') toast('当前词书还没有学过的词，先学几个再回来复习。', 'info');
       else if (type === 'relearn') toast('现在没有待巩固的词，去学一组新的吧。', 'check');
       else toast('这一轮暂时没有可学习的词。', 'info');
       return;
@@ -831,7 +828,7 @@
     if (rating === 'known') outcome.correct += 1;
     outcome.finalRating = rating;
 
-    if (rating === 'again' && !app.session.repeatMap[item.id] && app.session.queue.length < 40) {
+    if (rating === 'again' && !app.session.repeatMap[item.id]) {
       app.session.repeatMap[item.id] = 1;
       app.session.queue.push({ id: item.id, kind: item.kind, requeue: true });
       toast('已放进本轮回顾，稍后再见一次。', 'refresh');
@@ -1063,7 +1060,7 @@
       return;
     }
     if (Store.studiedWords().length) {
-      startSession('practice');
+      startSession('learned');
       return;
     }
     closeSession();
@@ -1542,6 +1539,9 @@
         break;
       case 'start-practice':
         startSession('practice');
+        break;
+      case 'start-learned':
+        startSession('learned');
         break;
       case 'start-spelling':
         startSpellingSession();

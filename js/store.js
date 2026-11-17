@@ -627,6 +627,31 @@
     });
   }
 
+  function learnedReviewWords() {
+    const pool = shuffleCopy(studiedWords());
+    return pool.sort(function (a, b) {
+      const ra = state.words[a.id] || {};
+      const rb = state.words[b.id] || {};
+      const weakA = ra.weak ? 1 : 0;
+      const weakB = rb.weak ? 1 : 0;
+      if (weakA !== weakB) return weakB - weakA;
+
+      const lapseA = (Number(ra.lapseCount) || 0) + (Number(ra.quizWrong) || 0);
+      const lapseB = (Number(rb.lapseCount) || 0) + (Number(rb.quizWrong) || 0);
+      if (lapseA !== lapseB) return lapseB - lapseA;
+
+      const stageA = Number(ra.stage) || 0;
+      const stageB = Number(rb.stage) || 0;
+      if (stageA !== stageB) return stageA - stageB;
+
+      const streakA = Number(ra.masteryStreak) || 0;
+      const streakB = Number(rb.masteryStreak) || 0;
+      if (streakA !== streakB) return streakA - streakB;
+
+      return String(ra.due || '').localeCompare(String(rb.due || ''));
+    });
+  }
+
   function favorites() {
     return activeWords.filter(function (word) {
       const record = state.words[word.id];
@@ -1154,6 +1179,12 @@
     unitStats: unitStats,
     newWords: newWords,
     studiedWords: studiedWords,
+    learnedReviewWords: learnedReviewWords,
+    buildLearnedReviewQueue: function () {
+      return learnedReviewWords().map(function (word) {
+        return { id: word.id, kind: 'review' };
+      });
+    },
     favorites: favorites,
     dueWords: dueWords,
     buildDailyPlan: buildDailyPlan,

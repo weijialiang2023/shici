@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${SHICI_TEST_PORT:-4183}"
-SESSION="shici-exit-test"
+SESSION="shici-exit-test-$$"
 STATE_DIR="$(mktemp -d)"
 CONFIG_PATH="${SHICI_PLAYWRIGHT_CONFIG:-}"
 CONFIG_ARGS=()

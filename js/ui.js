@@ -239,8 +239,8 @@
         action = 'start-extra-new';
         actionLabel = '再学 10 个新词';
       } else {
-        action = 'start-practice';
-        actionLabel = '自由复习 10 个';
+        action = 'start-learned';
+        actionLabel = '复习已学词（全部）';
       }
       secondary = '<button class="btn btn--ghost" type="button" data-action="navigate" data-route="report">查看学习报告 ' + icon('arrow-right', 'icon--shift') + '</button>';
     } else {
@@ -406,7 +406,7 @@
     let primaryAction = 'start-daily';
     if (done) {
       title = '今日份的词，<br>已经收好了。';
-      desc = '还可以做一轮自由复习，或去拼写里检验一下。抽取顺序会打乱，不必按字母表来。';
+      desc = '还可以复习全部已学词，或去拼写里检验一下。待巩固和不够熟练的词会优先出现。';
       if (overview.reviewDueToday > 0) {
         primaryAction = 'start-review';
         primaryLabel = '继续复习';
@@ -414,8 +414,8 @@
         primaryAction = 'start-extra-new';
         primaryLabel = '再学 10 个新词';
       } else {
-        primaryAction = 'start-practice';
-        primaryLabel = '自由复习 10 个';
+        primaryAction = 'start-learned';
+        primaryLabel = '复习已学词（全部）';
       }
     } else {
       title = '今天还剩 <em>' + planCount + '</em> 个词，<br>按自己的节奏来。';
@@ -447,8 +447,18 @@
         disabled: dueCount === 0
       },
       {
-        action: isChineseBook ? '' : 'start-spelling',
+        action: 'start-learned',
         number: '03',
+        icon: 'refresh',
+        title: '复习已学',
+        en: 'Review everything learned',
+        desc: '随时复习当前词书里全部已学词。待巩固、答错较多和复习阶段较低的词会优先出现。',
+        count: overview.totalSeen > 0 ? '复习全部 ' + overview.totalSeen + ' 个已学词' : '当前词书还没有已学词',
+        disabled: overview.totalSeen === 0
+      },
+      {
+        action: isChineseBook ? '' : 'start-spelling',
+        number: '04',
         icon: isChineseBook ? 'book-open' : 'keyboard',
         title: isChineseBook ? '字义回看' : '拼写挑战',
         en: isChineseBook ? 'Meaning check' : 'Spell it out',
@@ -486,7 +496,7 @@
       modes.map(function (mode) {
         return '<button class="mode-card' + (mode.disabled ? ' is-disabled' : '') + '" type="button" data-number="' + mode.number + '"' +
           (mode.disabled ? ' disabled' : ' data-action="' + mode.action + '"') + '>' +
-          '<div class="mode-card__head"><span class="mode-card__icon">' + icon(mode.icon) + '</span><span class="mode-card__index">' + mode.number + ' / 03</span></div>' +
+          '<div class="mode-card__head"><span class="mode-card__icon">' + icon(mode.icon) + '</span><span class="mode-card__index">' + mode.number + ' / ' + String(modes.length).padStart(2, '0') + '</span></div>' +
           '<h3>' + mode.title + '</h3><p class="mode-card__en">' + mode.en + '</p>' +
           '<p class="mode-card__desc">' + mode.desc + '</p>' +
           '<div class="mode-card__foot"><span class="mode-card__count">' + mode.count + '</span><span class="mode-card__start">' + icon('arrow-up-right') + '</span></div>' +
@@ -938,7 +948,7 @@
     const shown = session.index + 1;
     const total = session.queue.length;
     const percent = ((session.index) / Math.max(total, 1)) * 100;
-    const sessionTitles = { review: '智能复习', new: '新词学习', practice: '自由复习', single: '单词精学', relearn: '错词重学', daily: '今日计划' };
+    const sessionTitles = { review: '智能复习', new: '新词学习', practice: '复习已学', learned: '复习已学', single: '单词精学', relearn: '错词重学', daily: '今日计划' };
     const modeTitle = sessionTitles[session.type] || '今日计划';
     const modeSub = unit.title + ' · ' + (item.kind === 'new' ? '新词' : '复习');
     const unique = Object.keys(session.outcomes || {}).length;
@@ -1167,7 +1177,7 @@
       ? '<p class="summary-loop-hint">' + icon('refresh') + ' 可无限继续，直到所有词连续答对 2 次。</p>'
       : '';
     return '<div class="study-shell">' +
-      studyTop('学习与检验完成', ({ review: '智能复习', single: '单词精学', new: '新词学习', practice: '自由复习', relearn: '错词重学' }[session.type] || '今日计划') + ' · ' + (summary.minutes || 1) + ' 分钟', 1, 1, 100, true) +
+      studyTop('学习与检验完成', ({ review: '智能复习', single: '单词精学', new: '新词学习', practice: '复习已学', learned: '复习已学', relearn: '错词重学' }[session.type] || '今日计划') + ' · ' + (summary.minutes || 1) + ' 分钟', 1, 1, 100, true) +
       '<div class="summary-wrap"><article class="summary-card" tabindex="-1">' +
       '<div class="summary-head"><div><p class="summary-kicker">' + icon('sparkles') + ' SESSION COMPLETE</p><h1>' + title + '</h1><p class="summary-desc">' + desc + '</p></div>' +
       '<span class="summary-badge">' + icon('check') + '</span></div>' +
