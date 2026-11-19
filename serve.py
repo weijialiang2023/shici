@@ -28,11 +28,18 @@ PREV_FILE = STATE_DIR / 'state.prev.json'
 DAILY_DIR = STATE_DIR / 'history' / 'daily'
 CHECKPOINT_DIR = STATE_DIR / 'history' / 'checkpoints'
 MAX_STATE_BYTES = 20 * 1024 * 1024
-APP_VERSION = '2.0.0'
+APP_VERSION = '3.0.0'
 _write_lock = threading.Lock()
 
 
 class Handler(SimpleHTTPRequestHandler):
+    extensions_map = {
+        **SimpleHTTPRequestHandler.extensions_map,
+        '.webmanifest': 'application/manifest+json; charset=utf-8',
+        '.js': 'text/javascript; charset=utf-8',
+        '.json': 'application/json; charset=utf-8',
+    }
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 

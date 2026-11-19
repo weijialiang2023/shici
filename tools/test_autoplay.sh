@@ -83,7 +83,7 @@ FIRST="$("${PWCLI[@]}" -s="$SESSION" eval '() => ({word: document.querySelector(
 REVEALED="$("${PWCLI[@]}" -s="$SESSION" eval '() => ({word: document.querySelector(".word-card__hero h1")?.textContent || "", spoken: window.__spokenTexts})' --raw)"
 
 "${PWCLI[@]}" -s="$SESSION" run-code 'async (page) => {
-  await page.getByRole("button", { name: /认识 3/ }).click();
+  await page.getByRole("button", { name: /能准确说出 3/ }).click();
   await page.waitForTimeout(500);
 }' >/dev/null
 SECOND="$("${PWCLI[@]}" -s="$SESSION" eval '() => ({word: document.querySelector(".word-card__hero h1")?.textContent || "", spoken: window.__spokenTexts})' --raw)"

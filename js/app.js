@@ -672,17 +672,14 @@
 
   function buildSpellingPool() {
     const studied = Store.studiedWords();
-    let pool;
-    if (studied.length >= 8) {
-      pool = studied.slice();
-    } else {
-      const studiedIds = new Set(studied.map(function (w) { return w.id; }));
-      const fresh = Store.words.filter(function (word) { return !studiedIds.has(word.id); });
-      pool = studied.concat(shuffle(fresh)).slice(0, 8);
-    }
-    return shuffle(pool).slice(0, 8).map(function (word) {
+    // 拼写是提取练习，只使用已经见过的词；不足 8 个时缩短题量，不用陌生词凑数。
+    return shuffle(studied.slice()).slice(0, 8).map(function (word) {
       return { id: word.id };
     });
+  }
+
+  function buildTrainingWords(limit) {
+    return shuffle(Store.studiedWords().slice()).slice(0, limit || 8);
   }
 
   function baseSession(type, queue) {
@@ -725,6 +722,10 @@
       return;
     }
 
+    // 今日计划按 7 词左右的小循环推进；每组结束都做一次短提取，
+    // 避免 20 张卡连续翻完才第一次回忆。
+    if (type === 'daily') queue = queue.slice(0, 7);
+
     closeAllOverlays({ silent: true, skipRender: true });
     rememberFocus();
     app.modal = null;
@@ -746,7 +747,7 @@
     }
     const questions = buildSpellingPool();
     if (!questions.length) {
-      toast('词库里还没有可以挑战的词。', 'info');
+      toast('拼写只抽查已经学过的词。先完成一组新词，再回来挑战。', 'info');
       return;
     }
     const overview = Store.getOverview();
@@ -774,6 +775,54 @@
     };
     document.body.classList.add('is-session');
     overlayRoot.innerHTML = UI.renderSession(app.session);
+    syncBodyState();
+    window.setTimeout(focusSessionContent, 0);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
+  function startRetrievalSession() {
+    if (isChineseBook(Store.getActiveBookId())) {
+      toast('文言词书可直接使用今日计划和弱词抽查进行字义提取。', 'info');
+      return;
+    }
+    const words = buildTrainingWords(8);
+    if (!words.length) {
+      toast('混合训练只使用已学词，先完成一小步新词学习。', 'info');
+      return;
+    }
+    const overview = Store.getOverview();
+    const session = baseSession('training', words.map(function (word) {
+      return { id: word.id, kind: 'review' };
+    }));
+    session.phase = 'quiz';
+    session.outcomes = {};
+    words.forEach(function (word) {
+      session.outcomes[word.id] = {
+        id: word.id,
+        kind: 'review',
+        attempts: 0,
+        correct: 0,
+        finalRating: null
+      };
+    });
+    session.quiz = {
+      questions: buildMeaningQuizQuestions(words),
+      index: 0,
+      answered: false,
+      selected: null,
+      correctCount: 0,
+      results: [],
+      startedAt: Date.now(),
+      questionStartedAt: Date.now()
+    };
+    session.overviewToday = overview.todayUnique;
+    session.goal = overview.goal;
+    closeAllOverlays({ silent: true, skipRender: true });
+    rememberFocus();
+    app.session = session;
+    document.body.classList.add('is-session');
+    Store.recordSession({ type: 'training', total: 0, correct: 0 });
+    overlayRoot.innerHTML = UI.renderSession(session);
     syncBodyState();
     window.setTimeout(focusSessionContent, 0);
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -857,7 +906,10 @@
   }
 
   function meaningText(word) {
-    return word.meanings.join('；');
+    const meanings = word.coreMeanings && word.coreMeanings.length
+      ? word.coreMeanings
+      : word.meanings.slice(0, 2);
+    return meanings.join('；');
   }
 
   function buildMeaningQuizQuestions(words) {
@@ -869,15 +921,21 @@
       unique.push(word);
     });
     const bookPool = Store.words.slice();
-    const questions = unique.map(function (word) {
-      const correctText = meaningText(word);
+    const questions = unique.map(function (word, index) {
+      const hasContext = Boolean(word.example && word.example.toLowerCase().indexOf(String(word.word).toLowerCase()) !== -1);
+      let type = 'meaning';
+      if (word.lang !== 'zh') {
+        if (hasContext && index % 4 === 1) type = 'context';
+        else if (index % 4 === 3) type = 'reverse';
+      }
+      const correctText = type === 'meaning' ? meaningText(word) : word.word;
       const labels = new Set([correctText]);
       const candidates = shuffle(unique.concat(shuffle(bookPool)));
       const optionTexts = [correctText];
       for (let i = 0; i < candidates.length && optionTexts.length < 4; i += 1) {
         const candidate = candidates[i];
         if (candidate.id === word.id) continue;
-        const label = meaningText(candidate);
+        const label = type === 'meaning' ? meaningText(candidate) : candidate.word;
         if (!label || labels.has(label)) continue;
         labels.add(label);
         optionTexts.push(label);
@@ -887,9 +945,17 @@
       });
       return {
         id: word.id,
+        type: type,
+        prompt: type === 'meaning'
+          ? '选出正确的中文意思'
+          : (type === 'context' ? '根据语境，选出应该填入的词' : '根据中文意思，选出对应词条'),
+        wordText: type === 'reverse' ? meaningText(word) : word.word,
+        context: type === 'context' ? UI.helpers.blankExample(word.example, word.word) : '',
         options: options,
         correctIndex: options.findIndex(function (option) { return option.correct; }),
-        correctText: correctText
+        correctText: correctText,
+        correctMeaning: meaningText(word),
+        targetWord: word.word
       };
     });
     return shuffle(questions);
@@ -938,8 +1004,14 @@
     quiz.selected = selected;
     quiz.answered = true;
     if (correct) quiz.correctCount += 1;
-    quiz.results.push({ id: question.id, correct: correct });
-    quiz.lastResult = Store.recordSessionQuizAnswer(question.id, correct, seconds);
+    const selectedText = question.options[selected] ? question.options[selected].text : '';
+    quiz.results.push({ id: question.id, correct: correct, type: question.type, selectedText: selectedText });
+    quiz.lastResult = Store.recordObjectiveAnswer(question.id, {
+      type: question.type,
+      correct: correct,
+      seconds: seconds,
+      selectedText: selectedText
+    });
     refreshSessionChrome();
     overlayRoot.innerHTML = UI.renderSession(session);
     window.setTimeout(focusSessionContent, 0);
@@ -983,8 +1055,11 @@
       const record = Store.getRecord(word.id);
       return Boolean(record && record.weak);
     });
+    const remainingPlan = Store.buildDailyPlan();
     const remaining = Store.newWords().length + Store.dueWords().length;
-    const anotherLabel = Store.dueWords().length > 0 ? '再复习一组' : (Store.newWords().length > 0 ? '再学 10 个新词' : '回到学习中心');
+    const anotherLabel = session.type === 'daily' && remainingPlan.length
+      ? '继续今日计划（' + Math.min(7, remainingPlan.length) + ' 词）'
+      : (Store.dueWords().length > 0 ? '再复习一组' : (Store.newWords().length > 0 ? '再学 10 个新词' : '回到学习中心'));
     session.completed = true;
     session.phase = 'summary';
     session.summary = {
@@ -1136,7 +1211,12 @@
     session.attempts += 1;
     if (correct) session.correctCount += 1;
     else session.missed.push(word.id);
-    Store.recordQuizAnswer(correct, seconds);
+    Store.recordObjectiveAnswer(word.id, {
+      type: 'spelling',
+      correct: correct,
+      seconds: seconds,
+      answer: answer
+    });
     refreshSessionChrome();
     overlayRoot.innerHTML = UI.renderSession(session);
     window.setTimeout(focusSessionContent, 0);
@@ -1182,9 +1262,11 @@
   function showSpellingHint() {
     const session = app.session;
     if (!session || session.type !== 'spelling' || session.checked || session.hintUsed) return;
+    const word = currentSpellingWord();
     const input = document.getElementById('spellInput');
     session.draft = input ? input.value : session.draft || '';
     session.hintUsed = true;
+    if (word) Store.recordHint(word.id);
     overlayRoot.innerHTML = UI.renderSession(session);
     window.setTimeout(function () {
       const nextInput = document.getElementById('spellInput');
@@ -1247,9 +1329,12 @@
   function markMastered(id) {
     const word = Store.getWord(id);
     if (!word) return;
-    const wasMastered = Store.getStatus(id) === 'mastered';
-    Store.markMastered(id, !wasMastered);
-    toast(wasMastered ? '已重新加入复习队列，明天见。' : '已标记为掌握，将在更长的间隔后复习。', 'check');
+    const record = Store.getRecord(id) || {};
+    const wasLongTerm = Boolean(record.manualLongTerm);
+    Store.markMastered(id, !wasLongTerm);
+    toast(wasLongTerm
+      ? '已恢复正常复习，明天会重新安排。'
+      : '已延长到 60 天后。这个操作不会替代跨日期、多题型的“已掌握”验证。', 'check');
     if (app.wordDrawerId === id) {
       overlayRoot.innerHTML = UI.wordDrawer(word);
       syncBodyState();
@@ -1528,6 +1613,9 @@
       case 'start-daily':
         startSession('daily');
         break;
+      case 'start-first':
+        startSession('new', Store.buildNewQueue(5));
+        break;
       case 'start-new':
         startSession('new');
         break;
@@ -1545,6 +1633,9 @@
         break;
       case 'start-spelling':
         startSpellingSession();
+        break;
+      case 'start-training':
+        startRetrievalSession();
         break;
       case 'scroll-to-rhythm': {
         const node = document.getElementById('memory-rhythm');
@@ -2021,6 +2112,13 @@
     }
   }
 
+  function registerOfflineSupport() {
+    if (!('serviceWorker' in navigator) || window.location.protocol === 'file:') return;
+    navigator.serviceWorker.register('sw.js', { scope: './' }).catch(function () {
+      // 离线是增强能力；注册失败不能阻止在线学习。
+    });
+  }
+
   async function boot() {
     if (!window.location.hash) {
       window.history.replaceState(null, '', '#home');
@@ -2030,6 +2128,9 @@
     if (retry) retry.addEventListener('click', function () { window.location.reload(); });
 
     setBootState('正在检查学习记录', '先看看本机有没有更完整的存档。', false);
+    await Store.hydrateFromIndexedDb();
+    await Store.requestPersistentStorage();
+    registerOfflineSupport();
     const persistence = await Store.prepareRemote();
     if (persistence && persistence.restored) return;
 

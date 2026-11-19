@@ -43,6 +43,11 @@ def main():
     for relative in [
         "index.html",
         "serve.py",
+        "manifest.webmanifest",
+        "sw.js",
+        "offline.html",
+        "tools/content_audit.py",
+        "content-audit.md",
         ".github/workflows/pages.yml",
         "tools/install_local.sh",
         "tools/deploy_local.sh",
@@ -62,6 +67,18 @@ def main():
     app_js = (ROOT / "js/app.js").read_text()
     require("document.currentScript" in app_js and "source.match" in app_js, "动态数据版本必须跟随入口脚本，不能写死旧缓存版本")
     require("window.addEventListener('beforeunload'" not in app_js, "学习会话不得阻止用户关闭页面或退出 Safari")
+    store_js = (ROOT / "js/store.js").read_text()
+    require("SCHEMA_VERSION = 3" in store_js, "学习记录必须使用可迁移的新 schema")
+    require("recordObjectiveAnswer" in store_js, "客观提取必须与卡片自评分开记录")
+    require("hydrateFromIndexedDb" in store_js, "必须提供 IndexedDB 历史恢复层")
+    require("navigator.storage.persist" in app_js or "requestPersistentStorage" in store_js, "必须申请浏览器持久存储")
+    require("buildSpellingPool" in app_js and "Store.studiedWords()" in app_js, "拼写挑战必须只使用已学词")
+    require("serviceWorker.register" in app_js, "必须注册离线 Service Worker")
+    require("ego-browser nodejs" in (ROOT / "tools/test_learning_system.sh").read_text(), "浏览器主验收必须使用 ego-browser")
+    require('rel="manifest"' in (ROOT / "index.html").read_text(), "页面必须声明 Web App Manifest")
+    for book_id in ("gaokao", "ielts", "cet4", "cet6"):
+        book_data = json.loads((ROOT / f"data/books/{book_id}.json").read_text())
+        require(len(book_data["words"]) == len(index[book_id]), f"{book_id} 词数必须与索引一致")
 
     print("project checks: ok")
     print("wenyan: 1200 = 200 editorial + 1000 high-frequency")

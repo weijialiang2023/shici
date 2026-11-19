@@ -62,7 +62,7 @@
       shortTitle: '雅思必背',
       en: 'IELTS ESSENTIAL',
       category: '出国',
-      count: 3427,
+      count: 3426,
       coverMark: '雅',
       icon: 'globe',
       accent: '#3F6B7F',
@@ -115,14 +115,14 @@
   };
 
   window.REVIEW_SCHEDULE = [
-    { stage: 0, days: 1, label: '1 天' },
-    { stage: 1, days: 1, label: '1 天' },
-    { stage: 2, days: 2, label: '2 天' },
-    { stage: 3, days: 4, label: '4 天' },
-    { stage: 4, days: 7, label: '7 天' },
-    { stage: 5, days: 15, label: '15 天' },
-    { stage: 6, days: 30, label: '30 天' },
-    { stage: 7, days: 60, label: '60 天' }
+    { stage: 0, days: 1, label: '次日重学' },
+    { stage: 1, days: 2, label: '2 天' },
+    { stage: 2, days: 4, label: '4 天' },
+    { stage: 3, days: 7, label: '7 天' },
+    { stage: 4, days: 15, label: '15 天' },
+    { stage: 5, days: 30, label: '30 天' },
+    { stage: 6, days: 60, label: '60 天' },
+    { stage: 7, days: 90, label: '90 天' }
   ];
 
   window.QUOTES = [

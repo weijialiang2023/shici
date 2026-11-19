@@ -120,17 +120,17 @@ PY
   await page.waitForSelector(".mode-grid");
   const modeCount = await page.locator(".mode-card").count();
   const indexes = await page.locator(".mode-card__index").allTextContents();
-  if (modeCount !== 4 || indexes.some((text) => !text.endsWith("/ 04"))) {
+  if (modeCount !== 2 || indexes.some((text) => !text.endsWith("/ 02"))) {
     throw new Error(`mode count/index mismatch: ${modeCount} ${indexes.join(" | ")}`);
   }
-  const button = page.getByRole("button", { name: /复习已学/ });
+  const button = page.getByRole("button", { name: /抽查弱词/ });
   if (!(await button.count())) throw new Error("learned review entry is missing");
   await button.first().click();
   await page.waitForSelector(".study-overlay .word-card");
   const initialTotal = Number((await page.locator(".study-count").innerText()).match(/(\d+)\s*$/)[1]);
   if (initialTotal <= 40) throw new Error(`expected an unlimited queue above 40, got ${initialTotal}`);
   await page.getByRole("button", { name: "显示释义" }).click();
-  await page.getByRole("button", { name: /不认识 1/ }).click();
+  await page.getByRole("button", { name: /忘了 1/ }).click();
   await page.waitForTimeout(200);
   const afterAgainTotal = Number((await page.locator(".study-count").innerText()).match(/(\d+)\s*$/)[1]);
   if (afterAgainTotal !== initialTotal + 1) {

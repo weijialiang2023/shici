@@ -60,6 +60,46 @@
     return '<span class="status-pill ' + meta.className + '"><i class="dot"></i>' + meta.label + '</span>';
   }
 
+  function coreMeanings(word) {
+    if (word && Array.isArray(word.coreMeanings) && word.coreMeanings.length) return word.coreMeanings;
+    return word && Array.isArray(word.meanings) ? word.meanings.slice(0, 2) : [];
+  }
+
+  function extendedMeanings(word) {
+    const core = coreMeanings(word);
+    const extended = word && Array.isArray(word.extendedMeanings) ? word.extendedMeanings : (word && Array.isArray(word.meanings) ? word.meanings : []);
+    return extended.filter(function (meaning, index) {
+      return extended.indexOf(meaning) === index && core.indexOf(meaning) === -1;
+    });
+  }
+
+  function extendedMeaningsHTML(word) {
+    const extra = extendedMeanings(word);
+    if (!extra.length) return '';
+    return '<details class="extended-meanings"><summary>拓展义项 · ' + extra.length + ' 个</summary>' +
+      '<div class="meaning-chip-row">' + extra.map(function (meaning) {
+        return '<span class="meaning-chip"><em>' + esc(word.pos || '') + '</em>' + esc(meaning) + '</span>';
+      }).join('') + '</div></details>';
+  }
+
+  function weaknessLabel(record) {
+    if (!record || !record.weak) return '';
+    const types = Object.keys(record.errorTypes || {}).sort(function (a, b) {
+      return (record.errorTypes[b] || 0) - (record.errorTypes[a] || 0);
+    });
+    const labels = {
+      meaning_confusion: '词义混淆',
+      usage_context: '语境用法',
+      spelling_omission: '漏字母',
+      spelling_extra: '多字母',
+      spelling_order: '字母顺序',
+      spelling_confusion: '拼写混淆'
+    };
+    if (types.length && labels[types[0]]) return labels[types[0]];
+    if (record.confusions && record.confusions.length) return '易混项待复习';
+    return '需要再提取一次';
+  }
+
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
   }
@@ -249,8 +289,8 @@
     }
 
     const meta = done
-      ? '今日已学 ' + overview.todayUnique + ' 个词 · 正确率 ' + overview.accuracy + '% · 已连续学习 ' + overview.streak + ' 天'
-      : '新词 ' + overview.planNewCount + ' · 复习 ' + overview.planReviewCount + ' · 预计 ' + (overview.estimatedMinutes || 1) + ' 分钟 · 乱序抽取';
+      ? '今日已学 ' + overview.todayUnique + ' 个词 · 客观提取正确率 ' + (overview.attempts ? overview.recallAccuracy + '%' : '待检验') + ' · 已连续学习 ' + overview.streak + ' 天'
+      : '先复习 ' + overview.planReviewCount + ' 个，再学 ' + overview.planNewCount + ' 个新的 · 预计 ' + (overview.estimatedMinutes || 1) + ' 分钟';
 
     const unitCards = currentUnits().map(function (item) {
       const progress = findUnitProgress(item.id);
@@ -310,7 +350,7 @@
       '<div class="word-of-day__word-row"><h3>' + esc(word.word) + '</h3>' +
       '<button class="audio-btn" type="button" data-action="speak" data-word="' + esc(word.word) + '" aria-label="朗读 ' + esc(word.word) + '">' + icon('volume') + '</button></div>' +
       '<p class="word-of-day__ipa">' + esc(word.ipa || '—') + (word.pos ? ' &nbsp; ' + esc(word.pos) : '') + '</p>' +
-      '<p class="word-of-day__meaning">' + esc(word.meanings.join('；')) + '</p>' +
+      '<p class="word-of-day__meaning">' + esc(coreMeanings(word).join('；')) + '</p>' +
       (word.example ? '<p class="word-of-day__example">' + highlight(word.example, word.word) + '</p>' : '<p class="word-of-day__example">先记住它的中文意思，再到词卡里看搭配。</p>') +
       '</div>' +
       '<div class="word-of-day__foot">' +
@@ -419,52 +459,30 @@
       }
     } else {
       title = '今天还剩 <em>' + planCount + '</em> 个词，<br>按自己的节奏来。';
-      desc = '新词 ' + overview.planNewCount + ' 个 · 复习 ' + overview.planReviewCount + ' 个 · 预计 ' + (overview.estimatedMinutes || 1) + ' 分钟。整组词会乱序出现，答错的词会在本轮再次出现。';
+      desc = '先复习 ' + overview.planReviewCount + ' 个，再学 ' + overview.planNewCount + ' 个新的 · 预计 ' + (overview.estimatedMinutes || 1) + ' 分钟。复习与新词会交错出现，答错的词会在本轮稍后重现。';
     }
 
-    const dueCount = overview.due;
-    const newCount = overview.newRemaining;
     const isChineseBook = activeBook().id === 'wenyan' || activeBook().id === 'curated';
     const modes = [
       {
-        action: 'start-new',
+        action: 'start-daily',
         number: '01',
         icon: 'sparkles',
-        title: '新词学习',
-        en: 'Learn something new',
-        desc: '从当前词书中乱序抽取一组新词。先回忆，再看释义，把新词放进真实语境。',
-        count: newCount > 0 ? '还有 ' + newCount + ' 个词未学习' : '所有词都见过面了',
-        disabled: newCount === 0
+        title: '今日计划',
+        en: 'Today, in small loops',
+        desc: '先清到期复习，再补少量新词；每组穿插旧词和一次短提取，不让一种题型连续刷。',
+        count: done ? '今天的计划已经完成' : overview.planReviewCount + ' 个复习 + ' + overview.planNewCount + ' 个新词',
+        disabled: done
       },
       {
-        action: 'start-review',
+        action: overview.totalSeen > 0 ? 'start-learned' : 'start-first',
         number: '02',
-        icon: 'refresh',
-        title: '智能复习',
-        en: 'Review on time',
-        desc: '按遗忘曲线挑出今天到期的词。在快要忘记的时候复习，记得更牢。',
-        count: dueCount > 0 ? '今天有 ' + dueCount + ' 个词待复习' : '今天没有到期的词',
-        disabled: dueCount === 0
-      },
-      {
-        action: 'start-learned',
-        number: '03',
-        icon: 'refresh',
-        title: '复习已学',
-        en: 'Review everything learned',
-        desc: '随时复习当前词书里全部已学词。待巩固、答错较多和复习阶段较低的词会优先出现。',
-        count: overview.totalSeen > 0 ? '复习全部 ' + overview.totalSeen + ' 个已学词' : '当前词书还没有已学词',
-        disabled: overview.totalSeen === 0
-      },
-      {
-        action: isChineseBook ? '' : 'start-spelling',
-        number: '04',
-        icon: isChineseBook ? 'book-open' : 'keyboard',
-        title: isChineseBook ? '字义回看' : '拼写挑战',
-        en: isChineseBook ? 'Meaning check' : 'Spell it out',
-        desc: isChineseBook ? '文言实词以字义、语境和多义项为主。学完卡片后会直接进入词义检验。' : '看中文和例句，把单词完整拼出来。8 道题，检验是否真的记住。',
-        count: isChineseBook ? '拼写挑战对汉字不适用' : (overview.totalSeen > 0 ? '从学过的词中抽取 8 个' : '第一次可直接体验 8 个词'),
-        disabled: isChineseBook
+        icon: 'heart',
+        title: '抽查弱词',
+        en: 'Weak words, first',
+        desc: '从当前词书全部已学词里优先抽待巩固、答错多和间隔短的词。可用错词重学继续攻克。',
+        count: overview.totalSeen ? overview.weak + ' 个待巩固 · 共 ' + overview.totalSeen + ' 个已学词' : '先学 5 个词，再开始抽查',
+        disabled: false
       }
     ];
 
@@ -472,7 +490,7 @@
       '<header class="page-head">' +
       '<div><p class="eyebrow">STUDY ROOM</p><h1 class="page-title">学习中心</h1>' +
       '<p class="page-head__desc">不追求一次记住，只让每次见面都更熟一点。</p></div>' +
-      '<div class="page-head__aside">' + bookContextHTML('sm') + '<span class="pill pill--green"><i class="dot"></i> 遗忘曲线复习</span></div>' +
+      '<div class="page-head__aside">' + bookContextHTML('sm') + '<span class="pill pill--green"><i class="dot"></i> 主动回忆 · 85% 保持率</span></div>' +
       '</header>' +
 
       '<section class="study-plan">' +
@@ -489,7 +507,9 @@
       '<div class="dark-progress">' + circleProgress(percent) +
       '<div class="dark-progress__inner"><strong>' + Math.min(percent, 100) + '<small>%</small></strong><span>今日目标</span></div></div>' +
       '</div>' +
-      '<span class="study-plan__breakdown"><i class="dot"></i> ' + overview.goal + ' 词 / 天 · 约 ' + (overview.estimatedMinutes || Math.max(1, Math.round(overview.goal * 0.35))) + ' 分钟</span>' +
+      '<span class="study-plan__breakdown"><i class="dot"></i> ' + (done
+        ? '今日计划已完成'
+        : overview.planReviewCount + ' 复习 + ' + overview.planNewCount + ' 新词 · 约 ' + (overview.estimatedMinutes || Math.max(1, Math.round(overview.goal * 0.35))) + ' 分钟') + '</span>' +
       '</section>' +
 
       '<div class="mode-grid">' +
@@ -504,10 +524,22 @@
       }).join('') +
       '</div>' +
 
+      '<section class="training-panel" aria-labelledby="trainingTitle">' +
+      '<div class="training-panel__head"><div><p class="eyebrow">MORE PRACTICE</p><h2 id="trainingTitle">更多训练</h2>' +
+      '<p>只在已学词里做提取，不把陌生词当成已经掌握。</p></div><span class="pill">' + overview.totalSeen + ' 个已学词可用</span></div>' +
+      '<div class="training-actions">' +
+      '<button class="btn btn--ghost" type="button" data-action="start-new"' + (overview.newRemaining ? '' : ' disabled') + '>' + icon('sparkles') + ' 新词学习</button>' +
+      '<button class="btn btn--ghost" type="button" data-action="' + (overview.weak ? 'start-relearn-all' : 'start-learned') + '"' + (overview.totalSeen ? '' : ' disabled') + '>' + icon('refresh') + (overview.weak ? ' 错词重学（' + overview.weak + '）' : ' 已学词回看') + '</button>' +
+      '<button class="btn btn--ghost" type="button" data-action="start-training"' + (overview.totalSeen && !isChineseBook ? '' : ' disabled') + '>' + icon('target') + ' 混合提取</button>' +
+      '<button class="btn btn--ghost" type="button" data-action="start-spelling"' + (overview.totalSeen && !isChineseBook ? '' : ' disabled') + '>' + icon('keyboard') + ' 拼写挑战</button>' +
+      '</div>' +
+      '<p class="training-note">' + (overview.totalSeen < 3 ? '已学词不足 3 个时，训练会缩短题量。' : '每次最多 8 题，按已学词量自动缩短。') + (isChineseBook ? ' 文言词书使用字义与语境提取。' : '') + '</p>' +
+      '</section>' +
+
       '<section class="rhythm-panel">' +
-      '<div><h2>你的复习节奏</h2><p>参考艾宾浩斯遗忘曲线：第一次学习后，在记忆开始模糊的节点安排复习。每一次成功回忆，间隔都会拉长。</p></div>' +
+      '<div><h2>你的复习节奏</h2><p>首次“忘了 / 有印象 / 能准确说出”分别安排今天稍后、明天、3 天后；之后由答对、题型和间隔共同调整。</p></div>' +
       '<div class="rhythm-timeline">' +
-      ['首次学习', '1 天', '2 天', '4 天', '7 天', '15 天', '30 天'].map(function (label) {
+      ['首次', '1 天', '3 天', '7 天', '15 天', '30 天', '60 天'].map(function (label) {
         return '<div class="rhythm-node"><i></i><span>' + label + '</span></div>';
       }).join('') +
       '</div>' +
@@ -515,7 +547,7 @@
 
       '<section class="study-tip">' +
       '<span class="study-tip__icon">' + icon('info') + '</span>' +
-      '<div><h3>关于这个节奏</h3><p>复习节点参考艾宾浩斯的研究与间隔重复的常用实践，但我们更相信持续的小步前进。答“不认识”的词会在本轮末尾再次出现，并在明天重新开始；答“认识”则会进入更长的复习间隔。每次学习都会打乱词书顺序，避免只记住字母表的开头。遗忘是正常的，按时回来就好。</p></div>' +
+      '<div><h3>为什么这样安排</h3><p>自评只决定第一次见面的起点，不作为“会了”的证明。选择题、语境选词、反向选词和拼写分别记录；“掌握”需要至少 3 个不同日期的成功提取、2 种题型，并有一次 7 天以上间隔。答错会记录你选了什么，并降低下一次间隔。</p></div>' +
       '</section>';
   }
 
@@ -548,15 +580,16 @@
       const dueLabel = record && record.seen ? window.Store.getDueLabel(record) : '—';
       const dueIsToday = record && record.seen && record.due && record.due <= window.Store.todayKey();
       const favorite = Boolean(record && record.favorite);
+      const weakReason = weaknessLabel(record);
       return '<div class="word-row" data-open-word="' + esc(word.id) + '" role="group" aria-label="' + esc(word.word) + '">' +
         '<div class="word-row__main"><button class="word-open" type="button" data-action="open-word" data-word-id="' + esc(word.id) + '">' +
         '<span class="word-open__word">' + esc(word.word) + levelBadge(word.level) + '</span>' +
         '<span class="word-open__ipa">' + esc(word.ipa || '—') + (word.pos ? ' · ' + esc(word.pos) : '') + '</span>' +
         '</button></div>' +
-        '<div class="word-row__meaning">' + esc(word.meanings.join('；')) + '</div>' +
+        '<div class="word-row__meaning">' + esc(coreMeanings(word).join('；')) + extendedMeanings(word).length + ' 个拓展义项</div>'.replace('0 个拓展义项', '') +
         '<div class="word-row__unit" style="' + unitStyle(unit) + '"><i class="dot"></i>' + esc(unitDisplay(unit)) + '</div>' +
         '<div class="word-row__state">' + statusPill(shownStatus) +
-        '<span class="word-row__due' + (dueIsToday ? ' is-due' : '') + '">' + esc(dueIsToday ? '今天复习' : dueLabel) + '</span></div>' +
+        '<span class="word-row__due' + (dueIsToday ? ' is-due' : '') + '">' + esc((weakReason ? weakReason + ' · ' : '') + (dueIsToday ? '今天复习' : dueLabel)) + '</span></div>' +
         '<button class="icon-btn word-row__fav' + (favorite ? ' is-active' : '') + '" type="button" data-action="toggle-favorite" data-word-id="' + esc(word.id) + '" aria-label="' + (favorite ? '取消收藏' : '收藏') + ' ' + esc(word.word) + '" aria-pressed="' + favorite + '">' + icon('star') + '</button>' +
         '</div>';
     }).join('');
@@ -579,6 +612,7 @@
       (query ? '<button class="library-search__clear" type="button" data-action="clear-library-search" aria-label="清除搜索">' + icon('close') + '</button>' : '') +
       '</label>' +
       '<div class="library-count"><strong>' + total + '</strong> 个词</div>' +
+      ((query || status !== 'all' || selectedUnit !== 'all') ? '<button class="text-link library-reset" type="button" data-action="reset-library">清除筛选</button>' : '') +
       '</div>' +
 
       '<div class="filter-bar" aria-label="按学习状态筛选">' +
@@ -711,10 +745,10 @@
       const lastDate = item.lastDate ? window.Store.formatDateCN(item.lastDate) : '—';
       const resultLabel = item.firstKind === 'knew' ? '当时会' : (item.firstKind === 'didnt' ? '当时不会' : '未记录');
       const resultClass = item.firstKind === 'knew' ? 'is-knew' : (item.firstKind === 'didnt' ? 'is-didnt' : 'is-unmarked');
-      const quizLine = record.quizSeen ? '检验 ' + record.quizCorrect + '/' + record.quizSeen : '尚未检验';
+      const quizLine = record.objectiveSeen ? '客观提取 ' + record.objectiveCorrect + '/' + record.objectiveSeen : '尚未检验';
       return '<button class="learned-row" type="button" data-action="open-word" data-word-id="' + esc(word.id) + '" title="' + esc(item.firstSource) + '">' +
         '<span class="learned-row__word"><strong>' + esc(word.word) + '</strong><small>' + esc(word.ipa || '—') + (word.pos ? ' · ' + esc(word.pos) : '') + '</small></span>' +
-        '<span class="learned-row__meaning">' + esc(word.meanings.join('；')) + '</span>' +
+        '<span class="learned-row__meaning">' + esc(coreMeanings(word).join('；')) + '</span>' +
         '<span class="learned-result ' + resultClass + '">' + resultLabel + '</span>' +
         '<span class="learned-row__state">' + statusPill(item.currentStatus) + '<small>' + quizLine + '</small></span>' +
         '<span class="learned-row__date">首次 ' + firstDate + '<small>最近 ' + lastDate + '</small></span>' +
@@ -738,6 +772,53 @@
       (wordReport.list.length ? '<div class="learned-list">' + learnedRows + '</div>' : learnedEmpty) +
       (wordReport.hasMore ? '<div class="learned-more"><span>已显示 ' + wordReport.list.length + ' / ' + wordReport.total + ' 个词</span><button class="btn btn--ghost btn--sm" type="button" data-action="report-words-more">再看 24 个 ' + icon('arrow-right') + '</button></div>' : '') +
       '</section>';
+    if (overview.totalSeen === 0) {
+      return '<header class="page-head report-head"><div><p class="eyebrow">LEARNING LOG</p><h1 class="page-title">学习报告</h1>' +
+        '<p class="page-head__desc">第一条记录，会从五个词开始。</p></div><div class="report-head__actions">' + bookContextHTML('sm') +
+        '<button class="btn btn--ghost btn--sm" type="button" data-action="open-settings">' + icon('settings') + ' 学习设置</button></div></header>' +
+        '<section class="report-empty-hero"><span class="report-empty-hero__mark">' + icon('chart') + '</span>' +
+        '<div><p class="eyebrow">A QUIET START</p><h2>还不需要看一屏的 0。</h2>' +
+        '<p>先学 5 个词，做完一次简短的提取题。之后这里会分别告诉你：客观提取正确率、24 小时与 7 天保持率，以及哪种错误最常见。</p>' +
+        '<div class="report-empty-hero__actions"><button class="btn btn--primary" type="button" data-action="start-first">开始第一组 5 词 ' + icon('arrow-right', 'icon--shift') + '</button>' +
+        '<button class="btn btn--ghost" type="button" data-action="open-settings">' + icon('download') + ' 导入旧记录</button></div></div>' +
+        '<details class="report-preview"><summary>看看完成一组后会记录什么</summary><div class="report-preview__grid">' +
+        '<div><strong>客观提取正确率</strong><span>只统计选择题、语境题、反向题和拼写题</span></div>' +
+        '<div><strong>自评分布</strong><span>忘了 / 有印象 / 能准确说出，单独展示</span></div>' +
+        '<div><strong>间隔保持</strong><span>24 小时与 7 天后是否仍能主动答对</span></div>' +
+        '<div><strong>下一次建议</strong><span>到期复习、弱词原因和推荐题型</span></div></div></details></section>';
+    }
+
+    const selfTotal = overview.selfRatings.known + overview.selfRatings.fuzzy + overview.selfRatings.again;
+    const selfPct = function (value) { return selfTotal ? Math.round((value / selfTotal) * 100) : 0; };
+    const errorLabelMap = {
+      meaning_confusion: '词义混淆',
+      usage_context: '语境用法',
+      spelling_omission: '拼写漏字母',
+      spelling_extra: '拼写多字母',
+      spelling_order: '字母顺序',
+      spelling_confusion: '拼写混淆'
+    };
+    const topErrors = Object.keys(overview.errorTypes || {}).sort(function (a, b) {
+      return overview.errorTypes[b] - overview.errorTypes[a];
+    }).slice(0, 3);
+    const diagnostics = topErrors.length
+      ? topErrors.map(function (type) {
+        return '<span>' + esc(errorLabelMap[type] || type) + ' <strong>' + overview.errorTypes[type] + '</strong></span>';
+      }).join('')
+      : '<span>还没有错误类型记录</span>';
+    const memorySection = '<section class="report-panel memory-metrics">' +
+      '<div class="report-panel__head"><div><h2>记忆表现</h2><p class="report-panel__desc">自评、客观提取与跨日保持分开统计</p></div>' +
+      '<span class="pill">目标保持率 ' + Math.round((overview.targetRetention || 0.85) * 100) + '%</span></div>' +
+      '<div class="memory-metrics__grid">' +
+      '<div class="memory-metric"><span>自评分布</span><div class="self-bars">' +
+      '<i class="self-bars__known" style="width:' + selfPct(overview.selfRatings.known) + '%"></i>' +
+      '<i class="self-bars__fuzzy" style="width:' + selfPct(overview.selfRatings.fuzzy) + '%"></i>' +
+      '<i class="self-bars__again" style="width:' + selfPct(overview.selfRatings.again) + '%"></i></div>' +
+      '<strong>' + overview.selfRatings.known + ' / ' + overview.selfRatings.fuzzy + ' / ' + overview.selfRatings.again + '</strong><small>能准确说出 / 有印象 / 忘了</small></div>' +
+      '<div class="memory-metric"><span>24 小时保持</span><strong>' + (overview.retention24Rate == null ? '待积累' : overview.retention24Rate + '%') + '</strong><small>' + overview.retention24.correct + ' / ' + overview.retention24.seen + ' 次跨日提取</small></div>' +
+      '<div class="memory-metric"><span>7 天保持</span><strong>' + (overview.retention7Rate == null ? '待积累' : overview.retention7Rate + '%') + '</strong><small>' + overview.retention7.correct + ' / ' + overview.retention7.seen + ' 次长间隔提取</small></div>' +
+      '<div class="memory-metric"><span>需要留意</span><div class="diagnostic-chips">' + diagnostics + '</div><small>答错的词会按题型进入待巩固</small></div>' +
+      '</div></section>';
     return '' +
       '<header class="page-head report-head">' +
       '<div><p class="eyebrow">LEARNING LOG</p><h1 class="page-title">学习报告</h1>' +
@@ -749,9 +830,10 @@
       '<article class="report-stat report-stat--dark"><span class="report-stat__label">' + icon('book-open') + ' 累计学习</span><strong class="report-stat__value">' + overview.totalSeen + '<small> / ' + overview.totalWords + ' 词</small></strong><span class="report-stat__note">整体进度 ' + (overview.totalWords ? Math.round((overview.totalSeen / overview.totalWords) * 100) : 0) + '%</span></article>' +
       '<article class="report-stat"><span class="report-stat__label">' + icon('trophy') + ' 已掌握</span><strong class="report-stat__value">' + overview.mastered + '<small> 个</small></strong><span class="report-stat__note">' + (overview.totalSeen ? Math.round((overview.mastered / overview.totalSeen) * 100) : 0) + '% 掌握率</span></article>' +
       '<article class="report-stat"><span class="report-stat__label">' + icon('flame') + ' 连续学习</span><strong class="report-stat__value">' + overview.streak + '<small> 天</small></strong><span class="report-stat__note">最长 ' + overview.longestStreak + ' 天 · ' + streakWord + '</span></article>' +
-      '<article class="report-stat"><span class="report-stat__label">' + icon('target') + ' 正确率</span><strong class="report-stat__value">' + overview.accuracy + '<small>%</small></strong><span class="report-stat__note">共 ' + overview.attempts + ' 次作答</span></article>' +
+      '<article class="report-stat"><span class="report-stat__label">' + icon('target') + ' 提取正确率</span><strong class="report-stat__value">' + (overview.attempts ? overview.recallAccuracy : '—') + '<small>' + (overview.attempts ? '%' : '') + '</small></strong><span class="report-stat__note">只含 ' + overview.attempts + ' 次客观题</span></article>' +
       '</section>' +
 
+      memorySection +
       learnedSection +
 
       '<div class="report-grid">' +
@@ -806,11 +888,11 @@
     const baseStatus = window.Store.getStatus(word.id);
     const status = record && record.weak && baseStatus !== 'mastered' ? 'weak' : baseStatus;
     const favorite = Boolean(record && record.favorite);
-    const quizLine = record && record.quizSeen ? ' · 检验 ' + record.quizCorrect + '/' + record.quizSeen : '';
+    const quizLine = record && record.objectiveSeen ? ' · 客观提取 ' + record.objectiveCorrect + '/' + record.objectiveSeen : '';
     const stageText = record && record.seen
       ? (status === 'weak'
-        ? '本组检验中需要再看一眼 · 下次复习：' + window.Store.getDueLabel(record) + quizLine
-        : (status === 'mastered' ? '已进入长期记忆 · 下次复习：' + window.Store.getDueLabel(record) + quizLine : '下次复习：' + window.Store.getDueLabel(record) + quizLine))
+        ? '需要再看一眼 · ' + weaknessLabel(record) + ' · 下次复习：' + window.Store.getDueLabel(record) + quizLine
+        : (status === 'mastered' ? '已通过跨日期与多题型验证 · 下次复习：' + window.Store.getDueLabel(record) + quizLine : '下次复习：' + window.Store.getDueLabel(record) + quizLine))
       : '还没开始学习 · 加入后会按遗忘曲线安排复习';
     return '<div class="overlay-backdrop" data-action="close-drawer"></div>' +
       '<aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="wordDrawerTitle" style="' + unitStyle(unit) + '">' +
@@ -820,9 +902,9 @@
       '<div class="word-detail__title-row"><h2 id="wordDrawerTitle">' + esc(word.word) + '</h2>' +
       '<button class="audio-btn audio-btn--ink word-detail__audio" type="button" data-action="speak" data-word="' + esc(word.word) + '" aria-label="朗读 ' + esc(word.word) + '">' + icon('volume') + '</button></div>' +
       '<div class="word-detail__ipa-row">' + (word.ipa ? '<span>' + esc(word.ipa) + '</span>' : '') + (word.pos ? '<span class="pos-badge">' + esc(word.pos) + '</span>' : '') + levelBadge(word.level) + '</div>' +
-      '<div class="word-detail__meanings">' + word.meanings.map(function (meaning) {
+      '<div class="word-detail__meanings">' + coreMeanings(word).map(function (meaning) {
         return '<span class="meaning-chip"><em>' + esc(word.pos) + '</em>' + esc(meaning) + '</span>';
-      }).join('') + '</div>' +
+      }).join('') + '</div>' + extendedMeaningsHTML(word) +
 
       (word.example ? '<section class="detail-section" style="border-top:0;padding-top:0;">' +
       '<p class="detail-section__label">Example · 例句</p>' +
@@ -844,7 +926,7 @@
       '</div>' +
       '<div class="drawer__foot">' +
       '<div class="word-detail__status"><div class="word-detail__status-text"><span>' + statusMeta(status).label + '</span><strong>' + esc(stageText) + '</strong></div>' +
-      (record && record.seen ? '<button class="text-link" type="button" data-action="mark-mastered" data-word-id="' + esc(word.id) + '">' + (status === 'mastered' ? '重新学习' : '标记已掌握') + '</button>' : '') + '</div>' +
+      (record && record.seen ? '<button class="text-link" type="button" data-action="mark-mastered" data-word-id="' + esc(word.id) + '">' + (record.manualLongTerm ? '恢复正常复习' : '延长到 60 天后') + '</button>' : '') + '</div>' +
       '<div class="word-detail__actions">' +
       '<button class="btn btn--primary" type="button" data-action="study-single" data-word-id="' + esc(word.id) + '">' + (record && record.seen ? '再学一次' : '现在学这个词') + ' ' + icon('arrow-right', 'icon--shift') + '</button>' +
       '<button class="icon-btn' + (favorite ? ' is-active' : '') + '" type="button" data-action="toggle-favorite" data-word-id="' + esc(word.id) + '" aria-label="' + (favorite ? '取消收藏' : '收藏') + '" aria-pressed="' + favorite + '">' + icon('star') + '</button>' +
@@ -868,6 +950,12 @@
     const voiceGender = profile.voiceGender === 'male' ? 'male' : 'female';
     const voiceRate = Number(profile.voiceRate) || 0.9;
     const voiceSupported = 'speechSynthesis' in window;
+    const parsedBackupAt = persistence.lastBackupAt ? new Date(persistence.lastBackupAt) : null;
+    const backupAt = parsedBackupAt && Number.isFinite(parsedBackupAt.getTime()) ? parsedBackupAt : null;
+    const backupDays = backupAt ? Math.max(0, Math.floor((Date.now() - backupAt.getTime()) / (24 * 60 * 60 * 1000))) : null;
+    const backupNote = backupAt
+      ? (backupDays >= 14 ? '上次导出备份在 ' + backupDays + ' 天前，建议现在再导出一份。' : '上次导出备份：' + backupAt.toLocaleDateString('zh-CN'))
+      : '还没有手动导出备份。浏览器数据可能因清理站点数据而丢失。';
     const voiceControl = '<section class="settings-section"><span class="settings-label">英语发音</span>' +
       '<div class="voice-options" role="group" aria-label="选择英语发音声线">' +
       '<button class="voice-option' + (voiceGender === 'female' ? ' is-active' : '') + '" type="button" data-action="set-voice-gender" data-gender="female" aria-pressed="' + (voiceGender === 'female') + '">' +
@@ -901,6 +989,9 @@
       }).join('') + '</div>' +
       '<p class="settings-help">可设置 ' + window.Store.MIN_DAILY_GOAL + '–' + window.Store.MAX_DAILY_GOAL + ' 之间的任意整数。按“当天学过的不同单词数”计算，复习也算在目标里。</p></section>' +
       voiceControl +
+      '<section class="data-safety-card' + (backupDays == null || backupDays >= 14 ? ' is-warning' : '') + '">' +
+      '<span class="data-safety-card__icon">' + icon('lock') + '</span><div><strong>数据安全</strong><p>' + esc(backupNote) + '</p>' +
+      '<small>' + (persistence.storagePersisted ? '浏览器已授予持久存储。' : '浏览器可能自动清理站点数据；持久存储申请以浏览器实际结果为准。') + '</small></div></section>' +
       '<section class="settings-section"><span class="settings-label">记录与备份</span>' +
       '<div class="save-status' + (persistence.mode === 'degraded' ? ' is-degraded' : '') + '"><i class="dot"></i><div><strong>' + saveMode + '</strong><span>' + savedText + ' · ' + esc(saveDetail) + '</span></div></div>' +
       '<div class="settings-actions">' +
@@ -948,18 +1039,19 @@
     const shown = session.index + 1;
     const total = session.queue.length;
     const percent = ((session.index) / Math.max(total, 1)) * 100;
-    const sessionTitles = { review: '智能复习', new: '新词学习', practice: '复习已学', learned: '复习已学', single: '单词精学', relearn: '错词重学', daily: '今日计划' };
+    const sessionTitles = { review: '智能复习', new: '新词学习', practice: '复习已学', learned: '复习已学', single: '单词精学', relearn: '错词重学', daily: '今日计划', training: '混合提取' };
     const modeTitle = sessionTitles[session.type] || '今日计划';
     const modeSub = unit.title + ' · ' + (item.kind === 'new' ? '新词' : '复习');
     const unique = Object.keys(session.outcomes || {}).length;
-    const pageCorrect = session.attempts ? Math.round((session.correctAttempts / session.attempts) * 100) : 0;
-    const accuracy = session.attempts ? pageCorrect : 0;
+    const previewAgain = window.Store.dueForSelfRating(word.id, 'again').label;
+    const previewFuzzy = window.Store.dueForSelfRating(word.id, 'fuzzy').label;
+    const previewKnown = window.Store.dueForSelfRating(word.id, 'known').label;
 
     const aside = '<aside class="study-aside">' +
       '<div class="study-aside__panel"><h3>THIS ROUND · 本轮</h3>' +
       '<div class="session-mini-stats"><div class="session-mini-stat"><strong>' + unique + '</strong><span>见过的词</span></div>' +
-      '<div class="session-mini-stat"><strong>' + session.attempts + '</strong><span>次作答</span></div>' +
-      '<div class="session-mini-stat"><strong>' + accuracy + '%</strong><span>正确率</span></div></div>' +
+      '<div class="session-mini-stat"><strong>' + session.attempts + '</strong><span>次自评</span></div>' +
+      '<div class="session-mini-stat"><strong>待检验</strong><span>客观提取</span></div></div>' +
       '<div class="aside-rule"></div>' +
       '<div class="aside-progress-row"><span>今日进度</span><strong>' + session.overviewToday + ' / ' + session.goal + '</strong></div>' +
       '<div class="aside-progress-track"><span style="width:' + Math.min(100, (session.overviewToday / Math.max(session.goal, 1)) * 100) + '%"></span></div>' +
@@ -967,7 +1059,7 @@
       '<div class="study-aside__panel"><h3>SHORTCUTS · 快捷键</h3>' +
       '<div class="shortcut-list">' +
       '<div class="shortcut-list__row"><span>显示释义</span><kbd>SPACE</kbd></div>' +
-      '<div class="shortcut-list__row"><span>不认识 / 模糊 / 认识</span><kbd>1 · 2 · 3</kbd></div>' +
+      '<div class="shortcut-list__row"><span>忘了 / 不确定 / 能说出</span><kbd>1 · 2 · 3</kbd></div>' +
       '<div class="shortcut-list__row"><span>朗读发音</span><kbd>S</kbd></div>' +
       '<div class="shortcut-list__row"><span>收藏单词</span><kbd>F</kbd></div>' +
       '</div></div>' +
@@ -975,9 +1067,9 @@
       '</aside>';
 
     const rating = '<div class="rating-bar">' +
-      '<button class="rating-btn rating-btn--again" type="button" data-action="rate" data-rating="again"><span class="rating-btn__top"><strong>不认识</strong><kbd class="rating-btn__key">1</kbd></span><small>明天再复习一次</small></button>' +
-      '<button class="rating-btn rating-btn--fuzzy" type="button" data-action="rate" data-rating="fuzzy"><span class="rating-btn__top"><strong>有点印象</strong><kbd class="rating-btn__key">2</kbd></span><small>保持原来的复习节奏</small></button>' +
-      '<button class="rating-btn rating-btn--known" type="button" data-action="rate" data-rating="known"><span class="rating-btn__top"><strong>认识</strong><kbd class="rating-btn__key">3</kbd></span><small>拉长下一次复习间隔</small></button>' +
+      '<button class="rating-btn rating-btn--again" type="button" data-action="rate" data-rating="again"><span class="rating-btn__top"><strong>忘了</strong><kbd class="rating-btn__key">1</kbd></span><small>' + esc(previewAgain) + '再练</small></button>' +
+      '<button class="rating-btn rating-btn--fuzzy" type="button" data-action="rate" data-rating="fuzzy"><span class="rating-btn__top"><strong>想起了，但不确定</strong><kbd class="rating-btn__key">2</kbd></span><small>' + esc(previewFuzzy) + '再测</small></button>' +
+      '<button class="rating-btn rating-btn--known" type="button" data-action="rate" data-rating="known"><span class="rating-btn__top"><strong>能准确说出</strong><kbd class="rating-btn__key">3</kbd></span><small>' + esc(previewKnown) + '再测</small></button>' +
       '</div>';
 
     const frontFoot = '<div class="word-card__foot">' +
@@ -1001,7 +1093,8 @@
       '<p class="recall-hint">' + icon('sparkles') + ' 先在心里说出它的中文意思，再翻开。</p>' +
       '</div>' +
       '<div class="word-card__reveal"><div class="reveal-divider"></div>' +
-      '<div class="meaning-line">' + (word.pos ? '<span class="meaning-line__pos">' + esc(word.pos) + '</span>' : '') + '<p class="meaning-line__text">' + esc(word.meanings.join('；')) + '</p></div>' +
+      '<div class="meaning-line">' + (word.pos ? '<span class="meaning-line__pos">' + esc(word.pos) + '</span>' : '') + '<p class="meaning-line__text">' + esc(coreMeanings(word).join('；')) + '</p></div>' +
+      extendedMeaningsHTML(word) +
       (word.example ? '<div class="example-block"><p class="example-block__en">' + highlight(word.example, word.word) + '</p>' + (word.translation ? '<p class="example-block__zh">' + esc(word.translation) + '</p>' : '') + '</div>' :
         '<div class="example-block"><p class="example-block__en">试着用 ' + esc(word.word) + ' 造一个句子，再对照释义检查。</p><p class="example-block__zh">主动使用一次，会比多读几遍更容易记住。</p></div>') +
       ((word.collocations && word.collocations.length) || word.family || word.tip ?
@@ -1036,6 +1129,9 @@
     const percent = (quiz.index / Math.max(total, 1)) * 100;
     const answeredCount = quiz.index + (answered ? 1 : 0);
     const currentScore = answeredCount ? Math.round((quiz.correctCount / answeredCount) * 100) : 0;
+    const typeLabel = question.type === 'context'
+      ? 'CONTEXT · 语境选词'
+      : (question.type === 'reverse' ? 'REVERSE · 反向提取' : 'MEANING CHECK · 词义选择');
     const optionLetters = ['A', 'B', 'C', 'D'];
     const options = question.options.map(function (option, index) {
       let stateClass = '';
@@ -1060,40 +1156,49 @@
     } else if (!answeredCorrectly) {
       feedbackTitle = '这次没选对，已放回「待巩固」。';
     }
+    const selectedText = answered && question.options[quiz.selected] ? question.options[quiz.selected].text : '';
+    const wrongReason = question.type === 'context'
+      ? '这次混淆了词义与语境用法，下一次会再给一个不同句子。'
+      : (question.type === 'reverse' ? '这次中文义项与拼写没有完全对应，下一次会换一种题型。' : '这次把相近义项混在了一起，已记录你选的干扰项。');
     const feedback = answered
       ? '<div class="quiz-feedback ' + (answeredCorrectly ? 'is-correct' : 'is-wrong') + '">' +
         '<span class="quiz-feedback__icon">' + icon(answeredCorrectly ? 'check' : 'close') + '</span>' +
         '<div class="quiz-feedback__copy"><strong>' + feedbackTitle + '</strong>' +
-        '<p>正确意思：' + esc(question.correctText) + '</p></div>' +
+        '<p>正确答案：' + esc(question.targetWord) + (question.type === 'meaning' ? ' · ' + esc(question.correctMeaning) : '') + '</p>' +
+        (!answeredCorrectly && selectedText ? '<small class="quiz-feedback__diagnosis">你选了「' + esc(selectedText.slice(0, 48)) + '」。' + esc(wrongReason) + '</small>' : '') + '</div>' +
         '<button class="btn btn--primary quiz-next-btn" type="button" data-action="quiz-next">' + (quiz.index + 1 >= total ? '看学习结果' : '下一题') + ' →</button></div>' +
         (word.example ? '<div class="quiz-example"><p>' + highlight(word.example, word.word) + '</p><span>' + esc(word.translation || '') + '</span></div>' : '') +
         '<div class="quiz-foot-hint">按 <kbd>ENTER</kbd> 继续</div>'
       : '<div class="quiz-foot-hint">按 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd> 选择答案</div>';
 
     const aside = '<aside class="study-aside">' +
-      '<div class="study-aside__panel"><h3>MEANING CHECK · 本组检验</h3>' +
+      '<div class="study-aside__panel"><h3>RETRIEVAL · 本组提取</h3>' +
       '<div class="session-mini-stats"><div class="session-mini-stat"><strong>' + answeredCount + '</strong><span>已作答</span></div>' +
       '<div class="session-mini-stat"><strong>' + quiz.correctCount + '</strong><span>答对</span></div>' +
-      '<div class="session-mini-stat"><strong>' + currentScore + '%</strong><span>正确率</span></div></div>' +
+      '<div class="session-mini-stat"><strong>' + currentScore + '%</strong><span>客观正确率</span></div></div>' +
       '<div class="aside-rule"></div>' +
       '<div class="aside-progress-row"><span>检验进度</span><strong>' + (answered ? shown : shown - 1) + ' / ' + total + '</strong></div>' +
       '<div class="aside-progress-track"><span style="width:' + (answeredCount / Math.max(total, 1) * 100) + '%"></span></div>' +
       '</div>' +
       '<div class="study-aside__panel"><h3>WHY THIS CHECK</h3>' +
-      '<p class="quiz-aside-note">这次检验不是打分，而是帮你安排后续复习。答错的词会加入「待巩固」；每个错词连续答对 2 次后，才会真正移出。</p></div>' +
+      '<p class="quiz-aside-note">题型会在词义、语境和反向提取之间轮换。答错会记录你选的干扰项和错误类型；只有跨日期、跨题型的成功提取才会进入“已掌握”。</p></div>' +
       '<p class="study-aside__quote">“检验不是结束，<br>是下一次记忆的起点。”</p>' +
       '</aside>';
 
     return '<div class="study-shell">' +
-      studyTop('本组检验', '选择题 · 检验这次学习的意思', shown, total, percent, false) +
+      studyTop('本组提取', ({ meaning: '词义选择', context: '语境选词', reverse: '反向提取' }[question.type] || '混合提取') + ' · 客观题独立计分', shown, total, percent, false) +
       '<main class="study-main meaning-quiz-main">' +
       '<div class="study-card-column">' +
       '<section class="meaning-quiz-card" tabindex="-1">' +
-      '<header class="quiz-card-head"><span class="quiz-kicker">' + icon('target') + ' MEANING CHECK · 第 ' + shown + ' 题</span>' +
+      '<header class="quiz-card-head"><span class="quiz-kicker">' + icon('target') + ' ' + typeLabel + ' · 第 ' + shown + ' 题</span>' +
       '<span class="quiz-live-score">得分 <strong>' + quiz.correctCount + '</strong></span></header>' +
-      '<p class="quiz-prompt">选出正确的中文意思</p>' +
-      '<h1 class="quiz-word">' + esc(word.word) + '</h1>' +
-      '<div class="quiz-word-meta">' + (word.ipa ? '<span>' + esc(word.ipa) + '</span>' : '') + (word.pos ? '<span class="pos-badge">' + esc(word.pos) + '</span>' : '') + '</div>' +
+      '<p class="quiz-prompt">' + esc(question.prompt) + '</p>' +
+      (question.type === 'context'
+        ? ''
+        : '<h1 class="quiz-word' + (question.type === 'reverse' ? ' quiz-word--zh' : '') + '">' + esc(question.wordText) + '</h1>') +
+      (question.type === 'context'
+        ? '<div class="quiz-context">' + question.context + '</div>'
+        : '<div class="quiz-word-meta">' + (question.type === 'meaning' && word.ipa ? '<span>' + esc(word.ipa) + '</span>' : '') + (word.pos ? '<span class="pos-badge">' + esc(word.pos) + '</span>' : '') + '</div>') +
       '<div class="quiz-options">' + options + '</div>' +
       feedback +
       '</section></div>' +
@@ -1123,16 +1228,16 @@
       feedback = '<div class="spell-feedback ' + (result ? 'spell-feedback--correct' : 'spell-feedback--wrong') + '">' +
         '<span class="spell-feedback__icon">' + icon(result ? 'check' : 'close') + '</span>' +
         '<div class="spell-feedback__copy"><strong>' + (result ? '拼写正确，很稳。' : '差一点，正确拼写是：') + '</strong>' +
-        (result ? '<p>读一遍例句，让这个词在句子里留下位置。</p>' : '<p><span class="spell-correct-word">' + esc(word.word) + '</span> · ' + esc(word.meanings.join('；')) + '</p>') + '</div>' +
+        (result ? '<p>读一遍例句，让这个词在句子里留下位置。</p>' : '<p><span class="spell-correct-word">' + esc(word.word) + '</span> · ' + esc(coreMeanings(word).join('；')) + '</p>') + '</div>' +
         '<button class="btn btn--primary spell-next-btn" type="button" data-action="next-spelling">' + (session.index + 1 >= total ? '看结果' : '下一题') + ' →</button>' +
         '</div>';
     }
     return '<div class="study-shell">' +
-      studyTop('拼写挑战', '从释义和语境里，找回完整拼写', shown, total, percent, false) +
+      studyTop('已学词拼写', '只抽查见过的词 · 题量按已学词缩短', shown, total, percent, false) +
       '<main class="spell-main">' +
       '<section class="spell-card" tabindex="-1">' +
       '<header class="spell-head"><span class="spell-head__title">' + icon('keyboard') + ' SPELLING · 第 ' + shown + ' 题</span><div class="spell-dots">' + dots + '</div></header>' +
-      '<h1 class="spell-prompt">' + esc(word.meanings.slice(0, 2).join('；')) + '</h1>' +
+      '<h1 class="spell-prompt">' + esc(coreMeanings(word).join('；')) + '</h1>' +
       '<div class="spell-prompt-sub"><span class="pos-badge">' + esc(word.pos) + '</span><span>·</span><span>共 ' + word.word.length + ' 个字母</span></div>' +
       '<div class="spell-sentence">' + (sentence ? '<p>' + sentence + '</p>' : '<p>根据中文释义，拼出完整的英文单词。</p>') + (word.translation ? '<p class="spell-sentence__zh">' + esc(word.translation) + '</p>' : '') + '</div>' +
       '<form class="spell-form" id="spellForm" action="#" novalidate>' +
@@ -1177,7 +1282,7 @@
       ? '<p class="summary-loop-hint">' + icon('refresh') + ' 可无限继续，直到所有词连续答对 2 次。</p>'
       : '';
     return '<div class="study-shell">' +
-      studyTop('学习与检验完成', ({ review: '智能复习', single: '单词精学', new: '新词学习', practice: '复习已学', learned: '复习已学', relearn: '错词重学' }[session.type] || '今日计划') + ' · ' + (summary.minutes || 1) + ' 分钟', 1, 1, 100, true) +
+      studyTop('学习与检验完成', ({ review: '智能复习', single: '单词精学', new: '新词学习', practice: '复习已学', learned: '复习已学', relearn: '错词重学', training: '混合提取' }[session.type] || '今日计划') + ' · ' + (summary.minutes || 1) + ' 分钟', 1, 1, 100, true) +
       '<div class="summary-wrap"><article class="summary-card" tabindex="-1">' +
       '<div class="summary-head"><div><p class="summary-kicker">' + icon('sparkles') + ' SESSION COMPLETE</p><h1>' + title + '</h1><p class="summary-desc">' + desc + '</p></div>' +
       '<span class="summary-badge">' + icon('check') + '</span></div>' +
@@ -1212,12 +1317,12 @@
       desc = '拼写是把“认识”变成“会用”的一步。先读一读正确的拼写，再开始下一轮。';
     }
     return '<div class="study-shell">' +
-      studyTop('拼写挑战完成', 'SPELLING COMPLETE', 1, 1, 100, true) +
+      studyTop('已学词拼写完成', 'SPELLING COMPLETE', 1, 1, 100, true) +
       '<div class="summary-wrap"><article class="summary-card" tabindex="-1">' +
       '<div class="summary-head"><div><p class="summary-kicker">' + icon('target') + ' CHALLENGE COMPLETE</p><h1>' + title + '</h1><p class="summary-desc">' + desc + '</p></div>' +
       '<span class="summary-badge">' + icon('trophy') + '</span></div>' +
       '<div class="quiz-score"><div class="quiz-score__ring"><svg viewBox="0 0 86 86" aria-hidden="true"><circle cx="43" cy="43" r="35" stroke="rgba(49,90,74,.1)"></circle><circle cx="43" cy="43" r="35" stroke="var(--green-700)" stroke-linecap="round" stroke-dasharray="' + circumference.toFixed(2) + '" stroke-dashoffset="' + offset.toFixed(2) + '"></circle></svg><strong>' + score + '</strong></div>' +
-      '<div class="quiz-score__copy"><strong>拼对 ' + (summary.correct || 0) + ' / ' + (summary.total || 0) + ' 个词</strong><p>用时约 ' + (summary.minutes || 1) + ' 分钟。拼写正确率已计入你的学习报告。</p></div></div>' +
+      '<div class="quiz-score__copy"><strong>拼对 ' + (summary.correct || 0) + ' / ' + (summary.total || 0) + ' 个已学词</strong><p>用时约 ' + (summary.minutes || 1) + ' 分钟。拼写作为客观提取单独计分，不把自评“认识”算进正确率。</p></div></div>' +
       (missed.length ? '<div class="quiz-review"><p class="quiz-review__label">需要再看一眼</p><div class="quiz-missed-list">' + missed.map(function (word) { return '<span>' + esc(word.word) + '</span>'; }).join('') + '</div></div>' : '<div class="quiz-review"><p class="quiz-review__label">本轮全部拼对</p><p class="summary-desc" style="margin-top:0;">没有需要特别回看的词。去试试下一组，或者回到词库读一读例句。</p></div>') +
       '<div class="summary-actions">' + (missed.length
         ? '<button class="btn btn--primary" type="button" data-action="relearn-session-words">重新学习错误单词（' + missed.length + '） ' + icon('arrow-right', 'icon--shift') + '</button><button class="btn btn--ghost" type="button" data-action="spell-another">再来一组</button>'
@@ -1248,6 +1353,7 @@
     icon: icon,
     esc: esc,
     highlight: highlight,
+    blankExample: blankExample,
     unitFor: unitFor,
     unitStyle: unitStyle,
     statusPill: statusPill,

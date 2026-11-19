@@ -1,0 +1,25 @@
+{
+  "name": "拾词 · 高中英语与文言实词",
+  "short_name": "拾词",
+  "description": "为高中生打造的中英文词汇学习站，支持间隔复习、主动提取与离线打开。",
+  "lang": "zh-CN",
+  "start_url": "./#home",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F4F0E7",
+  "theme_color": "#17322A",
+  "icons": [
+    {
+      "src": "assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

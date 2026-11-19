@@ -6,9 +6,13 @@
   'use strict';
 
   const STORAGE_KEY = 'shici.state.v1';
+  const SCHEMA_VERSION = 3;
+  const DB_NAME = 'shici-progress';
+  const DB_STORE = 'state';
   const DAY_MS = 24 * 60 * 60 * 1000;
-  const REVIEW_DAYS = [1, 1, 2, 4, 7, 15, 30, 60];
-  const MASTER_STAGE = 6;
+  const REVIEW_DAYS = [1, 2, 4, 7, 15, 30, 60, 90];
+  const MASTER_STAGE = 5;
+  const TARGET_RETENTION = 0.85;
   const GOAL_OPTIONS = [10, 15, 20, 30, 50];
   const MIN_DAILY_GOAL = 1;
   const MAX_DAILY_GOAL = 300;
@@ -30,15 +34,18 @@
   let remoteSaving = false;
   let remoteDirty = false;
   let remoteLastError = null;
+  let indexedDbPromise = null;
+  let persistentStorage = null;
 
   function createDefaultState() {
     return {
-      version: 2,
+      version: SCHEMA_VERSION,
       profile: {
         name: '',
         dailyGoal: 20,
         voiceGender: 'female',
         voiceRate: 0.9,
+        targetRetention: TARGET_RETENTION,
         createdAt: new Date().toISOString(),
         activeBook: window.DEFAULT_BOOK || 'gaokao'
       },
@@ -46,13 +53,17 @@
       activity: {},
       bookSeeds: {},
       meta: {
-        schema: 2,
+        schema: SCHEMA_VERSION,
         sessions: 0,
         quizSessions: 0,
         bestSpelling: 0,
         lastSessionAt: null,
         updatedAt: null,
-        lastServerSavedAt: null
+        lastServerSavedAt: null,
+        lastBackupAt: null,
+        lastBackupName: null,
+        storagePersisted: null,
+        corruptBackupKey: null
       }
     };
   }
@@ -80,8 +91,75 @@
       quizWrong: 0,
       lastQuizAt: null,
       lastQuizCorrect: null,
-      masteryStreak: 0
+      masteryStreak: 0,
+      difficulty: 0.35,
+      stabilityDays: 1,
+      objectiveSeen: 0,
+      objectiveCorrect: 0,
+      objectiveWrong: 0,
+      spellingSeen: 0,
+      spellingCorrect: 0,
+      spellingWrong: 0,
+      successDates: [],
+      successTypes: [],
+      lastObjectiveAt: null,
+      lastObjectiveType: null,
+      lastObjectiveCorrect: null,
+      lastObjectiveIntervalDays: 0,
+      hintsUsed: 0,
+      errorTypes: {},
+      confusions: [],
+      retention24: { seen: 0, correct: 0 },
+      retention7: { seen: 0, correct: 0 },
+      selfRatings: { again: 0, fuzzy: 0, known: 0 },
+      manualLongTerm: false
     };
+  }
+
+  function normalizeCount(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? number : 0;
+  }
+
+  function normalizeStringList(value) {
+    return Array.isArray(value)
+      ? Array.from(new Set(value.filter(function (item) { return typeof item === 'string' && item; })))
+      : [];
+  }
+
+  function normalizeRetention(value) {
+    return {
+      seen: normalizeCount(value && value.seen),
+      correct: normalizeCount(value && value.correct)
+    };
+  }
+
+  function normalizeRecord(record, fallbackBook) {
+    const next = Object.assign(blankRecord(), record || {});
+    next.difficulty = clamp(Number(next.difficulty) || 0.35, 0.05, 0.95);
+    next.stabilityDays = Math.max(0, Number(next.stabilityDays) || 0);
+    next.objectiveSeen = normalizeCount(next.objectiveSeen || next.quizSeen);
+    next.objectiveCorrect = normalizeCount(next.objectiveCorrect || next.quizCorrect);
+    next.objectiveWrong = normalizeCount(next.objectiveWrong || next.quizWrong);
+    next.spellingSeen = normalizeCount(next.spellingSeen);
+    next.spellingCorrect = normalizeCount(next.spellingCorrect);
+    next.spellingWrong = normalizeCount(next.spellingWrong);
+    next.successDates = normalizeStringList(next.successDates);
+    next.successTypes = normalizeStringList(next.successTypes);
+    next.confusions = Array.isArray(next.confusions) ? next.confusions.slice(-12) : [];
+    next.errorTypes = next.errorTypes && typeof next.errorTypes === 'object' ? next.errorTypes : {};
+    next.retention24 = normalizeRetention(next.retention24);
+    next.retention7 = normalizeRetention(next.retention7);
+    next.selfRatings = Object.assign({ again: 0, fuzzy: 0, known: 0 }, next.selfRatings || {});
+    ['again', 'fuzzy', 'known'].forEach(function (rating) {
+      next.selfRatings[rating] = normalizeCount(next.selfRatings[rating]);
+    });
+    if (!Array.isArray(next.books)) next.books = next.seen ? [fallbackBook] : [];
+    if (typeof next.favorite !== 'boolean') next.favorite = false;
+    if (next.seen && next.firstStudiedAt == null) {
+      next.firstStudiedAt = next.firstSeen || next.lastReviewed || null;
+    }
+    return next;
   }
 
   function load() {
@@ -91,15 +169,15 @@
       const saved = JSON.parse(raw);
       if (!saved || typeof saved !== 'object') return;
       state = {
-        version: 2,
+        version: SCHEMA_VERSION,
         profile: Object.assign({}, createDefaultState().profile, saved.profile || {}),
         words: saved.words && typeof saved.words === 'object' ? saved.words : {},
         activity: saved.activity && typeof saved.activity === 'object' ? saved.activity : {},
         bookSeeds: saved.bookSeeds && typeof saved.bookSeeds === 'object' ? saved.bookSeeds : {},
         meta: Object.assign({}, createDefaultState().meta, saved.meta || {})
       };
-      state.version = 2;
-      state.meta.schema = 2;
+      state.version = SCHEMA_VERSION;
+      state.meta.schema = SCHEMA_VERSION;
       const savedGoal = Math.round(Number(state.profile.dailyGoal));
       if (!Number.isFinite(savedGoal) || savedGoal < MIN_DAILY_GOAL || savedGoal > MAX_DAILY_GOAL) {
         state.profile.dailyGoal = 20;
@@ -118,21 +196,128 @@
         state.profile.activeBook = window.DEFAULT_BOOK || 'gaokao';
       }
       activeBookId = state.profile.activeBook;
-      // 规范旧数据中的单词记录，避免字段缺失导致计算异常。记录不因词书切换而删除。
+      const savedRetention = Number(state.profile.targetRetention);
+      state.profile.targetRetention = Number.isFinite(savedRetention)
+        ? clamp(savedRetention, 0.75, 0.95)
+        : TARGET_RETENTION;
+      // 旧记录按字段增量迁移；不删除历史，也不把旧的自评混入客观正确率。
       Object.keys(state.words).forEach(function (id) {
-        state.words[id] = Object.assign(blankRecord(), state.words[id]);
-        if (typeof state.words[id].favorite !== 'boolean') state.words[id].favorite = false;
-        if (!Array.isArray(state.words[id].books)) {
-          state.words[id].books = state.words[id].seen ? [activeBookId] : [];
-        }
-        const record = state.words[id];
-        if (record.seen && record.firstStudiedAt == null) {
-          record.firstStudiedAt = record.firstSeen || record.lastReviewed || null;
-        }
+        state.words[id] = normalizeRecord(state.words[id], activeBookId);
+      });
+      Object.keys(state.activity).forEach(function (key) {
+        const day = state.activity[key] && typeof state.activity[key] === 'object' ? state.activity[key] : {};
+        day.learned = Array.isArray(day.learned) ? day.learned : [];
+        day.reviewed = Array.isArray(day.reviewed) ? day.reviewed : [];
+        day.objectiveAttempts = normalizeCount(day.objectiveAttempts);
+        day.objectiveCorrect = normalizeCount(day.objectiveCorrect);
+        day.retention24Seen = normalizeCount(day.retention24Seen);
+        day.retention24Correct = normalizeCount(day.retention24Correct);
+        day.retention7Seen = normalizeCount(day.retention7Seen);
+        day.retention7Correct = normalizeCount(day.retention7Correct);
+        day.selfRatings = Object.assign({ again: 0, fuzzy: 0, known: 0 }, day.selfRatings || {});
+        day.questionTypes = day.questionTypes && typeof day.questionTypes === 'object' ? day.questionTypes : {};
+        state.activity[key] = day;
       });
     } catch (error) {
       storageAvailable = false;
       state = createDefaultState();
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const corruptKey = STORAGE_KEY + '.corrupt.' + Date.now();
+          window.localStorage.setItem(corruptKey, raw);
+          state.meta.corruptBackupKey = corruptKey;
+        }
+      } catch (copyError) {
+        // 浏览器完全禁用存储时，保持当前会话可运行但不覆盖旧数据。
+      }
+    }
+  }
+
+  function openIndexedDb() {
+    if (indexedDbPromise) return indexedDbPromise;
+    indexedDbPromise = new Promise(function (resolve, reject) {
+      if (!window.indexedDB) {
+        reject(new Error('IndexedDB unavailable'));
+        return;
+      }
+      const request = window.indexedDB.open(DB_NAME, 1);
+      request.onupgradeneeded = function () {
+        const db = request.result;
+        if (!db.objectStoreNames.contains(DB_STORE)) db.createObjectStore(DB_STORE);
+      };
+      request.onsuccess = function () { resolve(request.result); };
+      request.onerror = function () { reject(request.error || new Error('IndexedDB open failed')); };
+    });
+    return indexedDbPromise;
+  }
+
+  function writeIndexedDb(payload) {
+    if (!window.indexedDB) return;
+    openIndexedDb().then(function (db) {
+      const transaction = db.transaction(DB_STORE, 'readwrite');
+      transaction.objectStore(DB_STORE).put(payload, 'current');
+    }).catch(function () {
+      // localStorage 仍是同步来源；IndexedDB 恢复是增强能力。
+    });
+  }
+
+  async function hydrateFromIndexedDb() {
+    if (!window.indexedDB) return { restored: false, reason: 'unsupported' };
+    try {
+      const db = await openIndexedDb();
+      const indexedState = await new Promise(function (resolve, reject) {
+        const transaction = db.transaction(DB_STORE, 'readonly');
+        const request = transaction.objectStore(DB_STORE).get('current');
+        request.onsuccess = function () { resolve(request.result || null); };
+        request.onerror = function () { reject(request.error); };
+      });
+      if (!indexedState || !indexedState.words) return { restored: false, reason: 'empty' };
+      if (countSeenWords(state) > 0 || state.meta.corruptBackupKey) {
+        writeIndexedDb(state);
+        return { restored: false, reason: 'local-preferred' };
+      }
+      const localUpdated = Date.parse(state.meta.updatedAt || '') || 0;
+      const indexedUpdated = Date.parse((indexedState.meta && indexedState.meta.updatedAt) || '') || 0;
+      if (countSeenWords(indexedState) === 0 || indexedUpdated < localUpdated) {
+        return { restored: false, reason: 'not-newer' };
+      }
+      state = {
+        version: SCHEMA_VERSION,
+        profile: Object.assign({}, createDefaultState().profile, indexedState.profile || {}),
+        words: indexedState.words || {},
+        activity: indexedState.activity || {},
+        bookSeeds: indexedState.bookSeeds || {},
+        meta: Object.assign({}, createDefaultState().meta, indexedState.meta || {})
+      };
+      state.version = SCHEMA_VERSION;
+      state.meta.schema = SCHEMA_VERSION;
+      Object.keys(state.words).forEach(function (id) {
+        state.words[id] = normalizeRecord(state.words[id], activeBookId);
+      });
+      activeBookId = state.profile.activeBook || activeBookId;
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return { restored: true };
+    } catch (error) {
+      return { restored: false, reason: 'unavailable' };
+    }
+  }
+
+  async function requestPersistentStorage() {
+    if (!navigator.storage || typeof navigator.storage.persist !== 'function') {
+      persistentStorage = false;
+      return { supported: false, persisted: false };
+    }
+    try {
+      if (typeof navigator.storage.persisted === 'function') {
+        persistentStorage = await navigator.storage.persisted();
+      }
+      if (!persistentStorage) persistentStorage = await navigator.storage.persist();
+      state.meta.storagePersisted = Boolean(persistentStorage);
+      return { supported: true, persisted: Boolean(persistentStorage) };
+    } catch (error) {
+      persistentStorage = false;
+      return { supported: true, persisted: false };
     }
   }
 
@@ -144,6 +329,7 @@
     } catch (error) {
       storageAvailable = false;
     }
+    writeIndexedDb(state);
     remoteDirty = true;
     scheduleRemoteSave();
     document.dispatchEvent(new CustomEvent('shici:change'));
@@ -308,6 +494,9 @@
   }
 
   function exportState() {
+    state.meta.lastBackupAt = new Date().toISOString();
+    state.meta.lastBackupName = '拾词学习记录-' + todayKey() + '.json';
+    save();
     return JSON.stringify(state, null, 2);
   }
 
@@ -317,7 +506,21 @@
       throw new Error('备份文件格式不正确');
     }
     if (!parsed.profile || typeof parsed.profile !== 'object') throw new Error('备份缺少用户设置');
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    const migrated = {
+      version: SCHEMA_VERSION,
+      profile: Object.assign({}, createDefaultState().profile, parsed.profile),
+      words: parsed.words,
+      activity: parsed.activity || {},
+      bookSeeds: parsed.bookSeeds || {},
+      meta: Object.assign({}, createDefaultState().meta, parsed.meta || {})
+    };
+    migrated.version = SCHEMA_VERSION;
+    migrated.meta.schema = SCHEMA_VERSION;
+    Object.keys(migrated.words).forEach(function (id) {
+      migrated.words[id] = normalizeRecord(migrated.words[id], migrated.profile.activeBook || activeBookId);
+    });
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    writeIndexedDb(migrated);
     return true;
   }
 
@@ -329,7 +532,10 @@
       lastSavedAt: state.meta.updatedAt || null,
       remoteSavedAt: remoteSavedAt,
       lastServerSavedAt: state.meta.lastServerSavedAt || null,
-      error: remoteLastError
+      error: remoteLastError,
+      lastBackupAt: state.meta.lastBackupAt || null,
+      storagePersisted: persistentStorage,
+      corruptBackupKey: state.meta.corruptBackupKey || null
     };
   }
 
@@ -430,7 +636,7 @@
   function getStatus(id) {
     const record = state.words[id];
     if (!record || !record.seen) return 'new';
-    if (record.stage >= MASTER_STAGE) return 'mastered';
+    if (hasVerifiedMastery(record)) return 'mastered';
     return 'learning';
   }
 
@@ -449,10 +655,17 @@
     return formatDateCN(record.due);
   }
 
+  function hasVerifiedMastery(record) {
+    if (!record) return false;
+    return normalizeStringList(record.successDates).length >= 3 &&
+      normalizeStringList(record.successTypes).length >= 2 &&
+      Number(record.lastObjectiveIntervalDays) >= 7;
+  }
+
   function nextStageFor(rating, currentStage, wasNew) {
     if (rating === 'again') return 0;
-    if (rating === 'fuzzy') return wasNew ? 1 : Math.max(1, currentStage);
-    return clamp((wasNew ? 0 : currentStage) + 1, 0, REVIEW_DAYS.length - 1);
+    if (rating === 'fuzzy') return wasNew ? 1 : Math.max(1, Number(currentStage) - 1);
+    return clamp((wasNew ? 0 : Number(currentStage)) + 1, 0, REVIEW_DAYS.length - 1);
   }
 
   function nextDueForStage(stage, fromKey) {
@@ -461,8 +674,33 @@
   }
 
   function reviewLabelForStage(stage) {
-    const days = REVIEW_DAYS[clamp(stage, 0, REVIEW_DAYS.length - 1)];
+    const days = Number(stage);
+    if (days === 0) return '今天稍后';
     return days === 1 ? '明天' : days + ' 天后';
+  }
+
+  function dueForSelfRating(id, rating) {
+    const record = state.words[id] || blankRecord();
+    const wasNew = !record.seen;
+    const today = todayKey();
+    if (wasNew) {
+      if (rating === 'again') return { due: today, days: 0, stage: 0, label: '今天稍后' };
+      if (rating === 'fuzzy') return { due: addDays(today, 1), days: 1, stage: 1, label: '明天' };
+      return { due: addDays(today, 3), days: 3, stage: 2, label: '3 天后' };
+    }
+    const elapsed = record.lastReviewed ? Math.max(0, daysBetween(record.lastReviewed, today)) : 0;
+    const previousInterval = Math.max(1, Number(record.stabilityDays) || elapsed || REVIEW_DAYS[clamp(record.stage || 0, 0, REVIEW_DAYS.length - 1)]);
+    if (rating === 'again') return { due: addDays(today, 1), days: 1, stage: 0, label: '明天' };
+    if (rating === 'fuzzy') {
+      const days = Math.max(1, Math.round(previousInterval * 0.55));
+      return { due: addDays(today, days), days: days, stage: Math.max(1, Number(record.stage) - 1), label: reviewLabelForStage(days) };
+    }
+    const stage = nextStageFor(rating, record.stage, false);
+    const base = REVIEW_DAYS[clamp(stage, 0, REVIEW_DAYS.length - 1)];
+    const retentionAdjust = ((Number(state.profile.targetRetention) || TARGET_RETENTION) - TARGET_RETENTION) * 1.4;
+    const difficultyFactor = 1.12 - (Number(record.difficulty) || 0.35) * 0.3 + retentionAdjust;
+    const days = Math.max(base, Math.round(previousInterval * clamp(difficultyFactor, 0.82, 1.56)));
+    return { due: addDays(today, days), days: days, stage: stage, label: reviewLabelForStage(days) };
   }
 
   function ensureActivity(key) {
@@ -472,6 +710,14 @@
         attempts: 0,
         correct: 0,
         seconds: 0,
+        objectiveAttempts: 0,
+        objectiveCorrect: 0,
+        retention24Seen: 0,
+        retention24Correct: 0,
+        retention7Seen: 0,
+        retention7Correct: 0,
+        selfRatings: { again: 0, fuzzy: 0, known: 0 },
+        questionTypes: {},
         learned: [],
         reviewed: []
       };
@@ -482,6 +728,14 @@
     day.attempts = Number(day.attempts) || 0;
     day.correct = Number(day.correct) || 0;
     day.seconds = Number(day.seconds) || 0;
+    day.objectiveAttempts = Number(day.objectiveAttempts) || 0;
+    day.objectiveCorrect = Number(day.objectiveCorrect) || 0;
+    day.retention24Seen = Number(day.retention24Seen) || 0;
+    day.retention24Correct = Number(day.retention24Correct) || 0;
+    day.retention7Seen = Number(day.retention7Seen) || 0;
+    day.retention7Correct = Number(day.retention7Correct) || 0;
+    if (!day.selfRatings || typeof day.selfRatings !== 'object') day.selfRatings = { again: 0, fuzzy: 0, known: 0 };
+    if (!day.questionTypes || typeof day.questionTypes !== 'object') day.questionTypes = {};
     return day;
   }
 
@@ -576,7 +830,7 @@
         const record = state.words[id];
         if (!record || !record.seen) return;
         seen += 1;
-        if (record.stage >= MASTER_STAGE) mastered += 1;
+        if (hasVerifiedMastery(record)) mastered += 1;
       });
     } else {
       Object.keys(state.words).forEach(function (id) {
@@ -584,7 +838,7 @@
         if (!record || !record.seen) return;
         if (!Array.isArray(record.books) || record.books.indexOf(bookId) === -1) return;
         seen += 1;
-        if (record.stage >= MASTER_STAGE) mastered += 1;
+        if (hasVerifiedMastery(record)) mastered += 1;
       });
     }
     return { seen: seen, mastered: mastered };
@@ -682,7 +936,7 @@
       const record = state.words[word.id];
       if (record && record.seen) {
         seen += 1;
-        if (record.stage >= MASTER_STAGE) mastered += 1;
+        if (hasVerifiedMastery(record)) mastered += 1;
       }
     });
     return {
@@ -695,7 +949,13 @@
 
   function calculateStreak(activity) {
     const active = Object.keys(activity).filter(function (key) {
-      return activity[key] && Number(activity[key].attempts) > 0;
+      const day = activity[key];
+      return day && (
+        Number(day.attempts) > 0 ||
+        Number(day.objectiveAttempts) > 0 ||
+        (Array.isArray(day.learned) && day.learned.length > 0) ||
+        (Array.isArray(day.reviewed) && day.reviewed.length > 0)
+      );
     }).sort();
     if (!active.length) return { current: 0, longest: 0 };
 
@@ -729,19 +989,33 @@
     let attempts = 0;
     let correct = 0;
     let seconds = 0;
+    let selfRatings = { again: 0, fuzzy: 0, known: 0 };
+    let retention24 = { seen: 0, correct: 0 };
+    let retention7 = { seen: 0, correct: 0 };
+    const errorTypes = {};
     activeWords.forEach(function (word) {
       const record = state.words[word.id];
       if (record && record.seen) {
         totalSeen += 1;
-        if (record.stage >= MASTER_STAGE) mastered += 1;
+        if (hasVerifiedMastery(record)) mastered += 1;
         else learning += 1;
         if (record.weak) weak += 1;
+        attempts += normalizeCount(record.objectiveSeen);
+        correct += normalizeCount(record.objectiveCorrect);
+        retention24.seen += normalizeCount(record.retention24 && record.retention24.seen);
+        retention24.correct += normalizeCount(record.retention24 && record.retention24.correct);
+        retention7.seen += normalizeCount(record.retention7 && record.retention7.seen);
+        retention7.correct += normalizeCount(record.retention7 && record.retention7.correct);
+        ['again', 'fuzzy', 'known'].forEach(function (rating) {
+          selfRatings[rating] += normalizeCount(record.selfRatings && record.selfRatings[rating]);
+        });
+        Object.keys(record.errorTypes || {}).forEach(function (type) {
+          errorTypes[type] = (errorTypes[type] || 0) + normalizeCount(record.errorTypes[type]);
+        });
       }
     });
     Object.keys(state.activity).forEach(function (key) {
       const day = state.activity[key];
-      attempts += Number(day.attempts) || 0;
-      correct += Number(day.correct) || 0;
       seconds += Number(day.seconds) || 0;
     });
     const streak = calculateStreak(state.activity);
@@ -757,6 +1031,13 @@
       attempts: attempts,
       correct: correct,
       accuracy: attempts ? Math.round((correct / attempts) * 100) : 0,
+      recallAccuracy: attempts ? Math.round((correct / attempts) * 100) : 0,
+      selfRatings: selfRatings,
+      retention24: retention24,
+      retention24Rate: retention24.seen ? Math.round((retention24.correct / retention24.seen) * 100) : null,
+      retention7: retention7,
+      retention7Rate: retention7.seen ? Math.round((retention7.correct / retention7.seen) * 100) : null,
+      errorTypes: errorTypes,
       seconds: seconds,
       minutes: Math.round(seconds / 60),
       currentStreak: streak.current,
@@ -772,16 +1053,34 @@
     const studied = new Set(day.learned.concat(day.reviewed));
     const remainingGoal = Math.max(0, goal - studied.size);
     if (!remainingGoal) return [];
-    // 到期复习优先进入计划；具体呈现顺序和新词选择都做乱序，
-    // 避免学习者只记住词书开头的字母顺序。
+    // 到期复习优先，但每 4 张卡穿插一次新词和旧词，避免单一题型连续刷。
     const due = dueWords().filter(function (word) { return !studied.has(word.id); });
     const reviews = due.slice(0, remainingGoal);
     const newLimit = Math.max(0, remainingGoal - reviews.length);
     const fresh = prioritizedNewQueue(newLimit);
-    const queue = reviews.map(function (word) {
+    const reviewQueue = shuffleCopy(reviews).map(function (word) {
       return { id: word.id, kind: 'review' };
-    }).concat(fresh);
-    return shuffleCopy(queue);
+    });
+    const newQueue = shuffleCopy(fresh);
+    const queue = [];
+    let reviewIndex = 0;
+    let newIndex = 0;
+    while (reviewIndex < reviewQueue.length || newIndex < newQueue.length) {
+      const reviewBurst = reviewQueue.length && newQueue.length ? 2 : 4;
+      for (let i = 0; i < reviewBurst && reviewIndex < reviewQueue.length; i += 1) {
+        queue.push(reviewQueue[reviewIndex]);
+        reviewIndex += 1;
+      }
+      for (let i = 0; i < 2 && newIndex < newQueue.length; i += 1) {
+        queue.push(newQueue[newIndex]);
+        newIndex += 1;
+      }
+      if (reviewIndex >= reviewQueue.length && newIndex < newQueue.length) {
+        queue.push(newQueue[newIndex]);
+        newIndex += 1;
+      }
+    }
+    return queue;
   }
 
   function buildNewQueue(limit) {
@@ -819,8 +1118,9 @@
     const record = recordFor(id);
     const wasNew = record.seen === 0;
     const now = todayKey();
-    const stage = nextStageFor(rating, record.stage, wasNew);
-    const due = nextDueForStage(stage, now);
+    const schedule = dueForSelfRating(id, rating);
+    const stage = schedule.stage;
+    const due = schedule.due;
 
     record.stage = stage;
     record.seen += 1;
@@ -838,16 +1138,26 @@
       record.correctCount += 1;
       // 是否真正掌握交给学后检验判断：错词需要连续答对两次才会移出待巩固。
     }
+    if (!record.selfRatings || typeof record.selfRatings !== 'object') {
+      record.selfRatings = { again: 0, fuzzy: 0, known: 0 };
+    }
+    record.selfRatings[rating] = (Number(record.selfRatings[rating]) || 0) + 1;
     if (rating === 'again') {
       record.lapseCount += 1;
       record.weak = true;
       record.weakSince = now;
       record.masteryStreak = 0;
+      record.difficulty = clamp((Number(record.difficulty) || 0.35) + 0.12, 0.05, 0.95);
+    } else if (rating === 'known') {
+      record.difficulty = clamp((Number(record.difficulty) || 0.35) - 0.025, 0.05, 0.95);
     }
+    record.stabilityDays = Math.max(1, schedule.days);
 
     const day = ensureActivity(now);
-    day.attempts += 1;
-    if (rating === 'known') day.correct += 1;
+    if (!day.selfRatings || typeof day.selfRatings !== 'object') {
+      day.selfRatings = { again: 0, fuzzy: 0, known: 0 };
+    }
+    day.selfRatings[rating] = (Number(day.selfRatings[rating]) || 0) + 1;
     day.seconds += clamp(Number(seconds) || 0, 0, 180);
     addDailyWord(day, id, wasNew);
 
@@ -856,53 +1166,141 @@
       wasNew: wasNew,
       stage: stage,
       due: due,
-      nextLabel: reviewLabelForStage(stage),
-      mastered: stage >= MASTER_STAGE
+      nextLabel: schedule.label,
+      mastered: hasVerifiedMastery(record)
     };
   }
 
-  function recordSessionQuizAnswer(wordId, correct, seconds) {
+  function classifySpellingError(answer, target) {
+    const a = String(answer || '').toLowerCase();
+    const t = String(target || '').toLowerCase();
+    if (!a) return 'spelling_empty';
+    if (t.length > a.length && t.replace(a, '') !== t) return 'spelling_omission';
+    if (a.length > t.length && a.replace(t, '') !== a) return 'spelling_extra';
+    const sameLetters = a.split('').sort().join('') === t.split('').sort().join('');
+    if (sameLetters) return 'spelling_order';
+    return 'spelling_confusion';
+  }
+
+  function recordObjectiveAnswer(wordId, options) {
     if (!wordMap.has(wordId)) return null;
+    const opts = typeof options === 'object' && options ? options : {
+      type: 'meaning',
+      correct: Boolean(options)
+    };
+    const type = String(opts.type || 'meaning');
+    const correct = Boolean(opts.correct);
+    const seconds = Number(opts.seconds) || 0;
     const record = recordFor(wordId);
     const now = todayKey();
     const wasWeak = Boolean(record.weak);
     const wasFirstQuiz = (Number(record.quizSeen) || 0) === 0;
+    const previousObjectiveAt = record.lastObjectiveAt;
+    const intervalDays = previousObjectiveAt ? Math.max(0, daysBetween(previousObjectiveAt, now)) : 0;
+    const previousDue = record.due;
     record.quizSeen = (Number(record.quizSeen) || 0) + 1;
+    record.objectiveSeen = normalizeCount(record.objectiveSeen) + 1;
     if (wasFirstQuiz) {
       record.firstQuizCorrect = Boolean(correct);
       record.firstQuizAt = now;
     }
     record.lastQuizAt = now;
     record.lastQuizCorrect = Boolean(correct);
+    record.lastObjectiveAt = now;
+    record.lastObjectiveType = type;
+    record.lastObjectiveCorrect = Boolean(correct);
+    if (correct) {
+      record.lastObjectiveIntervalDays = Math.max(Number(record.lastObjectiveIntervalDays) || 0, intervalDays);
+    }
     record.seen = record.seen || 1;
     record.firstSeen = record.firstSeen || now;
     if (!Array.isArray(record.books)) record.books = [];
     if (record.books.indexOf(activeBookId) === -1) record.books.push(activeBookId);
+    if (!record.successDates) record.successDates = [];
+    if (!record.successTypes) record.successTypes = [];
 
     if (correct) {
       record.quizCorrect = (Number(record.quizCorrect) || 0) + 1;
+      record.objectiveCorrect = normalizeCount(record.objectiveCorrect) + 1;
+      if (type === 'spelling') {
+        record.spellingSeen = normalizeCount(record.spellingSeen) + 1;
+        record.spellingCorrect = normalizeCount(record.spellingCorrect) + 1;
+      }
       record.masteryStreak = (Number(record.masteryStreak) || 0) + 1;
       if (record.masteryStreak >= 2) {
         record.weak = false;
         record.weakSince = null;
       }
-      // 如果在卡片环节自评“不认识”，但检验中答对了，给它一个起步阶段，
-      // 明天仍然复习，但之后不必再从最低阶段重新爬。
-      if (record.stage === 0 && record.lastRating === 'again') record.stage = 1;
+      if (record.successDates.indexOf(now) === -1) record.successDates.push(now);
+      if (record.successTypes.indexOf(type) === -1) record.successTypes.push(type);
+      record.difficulty = clamp((Number(record.difficulty) || 0.35) - 0.04, 0.05, 0.95);
+      if (intervalDays >= 1) {
+        record.retention24.seen += 1;
+        record.retention24.correct += 1;
+      }
+      if (intervalDays >= 7) {
+        record.retention7.seen += 1;
+        record.retention7.correct += 1;
+      }
+      // 同一张卡片刚自评后的学后检验不覆盖自评给出的初始间隔；
+      // 跨日复习或独立训练答对时才拉长间隔。
+      if (intervalDays === 0 && record.lastReviewed === now && previousDue) {
+        record.due = previousDue;
+      } else {
+        const stage = nextStageFor('known', record.stage, false);
+        const base = REVIEW_DAYS[clamp(stage, 0, REVIEW_DAYS.length - 1)];
+        const retentionAdjust = ((Number(state.profile.targetRetention) || TARGET_RETENTION) - TARGET_RETENTION) * 1.4;
+        const factor = 1.15 - (Number(record.difficulty) || 0.35) * 0.35 + retentionAdjust;
+        const days = Math.max(base, Math.round(Math.max(1, Number(record.stabilityDays) || 1) * clamp(factor, 0.85, 1.7)));
+        record.stage = stage;
+        record.stabilityDays = days;
+        record.due = addDays(now, days);
+      }
     } else {
       record.quizWrong = (Number(record.quizWrong) || 0) + 1;
+      record.objectiveWrong = normalizeCount(record.objectiveWrong) + 1;
+      if (type === 'spelling') {
+        record.spellingSeen = normalizeCount(record.spellingSeen) + 1;
+        record.spellingWrong = normalizeCount(record.spellingWrong) + 1;
+      }
       record.lapseCount = (Number(record.lapseCount) || 0) + 1;
       record.stage = 0;
       record.due = addDays(now, 1);
       record.weak = true;
       record.weakSince = now;
       record.masteryStreak = 0;
+      record.stabilityDays = 1;
+      record.difficulty = clamp((Number(record.difficulty) || 0.35) + 0.1, 0.05, 0.95);
+      if (intervalDays >= 1) record.retention24.seen += 1;
+      if (intervalDays >= 7) record.retention7.seen += 1;
+      const errorType = type === 'spelling'
+        ? classifySpellingError(opts.answer, wordMap.get(wordId).word)
+        : (type === 'context' ? 'usage_context' : 'meaning_confusion');
+      record.errorTypes[errorType] = (Number(record.errorTypes[errorType]) || 0) + 1;
+      if (opts.selectedText) {
+        record.confusions.push({
+          at: now,
+          type: type,
+          selected: String(opts.selectedText).slice(0, 100),
+          correct: wordMap.get(wordId).meanings.slice(0, 2).join('；')
+        });
+        record.confusions = record.confusions.slice(-12);
+      }
     }
 
     const day = ensureActivity(now);
-    day.attempts += 1;
-    if (correct) day.correct += 1;
-    day.seconds += clamp(Number(seconds) || 0, 0, 120);
+    day.objectiveAttempts += 1;
+    if (correct) day.objectiveCorrect += 1;
+    if (intervalDays >= 1) {
+      day.retention24Seen += 1;
+      if (correct) day.retention24Correct += 1;
+    }
+    if (intervalDays >= 7) {
+      day.retention7Seen += 1;
+      if (correct) day.retention7Correct += 1;
+    }
+    day.questionTypes[type] = (Number(day.questionTypes[type]) || 0) + 1;
+    day.seconds += clamp(seconds, 0, 120);
     save();
     return {
       correct: Boolean(correct),
@@ -910,17 +1308,25 @@
       weak: Boolean(record.weak),
       masteryStreak: Number(record.masteryStreak) || 0,
       masteryRequired: 2,
+      type: type,
+      intervalDays: intervalDays,
+      verifiedMastery: hasVerifiedMastery(record),
       stage: record.stage,
       due: record.due
     };
   }
 
+  function recordSessionQuizAnswer(wordId, correct, seconds, options) {
+    return recordObjectiveAnswer(wordId, Object.assign({}, options || {}, {
+      type: (options && options.type) || 'meaning',
+      correct: correct,
+      seconds: seconds
+    }));
+  }
+
   function recordQuizAnswer(correct, seconds) {
-    const day = ensureActivity();
-    day.attempts += 1;
-    if (correct) day.correct += 1;
-    day.seconds += clamp(Number(seconds) || 0, 0, 120);
-    save();
+    // 兼容旧调用。新代码应传入 wordId/type，确保能记录题型和保持率。
+    return { correct: Boolean(correct), seconds: Number(seconds) || 0 };
   }
 
   function recordSession(options) {
@@ -945,6 +1351,14 @@
     return record.favorite;
   }
 
+  function recordHint(id) {
+    if (!wordMap.has(id)) return;
+    const record = recordFor(id);
+    record.hintsUsed = normalizeCount(record.hintsUsed) + 1;
+    record.difficulty = clamp((Number(record.difficulty) || 0.35) + 0.025, 0.05, 0.95);
+    save();
+  }
+
   function markMastered(id, mastered) {
     if (!wordMap.has(id)) return;
     const record = recordFor(id);
@@ -956,12 +1370,13 @@
       record.lastReviewed = todayKey();
       record.stage = 7;
       record.due = addDays(todayKey(), 60);
-      record.weak = false;
-      record.weakSince = null;
-      record.masteryStreak = 2;
+      record.stabilityDays = 60;
+      record.manualLongTerm = true;
     } else {
       record.stage = 0;
       record.due = todayKey();
+      record.stabilityDays = 1;
+      record.manualLongTerm = false;
     }
     save();
   }
@@ -1015,7 +1430,7 @@
         shortDate: (keyToDate(key).getMonth() + 1) + '/' + keyToDate(key).getDate(),
         learned: Array.isArray(day.learned) ? day.learned.length : 0,
         reviewed: Array.isArray(day.reviewed) ? day.reviewed.length : 0,
-        attempts: Number(day.attempts) || 0,
+        attempts: Number(day.objectiveAttempts) || 0,
         seconds: Number(day.seconds) || 0,
         isToday: key === todayKey()
       });
@@ -1040,7 +1455,7 @@
         date.setDate(start.getDate() + w * 7 + d);
         const key = dateKey(date);
         const day = state.activity[key];
-        const attempts = day ? Number(day.attempts) || 0 : 0;
+        const attempts = day ? Number(day.objectiveAttempts) || Number(day.attempts) || 0 : 0;
         let level = 0;
         if (attempts > 0) level = 1;
         if (attempts >= 4) level = 2;
@@ -1089,7 +1504,16 @@
       return !studied.has(word.id);
     }).length;
     const newRemaining = newWords().length;
-    const estimatedMinutes = plan.length ? Math.max(1, Math.round(plan.length * 0.35)) : 0;
+    let recentSeconds = 0;
+    let recentWords = 0;
+    for (let offset = 0; offset < 7; offset += 1) {
+      const day = state.activity[addDays(todayKey(), -offset)];
+      if (!day) continue;
+      recentSeconds += Number(day.seconds) || 0;
+      recentWords += new Set((day.learned || []).concat(day.reviewed || [])).size;
+    }
+    const secondsPerWord = recentWords ? recentSeconds / recentWords : 18;
+    const estimatedMinutes = plan.length ? Math.max(1, Math.ceil((plan.length * secondsPerWord) / 60)) : 0;
     const forecast = getReviewForecast(7);
 
     return Object.assign({}, stats, {
@@ -1097,8 +1521,9 @@
       todayUnique: studied.size,
       todayNew: today.learned.length,
       todayReviewed: today.reviewed.length,
-      todayAttempts: today.attempts,
-      todayCorrect: today.correct,
+      todayAttempts: today.objectiveAttempts,
+      todayCorrect: today.objectiveCorrect,
+      todaySelfRatings: today.selfRatings,
       todaySeconds: today.seconds,
       remaining: remaining,
       plan: plan,
@@ -1110,7 +1535,8 @@
       estimatedMinutes: estimatedMinutes,
       dueTomorrow: forecast[0] ? forecast[0].due : 0,
       streak: streak.current,
-      longestStreak: streak.longest
+      longestStreak: streak.longest,
+      targetRetention: state.profile.targetRetention || TARGET_RETENTION
     });
   }
 
@@ -1151,6 +1577,7 @@
 
   window.Store = {
     STORAGE_KEY: STORAGE_KEY,
+    SCHEMA_VERSION: SCHEMA_VERSION,
     REVIEW_DAYS: REVIEW_DAYS,
     MASTER_STAGE: MASTER_STAGE,
     MIN_DAILY_GOAL: MIN_DAILY_GOAL,
@@ -1192,9 +1619,12 @@
     buildReviewQueue: buildReviewQueue,
     buildMixedQueue: buildMixedQueue,
     answerWord: answerWord,
+    dueForSelfRating: dueForSelfRating,
     recordSessionQuizAnswer: recordSessionQuizAnswer,
+    recordObjectiveAnswer: recordObjectiveAnswer,
     recordQuizAnswer: recordQuizAnswer,
     recordSession: recordSession,
+    recordHint: recordHint,
     toggleFavorite: toggleFavorite,
     markMastered: markMastered,
     updateProfile: updateProfile,
@@ -1212,8 +1642,12 @@
     weekdayCN: weekdayCN,
     daysBetween: daysBetween,
     reviewLabelForStage: reviewLabelForStage,
+    hasVerifiedMastery: hasVerifiedMastery,
+    classifySpellingError: classifySpellingError,
     isStorageAvailable: function () { return storageAvailable; },
     prepareRemote: prepareRemote,
+    hydrateFromIndexedDb: hydrateFromIndexedDb,
+    requestPersistentStorage: requestPersistentStorage,
     pushRemoteNow: pushRemoteNow,
     restoreRemoteState: restoreRemoteState,
     exportState: exportState,

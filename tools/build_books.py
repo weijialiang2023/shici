@@ -39,6 +39,44 @@ BAD_SENTENCE_MARKERS = [
     ' murder ', ' killed himself', ' killed herself'
 ]
 
+WORD_FIXES = {
+    'behavious': 'behavior',
+    'relinguish': 'relinquish',
+}
+
+CORE_MEANING_OVERRIDES = {
+    'abandon': ['放弃', '遗弃', '放任', '狂热'],
+    'minute': ['分，分钟', '片刻，一会儿', '将…记录下来', '微小的，详细的'],
+    'cd': ['光盘，激光唱片（Compact Disc）', '呼叫设备（Call Device）'],
+    'cabbage': ['卷心菜，甘蓝菜', '洋白菜', '（俚）脑袋'],
+    'it': ['它', '这，那', '这件事'],
+    'means': ['方法，手段', '财富，资源'],
+    'surplus': ['过剩，剩余', '顺差'],
+}
+
+IPA_FALLBACKS = {
+    'ad': '/ˌeɪˈdiː/', 'behavior': '/bɪˈheɪvjə/', 'cd': '/ˌsiːˈdiː/',
+    'dr': '/ˈdɒktə/', 'dvd': '/ˌdiːviːˈdiː/', 'gy': '/ˌdʒiːˈwaɪ/',
+    'handtruck': '/ˈhændtrʌk/', 'hibernation': '/ˌhaɪbəˈneɪʃn/',
+    'jeans': '/dʒiːnz/', 'noisily': '/ˈnɔɪzɪli/', 'ok': '/ˌəʊˈkeɪ/',
+    'organiser': '/ˈɔːɡənaɪzə/', 'pm': '/ˌpiːˈem/', 'repairs': '/rɪˈpeəz/',
+    'sideway': '/ˈsaɪdweɪ/', 'uk': '/ˌjuːˈkeɪ/', 'un': '/ˌjuːˈen/',
+    'walkman': '/ˈwɔːkmæn/', 'website': '/ˈwebsaɪt/', 'westerner': '/ˈwestənə/',
+    'windbreaker': '/ˈwɪndbreɪkə/', 'advent': '/ˈædvent/', 'atlas': '/ˈætləs/',
+    'aupair': '/ˌəʊˈpeə/', 'cemetery': '/ˈsemətri/', 'chiche': '/ʃiːʃ/',
+    'code': '/kəʊd/', 'groa': '/ɡrəʊ/', 'pliable': '/ˈplaɪəbl/',
+    'propulsion': '/prəˈpʌlʃn/', 'relinquish': '/rɪˈlɪŋkwɪʃ/',
+    'stuntman': '/ˈstʌntmæn/', 'tranquility': '/træŋˈkwɪləti/',
+    'tumour': '/ˈtjuːmə/', 'viable': '/ˈvaɪəbl/', 'hur': '/hɜː/',
+}
+
+POS_FALLBACKS = {
+    'handtruck': 'n.', 'ambassador': 'n.', 'be': 'v.', 'concern': 'v. / n.',
+    'deplore': 'v.', 'dwindle': 'v.', 'exceedingly': 'adv.', 'gauge': 'n. / v.',
+    'guy': 'n.', 'inference': 'n.', 'minimum': 'n. / adj.', 'obscure': 'adj. / v.',
+    'steadfast': 'adj.', 'verdict': 'n.', 'misled': 'v.',
+}
+
 
 def clean_text(value):
     value = (value or '').replace('\u00a0', ' ').replace('  ', ' ')
@@ -47,8 +85,14 @@ def clean_text(value):
 
 def clean_meaning(value):
     value = clean_text(value)
-    value = re.sub(r'\[[^\]]{1,8}\]', '', value)
+    value = re.sub(r'\[[^\]]+\]', '', value)
     value = re.sub(r'（[^）]{1,8}）', '', value)
+    value = re.sub(r'\s*\[[^\]]*$', '', value)
+    value = re.sub(r'\s*（[^）]*$', '', value)
+    value = re.sub(r'[\])）](?=\s*$)', '', value)
+    for opening, closing in (('(', ')'), ('（', '）'), ('[', ']')):
+        if value.count(opening) > value.count(closing):
+            value = value[:value.rfind(opening)].rstrip()
     value = re.sub(r'^[\s,，;；:：.。\-]+', '', value)
     value = re.sub(r'[\s,，;；:：]+$', '', value)
     return value.strip()
@@ -115,6 +159,26 @@ def normalize_ipa(us, uk):
     value = value.replace('ɡ', 'g')
     value = re.sub(r'\s+', ' ', value).strip()
     return f'/{value}/'
+
+
+def fallback_example(word, collocations, meanings):
+    phrase = next((item for item in collocations if word.lower() in item.lower()), '')
+    if phrase:
+        english_hint = re.sub(r'[\u4e00-\u9fff].*$', '', phrase).strip(' ;；,，')
+        if english_hint:
+            return (
+                f'In class, we practiced the expression “{english_hint}”.',
+                f'课堂上，我们练习了“{english_hint}”这个表达。',
+            )
+    core = meanings[0] if meanings else '这个词'
+    return (
+        f'Our teacher asked us to use “{word}” in a sentence.',
+        f'老师请我们用“{word}”（{core}）造一个句子。',
+    )
+
+
+def has_target_word(sentence, word):
+    return bool(sentence) and word.lower() in sentence.lower()
 
 
 def word_stem(word):
@@ -185,6 +249,7 @@ def build_external(path, book_id, curated_map):
     order = []
     for entry in raw:
         word = clean_text(entry.get('word', '')).lower()
+        word = WORD_FIXES.get(word, word)
         if not word or not re.search(r'[a-z]', word):
             continue
         if len(word) == 1:  # Skip letter-only entries such as "a" / "i".
@@ -228,6 +293,23 @@ def build_external(path, book_id, curated_map):
             for key in ['ipa', 'pos', 'meanings', 'example', 'translation', 'collocations', 'family', 'tip', 'level']:
                 if rich.get(key):
                     word[key] = rich[key]
+        if word['word'] in CORE_MEANING_OVERRIDES:
+            word['meanings'] = CORE_MEANING_OVERRIDES[word['word']]
+        word['coreMeanings'] = word['meanings'][:2]
+        word['extendedMeanings'] = word['meanings'][2:]
+        if not word.get('ipa'):
+            word['ipa'] = IPA_FALLBACKS.get(word['word'], '')
+        if not word.get('pos'):
+            word['pos'] = POS_FALLBACKS.get(word['word'], '')
+        if not word.get('example') or not has_target_word(word.get('example', ''), word['word']):
+            example, translation = fallback_example(word['word'], word.get('collocations') or [], word['meanings'])
+            word['example'] = example
+            word['translation'] = translation
+            word['contentFlags'] = ['fallback-example']
+        if not word.get('translation'):
+            _, translation = fallback_example(word['word'], word.get('collocations') or [], word['meanings'])
+            word['translation'] = translation
+            word['contentFlags'] = sorted(set((word.get('contentFlags') or []) + ['fallback-translation']))
         words.append(word)
 
     words.sort(key=lambda word: word['word'].lower())
@@ -261,6 +343,10 @@ def build_external(path, book_id, curated_map):
             'rawEntries': len(raw),
             'uniqueWords': len(words),
             'withExample': sum(1 for word in words if word['example']),
+            'withTranslation': sum(1 for word in words if word['translation']),
+            'withIpa': sum(1 for word in words if word['ipa']),
+            'withExtendedMeanings': sum(1 for word in words if word.get('extendedMeanings')),
+            'fallbackExamples': sum(1 for word in words if 'fallback-example' in (word.get('contentFlags') or [])),
         },
     }
 
@@ -271,8 +357,11 @@ def load_english_curated(path):
     words = []
     for word in data['words']:
         item = dict(word)
+        item['word'] = WORD_FIXES.get(str(item['word']).lower(), item['word'])
         item['id'] = normalize_id(item['word'])
         item['ipa'] = normalize_ipa('', item.get('ipa', ''))
+        item['coreMeanings'] = item.get('coreMeanings') or item.get('meanings', [])[:2]
+        item['extendedMeanings'] = item.get('extendedMeanings') or item.get('meanings', [])[2:]
         words.append(item)
     units = [
         {

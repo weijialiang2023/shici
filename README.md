@@ -20,11 +20,11 @@ GitHub Pages 与本机服务属于两个不同的浏览器 origin，各自使用
 | 高中 3500 | 3,663 | 高考阶段常见英语词汇 |
 | 文言精讲 120 | 120 | 六个主题的核心实词精讲，与 1200 字词总书共享进度 |
 | 高中文言重点字词 1200 | 1,200 | 200 条教材精讲 + 1,000 条经典高频字义 |
-| 雅思必背 | 3,427 | 雅思阅读、写作核心词汇 |
+| 雅思必背 | 3,426 | 雅思阅读、写作核心词汇 |
 | 四级核心 | 1,162 | CET-4 高频核心词 |
 | 六级核心 | 1,228 | CET-6 进阶核心词 |
 
-合计 **10,800 个词条**。单词与文言字词共用同一个学习面板，但按各自的词条 ID 保存进度；切换词书不会清空记录。
+合计 **10,799 个词条**。单词与文言字词共用同一个学习面板，但按各自的词条 ID 保存进度；切换词书不会清空记录。
 
 ## 文言重点字词 1200
 
@@ -51,6 +51,19 @@ GitHub Pages 与本机服务属于两个不同的浏览器 origin，各自使用
 
 学习卡每次进入下一张新词时，会自动朗读一次词条本身；翻释义、收藏或返回页面不会重复播放。英文使用当前美音与男女声设置，中文使用中文语音。
 
+## 学习算法与报告
+
+学习记录把“卡片自评”和“客观提取”分开保存：
+
+- 首次选择“忘了 / 想起了，但不确定 / 能准确说出”，下一次复习分别安排在今天稍后、明天、3 天后；
+- 选择题、语境选词、反向选词和拼写题进入客观正确率，卡片自评只显示为自评分布；
+- 今日计划按 7 词左右的小循环推进，复习与新词交错出现，每组结束都做一次短提取；
+- 答错时记录用户选择的干扰项、题型和错误类别，下一次优先安排待巩固词；
+- “已掌握”至少需要 3 个不同日期的成功提取、2 种题型，并有一次 7 天以上的成功间隔；
+- 报告分开显示 24 小时保持率、7 天保持率、自评分布、错误诊断和下一次适合练习的内容。
+
+每张卡片默认只显示一到两个核心义项，其余义项折叠到“拓展义项”。学习记录 schema 为 v3，旧记录会增量迁移；无法解析的旧数据会先另存为 `shici.state.v1.corrupt.*`，不会被直接覆盖。
+
 ## 复习已学
 
 学习中心提供“复习已学”入口，适用于高中英语、英语文言精讲、文言 1200、雅思和四六级等全部词书：
@@ -63,7 +76,7 @@ GitHub Pages 与本机服务属于两个不同的浏览器 origin，各自使用
 
 ## 自动保存与长期记录
 
-每次作答、收藏、设置或词书切换都会立即写入浏览器 `localStorage`；在本机长期服务模式下，还会自动写入独立目录：
+每次作答、收藏、设置或词书切换都会立即写入浏览器 `localStorage`，并同步到 IndexedDB 作为本地恢复层；支持时还会申请 `navigator.storage.persist()` 持久存储。在本机长期服务模式下，还会自动写入独立目录：
 
 ```text
 ~/Library/Application Support/Shici/progress/
@@ -84,6 +97,15 @@ GitHub Pages 与本机服务属于两个不同的浏览器 origin，各自使用
 学习会话不会用浏览器 `beforeunload` 对话框阻止关闭标签页或退出 Safari；每次作答和设置变化都已即时保存。
 
 设置页支持「导出当前记录」「导入备份」「从本机恢复」。GitHub Pages 是纯静态站点，没有服务器端数据库，因此公开部署时仍以浏览器保存为主，跨设备迁移请使用导出/导入文件。
+
+## 离线安装
+
+站点包含 Web App Manifest、应用图标、Service Worker 和离线兜底页。在线打开一次后：
+
+- 首页、核心脚本、样式和当前已下载词书会进入浏览器缓存；
+- 断网后仍可打开页面并继续已缓存的词书；
+- 可在 Safari / Chrome 中“添加到主屏幕”或安装为独立 Web App；
+- 离线缓存不会替代备份，重要记录仍建议定期导出 JSON。
 
 ## 本机长期运行
 
@@ -146,6 +168,14 @@ python3 tools/build_wenyan.py
 python3 tools/build_books.py
 ```
 
+英文词书构建会清理已知拼写错误、截断括号、音标混入释义等问题，并为缺少例句的条目生成带 `contentFlags: ["fallback-example"]` 的可追踪课堂例句。生成后运行内容审计：
+
+```bash
+python3 tools/content_audit.py
+```
+
+审计结果写入 [`content-audit.md`](./content-audit.md) 和 `content-audit.json`。硬性问题必须清零；人名、专业名、货币和元素等仅作为人工抽检信号保留。
+
 `tools/build_wenyan.py` 会校验：
 
 - 总数为 1,200；
@@ -155,13 +185,13 @@ python3 tools/build_books.py
 - 教材精讲均有例句和现代译文；
 - 高频字义中标注出处的条目均保留书证例句。
 
-自动发音的浏览器回归测试：
+使用 `ego-browser` 完成学习系统、自动发音、离线、报告空状态、掌握规则和 390px 响应的主验收：
 
 ```bash
-bash tools/test_autoplay.sh
-bash tools/test_exit.sh
-bash tools/test_learned_review.sh
+bash tools/test_learning_system.sh
 ```
+
+测试脚本可复用当前 Ego TaskSpace；通过 `SHICI_EGO_SPACE_ID` 指定已有空间。运行前会只清理测试 origin 的 Service Worker、缓存和本地学习数据。
 
 如需重新生成高频字义目录，下载 `tools/build_wenyan_catalog.py`
 顶部注明版本的 Jiayan 与 Chinese Xinhua Dictionary 源文件后运行：
@@ -178,6 +208,10 @@ python3 tools/build_wenyan_catalog.py \
 ```text
 shici/
 ├── index.html
+├── manifest.webmanifest
+├── sw.js
+├── offline.html
+├── content-audit.md / content-audit.json
 ├── css/styles.css
 ├── js/
 │   ├── data.js          # 词书元数据、等级与成就
@@ -189,6 +223,8 @@ shici/
 │   ├── build_books.py   # 重建全部词书
 │   ├── build_wenyan.py  # 文言字词 1200 的构建与校验
 │   ├── build_wenyan_catalog.py # 高频字义目录生成
+│   ├── content_audit.py # 内容硬性问题与人工审核信号
+│   ├── test_learning_system.sh # ego-browser 主验收
 │   ├── wenyan_catalog.json     # 1000 条高频字义数据
 │   ├── deploy_local.sh  # 部署静态文件，保留 progress/
 │   └── install_local.sh # 安装长期 LaunchAgent

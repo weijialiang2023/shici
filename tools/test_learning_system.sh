@@ -1,0 +1,360 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+PORT="${SHICI_SYSTEM_TEST_PORT:-4188}"
+STATE_DIR="$(mktemp -d)"
+BASE_URL="http://127.0.0.1:$PORT"
+EGO_SPACE_ID="${SHICI_EGO_SPACE_ID:-}"
+
+cleanup() {
+  if [[ -n "${SERVER_PID:-}" ]]; then
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+
+cd "$ROOT"
+SHICI_PORT="$PORT" SHICI_STATE_DIR="$STATE_DIR" python3 serve.py >/dev/null 2>&1 &
+SERVER_PID=$!
+
+for _ in {1..40}; do
+  if curl -fsS "$BASE_URL/api/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.2
+done
+
+ego-browser skill >/dev/null
+
+ego-browser nodejs <<EOF
+const BASE_URL = "$BASE_URL";
+const SHOT = "/tmp/shici-learning-390.png";
+const SPACE_ID = ${EGO_SPACE_ID:-null};
+const existing = SPACE_ID === null
+  ? null
+  : (await listTaskSpaces()).find(space => space.id === SPACE_ID);
+if (existing && existing.ownership !== "agent") {
+  throw new Error("Ego task space is not under agent control: " + existing.ownership);
+}
+const task = existing ? await taskSpace(SPACE_ID) : await taskSpace("拾词学习系统自动验收");
+const page = task.page("p1");
+let completed = false;
+
+try {
+  await page.goto(BASE_URL + "/#home", { timeout: 30000 });
+  await page.waitForSelector(".app-shell");
+  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 30000 });
+  await page.cdp("Storage.clearDataForOrigin", {
+    origin: new URL(BASE_URL).origin,
+    storageTypes: "cache_storage,service_workers,local_storage,indexeddb"
+  });
+  await page.cdp("Page.reload", { ignoreCache: true });
+  await page.waitForSelector(".app-shell");
+  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 30000 });
+  await page.evaluate(() => {
+    window.__learningErrors = [];
+    window.addEventListener("error", event => window.__learningErrors.push(event.message));
+    window.addEventListener("unhandledrejection", event => window.__learningErrors.push(String(event.reason)));
+    Store.resetAll();
+    Store.updateProfile({ dailyGoal: 2 });
+  });
+
+  await page.goto(BASE_URL + "/#report", { timeout: 30000 });
+  await page.waitForSelector(".report-empty-hero");
+  if (await page.evaluate(() => Boolean(document.querySelector(".report-stats")))) {
+    throw new Error("new report must not show zero cards");
+  }
+  if (!(await page.evaluate(() => Boolean(document.querySelector("[data-action='start-first']"))))) {
+    throw new Error("new report start button missing");
+  }
+
+  await page.evaluate(() => {
+    Store.resetAll();
+    Store.updateProfile({ dailyGoal: 1 });
+    window.__spokenWords = [];
+    Object.defineProperty(window, "speechSynthesis", {
+      configurable: true,
+      value: {
+        cancel() {},
+        getVoices() { return []; },
+        speak(utterance) { window.__spokenWords.push(utterance.text); }
+      }
+    });
+    window.SpeechSynthesisUtterance = class {
+      constructor(text) { this.text = String(text); }
+    };
+  });
+  await page.goto(BASE_URL + "/#home", { timeout: 30000 });
+  await page.goto(BASE_URL + "/#study", { timeout: 30000 });
+  await page.waitForSelector(".study-plan");
+  await page.click("loc=role:button[name='开始今日学习']");
+  await page.waitForSelector(".word-card");
+  await page.waitForTimeout(450);
+  const speechFirst = await page.evaluate(() => ({
+    word: document.querySelector(".word-card__hero h1")?.textContent || "",
+    spoken: window.__spokenWords.slice()
+  }));
+  await page.click("loc=role:button[name='显示释义']");
+  const speechRevealed = await page.evaluate(() => window.__spokenWords.slice());
+  if (speechFirst.spoken.length !== 1 || speechFirst.spoken[0] !== speechFirst.word) {
+    throw new Error("new card must auto-speak only the word");
+  }
+  if (JSON.stringify(speechRevealed) !== JSON.stringify(speechFirst.spoken)) {
+    throw new Error("revealing the meaning must not replay speech");
+  }
+  await page.click("loc=role:button[name*='能准确说出']");
+  await page.waitForSelector(".meaning-quiz-card");
+  await page.evaluate(() => {
+    Store.resetAll();
+    Store.updateProfile({ dailyGoal: 8 });
+  });
+  await page.goto(BASE_URL + "/#home", { timeout: 30000 });
+  await page.goto(BASE_URL + "/#study", { timeout: 30000 });
+  await page.click("loc=role:button[name='开始今日学习']");
+  await page.waitForSelector(".word-card");
+  const loopSize = await page.evaluate(() => {
+    const text = document.querySelector(".study-count")?.textContent || "";
+    return Number((text.match(/(\d+)\s*$/) || [])[1]);
+  });
+  if (loopSize !== 7) throw new Error("daily plan did not start as a seven-word loop");
+  await page.click("loc=role:button[name='退出本轮学习']");
+  await page.click("loc=role:button[name='保存并退出']");
+  await page.waitForSelector(".study-overlay", { state: "detached" });
+  await page.evaluate(() => {
+    Store.resetAll();
+    Store.updateProfile({ dailyGoal: 2 });
+  });
+
+  await page.goto(BASE_URL + "/#home", { timeout: 30000 });
+  await page.goto(BASE_URL + "/#study", { timeout: 30000 });
+  await page.waitForSelector(".training-panel");
+  if (await page.evaluate(() => document.querySelectorAll(".mode-card").length !== 2)) {
+    throw new Error("study center should expose two main modes");
+  }
+
+  const logic = await page.evaluate(() => {
+    const today = Store.todayKey();
+    const words = Store.buildNewQueue(3);
+    const ids = words.map(item => item.id);
+    const before = Store.getOverview();
+    const ratings = [
+      Store.answerWord(ids[0], "again", 1),
+      Store.answerWord(ids[1], "fuzzy", 1),
+      Store.answerWord(ids[2], "known", 1)
+    ];
+    const intervals = ratings.map(item => Store.daysBetween(today, item.due));
+    const afterSelf = Store.getOverview();
+    const wrong = Store.recordObjectiveAnswer(ids[0], {
+      type: "meaning",
+      correct: false,
+      seconds: 2,
+      selectedText: "干扰义项"
+    });
+    const afterObjective = Store.getOverview();
+    const learnedQueue = Store.buildLearnedReviewQueue();
+    const learnedWeakFlags = learnedQueue.map(item => Boolean((Store.getRecord(item.id) || {}).weak));
+    const firstNotWeak = learnedWeakFlags.indexOf(false);
+
+    const state = Store.getState();
+    const masteryWord = ids[2];
+    const record = state.words[masteryWord];
+    record.seen = Math.max(1, record.seen);
+    record.successDates = [Store.addDays(today, -8), Store.addDays(today, -1)];
+    record.successTypes = ["meaning"];
+    record.lastObjectiveAt = Store.addDays(today, -7);
+    record.lastObjectiveIntervalDays = 4;
+    Store.updateProfile({});
+    const masteryBefore = Store.getStatus(masteryWord);
+    Store.recordObjectiveAnswer(masteryWord, { type: "context", correct: true, seconds: 2 });
+
+    return {
+      intervals,
+      selfAttempts: before.attempts,
+      selfAfterAttempts: afterSelf.attempts,
+      selfRatings: afterSelf.selfRatings,
+      wrongWeak: wrong.weak,
+      objectiveAttempts: afterObjective.attempts,
+      objectiveCorrect: afterObjective.correct,
+      learnedQueueLength: learnedQueue.length,
+      learnedCount: Store.studiedWords().length,
+      learnedAllStudied: learnedQueue.every(item => Store.hasRecord(item.id)),
+      learnedWeakFirst: firstNotWeak === -1 || learnedWeakFlags.slice(firstNotWeak).every(value => !value),
+      firstRecord: Store.getRecord(ids[0]),
+      masteryBefore,
+      masteryAfter: Store.getStatus(masteryWord),
+      masteryRecord: Store.getRecord(masteryWord)
+    };
+  });
+
+  if (JSON.stringify(logic.intervals) !== JSON.stringify([0, 1, 3])) throw new Error("initial intervals do not differ");
+  if (logic.selfAttempts !== 0 || logic.selfAfterAttempts !== 0) throw new Error("self rating leaked into objective accuracy");
+  if (logic.selfRatings.again !== 1 || logic.selfRatings.fuzzy !== 1 || logic.selfRatings.known !== 1) throw new Error("self rating distribution mismatch");
+  if (logic.objectiveAttempts !== 1 || logic.objectiveCorrect !== 0) throw new Error("objective accuracy mismatch");
+  if (logic.learnedQueueLength !== logic.learnedCount || !logic.learnedAllStudied || !logic.learnedWeakFirst) {
+    throw new Error("learned review must include every learned word with weak-first order");
+  }
+  if (!logic.wrongWeak || logic.firstRecord.errorTypes.meaning_confusion !== 1) throw new Error("wrong-answer diagnostics missing");
+  if (logic.firstRecord.confusions.at(-1)?.selected !== "干扰义项") throw new Error("wrong option not recorded");
+  if (logic.masteryBefore === "mastered" || logic.masteryAfter !== "mastered") throw new Error("mastery criteria mismatch");
+  if (logic.masteryRecord.successDates.length < 3 || !logic.masteryRecord.successTypes.includes("context")) throw new Error("mastery evidence incomplete");
+
+  await page.goto(BASE_URL + "/#home", { timeout: 30000 });
+  await page.goto(BASE_URL + "/#study", { timeout: 30000 });
+  await page.waitForSelector(".training-panel");
+  await page.click("loc=role:button[name='拼写挑战']");
+  await page.waitForSelector(".spell-card");
+  const spellingTotal = await page.evaluate(() => {
+    const text = document.querySelector(".study-count")?.textContent || "";
+    return Number((text.match(/(\d+)\s*$/) || [])[1]);
+  });
+  if (spellingTotal !== 3) throw new Error("spelling did not use only the three learned words");
+  await page.click("loc=role:button[name*='给点提示']");
+  const hintsRecorded = await page.evaluate(() =>
+    Store.studiedWords().reduce((sum, word) => sum + Number(Store.getRecord(word.id).hintsUsed || 0), 0)
+  );
+  if (hintsRecorded !== 1) throw new Error("spelling hint usage was not recorded");
+  await page.click("loc=role:button[name='退出本轮学习']");
+  await page.click("loc=role:button[name='保存并退出']");
+  await page.waitForSelector(".study-overlay", { state: "detached" });
+
+  await page.evaluate(() => {
+    Store.resetAll();
+    Store.updateProfile({ dailyGoal: 2 });
+  });
+  await page.goto(BASE_URL + "/#home", { timeout: 30000 });
+  await page.goto(BASE_URL + "/#study", { timeout: 30000 });
+  await page.waitForSelector(".study-plan");
+  await page.click("loc=role:button[name='开始今日学习']");
+  await page.waitForSelector(".word-card");
+  for (let index = 0; index < 2; index += 1) {
+    await page.waitForSelector(".word-card");
+    await page.click("loc=role:button[name='显示释义']");
+    await page.click("loc=role:button[name*='能准确说出']");
+    await page.waitForTimeout(180);
+  }
+  await page.waitForSelector(".meaning-quiz-card");
+  const questionShapes = [];
+  for (let index = 0; index < 4; index += 1) {
+    if (await page.evaluate(() => Boolean(document.querySelector(".summary-card")))) break;
+    if (await page.evaluate(() => Boolean(document.querySelector(".quiz-feedback")))) {
+      await page.click(".quiz-next-btn");
+    } else {
+      const shape = await page.evaluate(() => ({
+        context: Boolean(document.querySelector(".quiz-context")),
+        heading: document.querySelector(".quiz-word")?.textContent || null,
+        kicker: document.querySelector(".quiz-kicker")?.textContent?.trim() || ""
+      }));
+      questionShapes.push(shape);
+      if (shape.context && shape.heading) throw new Error("context question exposed the target word");
+      await page.click(".quiz-option >> nth=0");
+    }
+    await page.waitForTimeout(120);
+  }
+  await page.waitForSelector(".summary-card");
+  if (!questionShapes.some(shape => shape.context)) throw new Error("mixed retrieval did not include a context question");
+
+  await page.click("loc=role:button[name='查看学习报告']");
+  await page.waitForSelector(".memory-metrics");
+
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload();
+  await page.waitForSelector(".app-shell");
+  await page.cdp("Network.enable");
+  await page.cdp("Network.emulateNetworkConditions", {
+    offline: true,
+    latency: 0,
+    downloadThroughput: 0,
+    uploadThroughput: 0
+  });
+  await page.reload({ timeout: 30000 });
+  await page.waitForSelector(".app-shell");
+  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 30000 });
+  const offline = await page.evaluate(() => ({
+    bootError: Boolean(document.querySelector(".boot-screen.is-error")),
+    controlled: Boolean(navigator.serviceWorker.controller),
+    text: document.body.innerText.slice(0, 80)
+  }));
+  if (offline.bootError) throw new Error("offline reload showed a boot error");
+  await page.cdp("Network.emulateNetworkConditions", {
+    offline: false,
+    latency: 0,
+    downloadThroughput: -1,
+    uploadThroughput: -1
+  });
+
+  await page.cdp("Emulation.setDeviceMetricsOverride", {
+    width: 390,
+    height: 844,
+    deviceScaleFactor: 1,
+    mobile: true
+  });
+  const routeResponsive = {};
+  for (const route of ["home", "study", "library", "books", "report"]) {
+    await page.goto(BASE_URL + "/#" + route, { timeout: 30000 });
+    await page.waitForSelector(".app-shell");
+    routeResponsive[route] = await page.evaluate(() => {
+      const font = selector => Number.parseFloat(getComputedStyle(document.querySelector(selector)).fontSize);
+      const rectangle = selector => {
+        const node = document.querySelector(selector);
+        if (!node) return { width: 0, height: 0 };
+        const rect = node.getBoundingClientRect();
+        return { width: Math.round(rect.width), height: Math.round(rect.height) };
+      };
+      return {
+        overflow: document.documentElement.scrollWidth - window.innerWidth,
+        bodyText: font("body"),
+        descriptionText: font(".page-head__desc"),
+        nav: rectangle(".mobile-nav a"),
+        mode: rectangle(".mode-card")
+      };
+    });
+    if (routeResponsive[route].overflow > 1) {
+      throw new Error("horizontal overflow at 390px on " + route);
+    }
+  }
+  const responsive = routeResponsive.study;
+  if (responsive.bodyText < 15 || responsive.descriptionText < 12) throw new Error("mobile typography too small");
+  if (responsive.nav.height < 44 || responsive.mode.height < 44) throw new Error("mobile touch target too small");
+  await page.screenshot({ path: SHOT, fullPage: false });
+
+  const manifest = await page.fetch("manifest.webmanifest");
+  const manifestBody = JSON.parse(manifest.body);
+  if (!manifest.ok || !Array.isArray(manifestBody.icons) || manifestBody.icons.length < 2) {
+    throw new Error("PWA manifest invalid");
+  }
+
+  const errors = await page.evaluate(() => window.__learningErrors || []);
+  if (errors.length) throw new Error("browser errors: " + JSON.stringify(errors));
+  console.log(JSON.stringify({
+    ok: true,
+    taskSpaceId: task.spaceId,
+    intervals: logic.intervals,
+    objectiveAccuracy: afterObjectiveAccuracy(logic),
+    spellingTotal,
+    hintsRecorded,
+    speech: speechFirst,
+    loopSize,
+    questionTypes: questionShapes.map(shape => shape.kicker),
+    learnedReview: {
+      count: logic.learnedQueueLength,
+      allStudied: logic.learnedAllStudied,
+      weakFirst: logic.learnedWeakFirst
+    },
+    offline,
+    responsive,
+    routeResponsive,
+    manifestIcons: manifestBody.icons.length,
+    shot: SHOT
+  }, null, 2));
+  completed = true;
+} finally {
+  await page.cdp("Emulation.clearDeviceMetricsOverride").catch(() => {});
+  if (completed && !existing) await task.finish({ keep: [] });
+}
+
+function afterObjectiveAccuracy(data) {
+  return data.objectiveAttempts ? Math.round(data.objectiveCorrect / data.objectiveAttempts * 100) : null;
+}
+EOF

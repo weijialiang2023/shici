@@ -1,0 +1,554 @@
+{
+  "ok": true,
+  "books": [
+    {
+      "book": "gaokao",
+      "count": 3663,
+      "duplicateIds": [],
+      "duplicateWords": [],
+      "missing": {
+        "word": [],
+        "ipa": [],
+        "pos": [],
+        "coreMeaning": [],
+        "example": [],
+        "translation": []
+      },
+      "duplicateMeanings": [],
+      "targetNotInExample": [],
+      "bracketIssues": [],
+      "ipaInMeaning": [],
+      "knownSpellingIssues": [],
+      "reviewSignals": [
+        {
+          "word": "abnormal",
+          "categories": [
+            "元素/专业名"
+          ]
+        },
+        {
+          "word": "anecdote",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "aunt",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "average",
+          "categories": [
+            "货币/单位"
+          ]
+        },
+        {
+          "word": "cent",
+          "categories": [
+            "货币/单位"
+          ]
+        },
+        {
+          "word": "chairwoman",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "chat",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "day",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "dollar",
+          "categories": [
+            "货币/单位"
+          ]
+        },
+        {
+          "word": "embassy",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "england",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "eventually",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "flashlight",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "fluent",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "grandchild",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "hello",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "high",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "italian",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "japan",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "kilo",
+          "categories": [
+            "货币/单位"
+          ]
+        },
+        {
+          "word": "market",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "movie",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "neck",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "no",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "paris",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "pound",
+          "categories": [
+            "货币/单位"
+          ]
+        },
+        {
+          "word": "rock",
+          "categories": [
+            "元素/专业名"
+          ]
+        },
+        {
+          "word": "routine",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "rule",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "scottish",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "size",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "soccer",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "swiss",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "tibet",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "traditional",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "via",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "voyage",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "woo",
+          "categories": [
+            "人名/专业名"
+          ]
+        }
+      ],
+      "fallbackExamples": 209,
+      "withExtendedMeanings": 1901
+    },
+    {
+      "book": "ielts",
+      "count": 3426,
+      "duplicateIds": [],
+      "duplicateWords": [],
+      "missing": {
+        "word": [],
+        "ipa": [],
+        "pos": [],
+        "coreMeaning": [],
+        "example": [],
+        "translation": []
+      },
+      "duplicateMeanings": [],
+      "targetNotInExample": [],
+      "bracketIssues": [],
+      "ipaInMeaning": [],
+      "knownSpellingIssues": [],
+      "reviewSignals": [
+        {
+          "word": "abnormal",
+          "categories": [
+            "元素/专业名"
+          ]
+        },
+        {
+          "word": "amid",
+          "categories": [
+            "货币/单位"
+          ]
+        },
+        {
+          "word": "anecdote",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "concoct",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "configuration",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "conquer",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "conquest",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "counterpart",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "day",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "embassy",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "eventually",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "export",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "fluent",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "generic",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "integrate",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "landscape",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "masterpiece",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "namely",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "peer",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "persecute",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "persist",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "proceeding",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "routine",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "scratch",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "sterling",
+          "categories": [
+            "货币/单位"
+          ]
+        },
+        {
+          "word": "tunnel",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "upbringing",
+          "categories": [
+            "人名/专业名"
+          ]
+        }
+      ],
+      "fallbackExamples": 236,
+      "withExtendedMeanings": 208
+    },
+    {
+      "book": "cet4",
+      "count": 1162,
+      "duplicateIds": [],
+      "duplicateWords": [],
+      "missing": {
+        "word": [],
+        "ipa": [],
+        "pos": [],
+        "coreMeaning": [],
+        "example": [],
+        "translation": []
+      },
+      "duplicateMeanings": [],
+      "targetNotInExample": [],
+      "bracketIssues": [],
+      "ipaInMeaning": [],
+      "knownSpellingIssues": [],
+      "reviewSignals": [
+        {
+          "word": "chat",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "complement",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "equivalent",
+          "categories": [
+            "货币/单位"
+          ]
+        },
+        {
+          "word": "namely",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "peer",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "upbringing",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "via",
+          "categories": [
+            "人名/专业名"
+          ]
+        }
+      ],
+      "fallbackExamples": 63,
+      "withExtendedMeanings": 3
+    },
+    {
+      "book": "cet6",
+      "count": 1228,
+      "duplicateIds": [],
+      "duplicateWords": [],
+      "missing": {
+        "word": [],
+        "ipa": [],
+        "pos": [],
+        "coreMeaning": [],
+        "example": [],
+        "translation": []
+      },
+      "duplicateMeanings": [],
+      "targetNotInExample": [],
+      "bracketIssues": [],
+      "ipaInMeaning": [],
+      "knownSpellingIssues": [],
+      "reviewSignals": [
+        {
+          "word": "conquer",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "counterpart",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "peer",
+          "categories": [
+            "人名/专业名"
+          ]
+        },
+        {
+          "word": "prompt",
+          "categories": [
+            "人名/专业名"
+          ]
+        }
+      ],
+      "fallbackExamples": 74,
+      "withExtendedMeanings": 0
+    }
+  ],
+  "failures": []
+}
