@@ -46,6 +46,10 @@ try {
   await page.goto(BASE_URL + "/#home", { timeout: 30000 });
   await page.waitForSelector(".app-shell");
   await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 30000 });
+  const bootMs = await page.evaluate(() => window.__SHICI_BOOT_MS);
+  if (!Number.isFinite(bootMs) || bootMs < 0 || bootMs > 5000) {
+    throw new Error("boot performance mark invalid: " + bootMs);
+  }
   await page.cdp("Storage.clearDataForOrigin", {
     origin: new URL(BASE_URL).origin,
     storageTypes: "cache_storage,service_workers,local_storage,indexeddb"
@@ -113,7 +117,11 @@ try {
   if (!supportLinks.feedback || !supportLinks.privacy || !supportLinks.terms) {
     throw new Error("settings support links missing");
   }
-  await page.click("loc=role:button[name='关闭设置']");
+  await page.evaluate(() => {
+    const close = document.querySelector('button[data-action="close-drawer"]');
+    if (!close) throw new Error("settings close button missing");
+    close.click();
+  });
 
   await page.goto(BASE_URL + "/feedback.html?book=gaokao", { timeout: 30000 });
   await page.waitForSelector("#feedbackForm");
@@ -388,6 +396,17 @@ try {
       };
       return {
         overflow: document.documentElement.scrollWidth - window.innerWidth,
+        smallTextCount: [...document.querySelectorAll("body *")].filter(node => {
+          const rect = node.getBoundingClientRect();
+          const style = getComputedStyle(node);
+          const visible = rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
+          const text = [...node.childNodes]
+            .filter(child => child.nodeType === Node.TEXT_NODE)
+            .map(child => child.textContent.trim())
+            .filter(Boolean)
+            .join(" ");
+          return visible && text && Number.parseFloat(style.fontSize) < 12;
+        }).length,
         bodyText: font("body"),
         descriptionText: font(".page-head__desc"),
         nav: rectangle(".mobile-nav a"),
@@ -396,6 +415,9 @@ try {
     });
     if (routeResponsive[route].overflow > 1) {
       throw new Error("horizontal overflow at 390px on " + route);
+    }
+    if (routeResponsive[route].smallTextCount > 0) {
+      throw new Error("visible text below 12px on " + route + ": " + routeResponsive[route].smallTextCount);
     }
   }
   const responsive = routeResponsive.study;
@@ -427,6 +449,7 @@ try {
       weakFirst: logic.learnedWeakFirst
     },
     offline,
+    bootMs,
     responsive,
     routeResponsive,
     manifestIcons: manifestBody.icons.length,

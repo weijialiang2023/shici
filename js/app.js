@@ -12,7 +12,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '26';
+    return match ? decodeURIComponent(match[1]) : '27';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -2104,6 +2104,7 @@
       const script = document.createElement('script');
       script.src = withAssetVersion(path);
       script.async = true;
+      script.fetchPriority = 'high';
       script.dataset.shiciScript = key;
       script.onload = function () { resolve(); };
       script.onerror = function () {
@@ -2175,6 +2176,24 @@
     });
   }
 
+  function scheduleAfterBoot(callback) {
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(callback, { timeout: 1200 });
+      return;
+    }
+    window.setTimeout(callback, 0);
+  }
+
+  function markBootReady() {
+    try {
+      performance.mark('shici-boot-ready');
+      const measure = performance.measure('shici-boot', 'shici-boot-start', 'shici-boot-ready');
+      window.__SHICI_BOOT_MS = Math.max(0, Math.round(measure.duration));
+    } catch (error) {
+      window.__SHICI_BOOT_MS = null;
+    }
+  }
+
   async function boot() {
     if (!window.location.hash) {
       window.history.replaceState(null, '', '#home');
@@ -2183,24 +2202,36 @@
     const retry = document.getElementById('bootRetry');
     if (retry) retry.addEventListener('click', function () { window.location.reload(); });
 
-    setBootState('正在检查学习记录', '先看看本机有没有更完整的存档。', false);
-    await Store.hydrateFromIndexedDb();
-    await Store.requestPersistentStorage();
-    const persistence = await Store.prepareRemote();
-    if (persistence && persistence.restored) return;
-
-    const activeBookId = Store.getProfile().activeBook || window.DEFAULT_BOOK || 'gaokao';
-    const meta = getBookMeta(activeBookId) || getBookMeta(window.DEFAULT_BOOK) || (window.BOOKS || [])[0];
+    const initialBookId = Store.getProfile().activeBook || window.DEFAULT_BOOK || 'gaokao';
+    let meta = getBookMeta(initialBookId) || getBookMeta(window.DEFAULT_BOOK) || (window.BOOKS || [])[0];
     setBootState('正在打开「' + (meta ? meta.title : '词书') + '」', '把今天的词，慢慢收进口袋。', false);
 
     try {
+      const bookPromise = fetchBookPayload(meta.id).then(
+        function (payload) { return { payload: payload }; },
+        function (error) { return { error: error }; }
+      );
+      const recoveryPromise = (async function () {
+        await Store.hydrateFromIndexedDb();
+        return Store.prepareRemote();
+      })().catch(function () {
+        return { mode: 'browser', restored: false };
+      });
       const results = await Promise.all([
-        fetchBookPayload(meta.id),
-        fetchBookIndex().catch(function () { return null; })
+        bookPromise,
+        recoveryPromise
       ]);
-      const payload = results[0];
-      if (results[1]) Store.setBookIndex(results[1]);
-      Store.loadBook(meta.id, payload);
+      const persistence = results[1];
+      if (persistence && persistence.restored) return;
+      if (results[0].error) throw results[0].error;
+      let payload = results[0].payload;
+      const activeBookId = Store.getActiveBookId();
+      if (activeBookId !== meta.id) {
+        meta = getBookMeta(activeBookId) || meta;
+        setBootState('正在打开「' + meta.title + '」', '正在读取本机恢复后的词书。', false);
+        payload = await fetchBookPayload(meta.id);
+      }
+      Store.loadBook(activeBookId, payload);
       parseHash();
       renderAll();
       trackProductEvent('app_open', {
@@ -2208,9 +2239,16 @@
         bookId: Store.getActiveBookId()
       });
       hideBootScreen();
+      markBootReady();
       // Register after the initial book has loaded. A new worker taking control
       // during boot can interrupt dynamically loaded book scripts on upgrade.
       registerOfflineSupport();
+      scheduleAfterBoot(function () {
+        Store.requestPersistentStorage().catch(function () {});
+        fetchBookIndex().then(function (index) {
+          if (index) Store.setBookIndex(index);
+        }).catch(function () {});
+      });
       window.setTimeout(function () {
         if (window.speechSynthesis) window.speechSynthesis.getVoices();
       }, 300);

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'shici-v26';
+const CACHE_VERSION = 'shici-v27';
 const CACHE_NUMBER = Number((CACHE_VERSION.match(/^shici-v(\d+)$/) || [])[1] || 0);
 const RETAINED_CACHE_NUMBER = Math.max(0, CACHE_NUMBER - 1);
 const APP_SHELL = [
@@ -6,13 +6,13 @@ const APP_SHELL = [
   './index.html',
   './offline.html',
   './manifest.webmanifest',
-  './css/styles.css?v=25',
-  './js/product-analytics.js?v=25',
-  './js/data.js?v=25',
-  './js/store.js?v=25',
-  './js/ui.js?v=25',
-  './js/app.js?v=25',
-  './data/books/index.js?v=25',
+  './css/styles.css?v=27',
+  './js/product-analytics.js?v=27',
+  './js/data.js?v=27',
+  './js/store.js?v=27',
+  './js/ui.js?v=27',
+  './js/app.js?v=27',
+  './data/books/index.js?v=27',
   './assets/favicon.svg',
   './assets/apple-touch-icon.png',
   './assets/icon-192.png',

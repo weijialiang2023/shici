@@ -13,7 +13,32 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/styles.css?v=26">
+  <link rel="stylesheet" href="css/styles.css?v=27">
+  <script>
+    (function () {
+      try {
+        performance.mark('shici-boot-start');
+        if (location.protocol === 'file:') return;
+        var knownBooks = ['gaokao', 'curated', 'wenyan', 'ielts', 'cet4', 'cet6'];
+        var activeBook = 'gaokao';
+        try {
+          var saved = JSON.parse(localStorage.getItem('shici.state.v1') || '{}');
+          activeBook = saved && saved.profile && saved.profile.activeBook || activeBook;
+        } catch (error) {
+          activeBook = 'gaokao';
+        }
+        if (knownBooks.indexOf(activeBook) === -1) activeBook = 'gaokao';
+        var preload = document.createElement('link');
+        preload.rel = 'preload';
+        preload.as = 'script';
+        preload.fetchPriority = 'high';
+        preload.href = 'data/books/' + activeBook + '.js?v=27';
+        document.head.appendChild(preload);
+      } catch (error) {
+        // Preloading is an optimization; normal boot can continue without it.
+      }
+    })();
+  </script>
 </head>
 <body>
   <svg class="svg-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -306,11 +331,10 @@
   <div id="overlayRoot"></div>
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="js/product-analytics.js?v=26"></script>
-  <script src="data/books/index.js?v=26"></script>
-  <script src="js/data.js?v=26"></script>
-  <script src="js/store.js?v=26"></script>
-  <script src="js/ui.js?v=26"></script>
-  <script src="js/app.js?v=26"></script>
+  <script src="js/product-analytics.js?v=27"></script>
+  <script src="js/data.js?v=27"></script>
+  <script src="js/store.js?v=27"></script>
+  <script src="js/ui.js?v=27"></script>
+  <script src="js/app.js?v=27"></script>
 </body>
 </html>

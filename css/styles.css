@@ -9479,3 +9479,171 @@ input[type="search"]::-webkit-search-decoration {
 .site-footer__links { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
 .site-footer__links a { color: inherit; text-underline-offset: 3px; }
 .site-footer__links a:hover { color: var(--green-800); }
+
+/* Readability pass: remove decorative microcopy and raise secondary text
+   to a minimum comfortable reading size. */
+.brand__text small,
+.topbar__date,
+.nav-label,
+.unit-card__index,
+.unit-card__en,
+.mode-card__index,
+.mode-card__en,
+.quote-card__seal {
+  display: none !important;
+}
+
+.page-head__desc,
+.book-info__desc,
+.mode-card__desc,
+.study-plan__desc,
+.word-row__meaning {
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.eyebrow,
+.section-head__desc,
+.sidebar-goal__note,
+.memory-card__desc,
+.curve-caption,
+.quote-card__label,
+.quote-card__zh,
+.settings-help,
+.drawer small,
+.site-footer,
+.site-footer__links,
+.book-context__count,
+.book-info__category,
+.book-cover__active,
+.books-source,
+.unit-card__desc,
+.rhythm-chip,
+.review-rhythm__label,
+.study-plan__breakdown,
+.mode-card__count,
+.pill,
+.filter-chip,
+.filter-label,
+.unit-chip,
+.library-count,
+.status-pill,
+.word-level,
+.word-row__unit,
+.word-open__ipa,
+.word-row__due,
+.book-row__meta {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.home-grid .daily-card__meta,
+.home-grid .word-of-day__meaning,
+.home-grid .word-of-day__example {
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.home-grid .stat-item__label,
+.home-grid .daily-card__round,
+.home-grid .word-of-day__foot .text-link {
+  font-size: 13px;
+}
+
+.btn,
+.btn--sm,
+.text-link,
+.goal-preset,
+.voice-option small {
+  font-size: max(12px, 0.86em);
+}
+
+.sidebar-goal__head span,
+.sidebar-goal__head strong,
+.sidebar-goal__numbers span,
+.profile-chip__text small,
+.global-search kbd,
+.streak-pill span,
+.book-context__copy small,
+.book-context__copy strong,
+.stat-item__value small,
+.unit-progress__row span,
+.unit-progress__row strong,
+.curve-legend span,
+.rhythm-node span,
+.rhythm-panel p,
+.study-tip p,
+.dark-progress__inner span,
+.library-progress-card__text small,
+.library-progress-card__text > span,
+.word-list__head span,
+.library-footer span,
+.library-more span,
+.filter-chip__count,
+.book-tags span,
+.book-cover__top span,
+.book-progress__row span,
+.book-progress__row strong,
+.books-note p,
+.book-actions .text-link,
+.quote-card footer {
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.word-of-day__head > span,
+.home-lower-grid .memory-card svg text,
+.book-cover__bottom > span:first-child {
+  display: none !important;
+}
+
+.home-grid .stat-item__value small,
+.quote-card blockquote footer,
+.book-context__copy strong,
+.library-progress-card__text small,
+.book-info .pill,
+.book-actions .btn {
+  font-size: 12px !important;
+}
+
+.report-panel svg text,
+.heatmap__months,
+.heatmap__weekdays,
+.heatmap__foot,
+.badge-item > span:not(.badge-item__icon):not(.badge-item__lock) {
+  display: none !important;
+}
+
+.forecast-item__count,
+.forecast-item__day,
+.report-stat__label,
+.report-stat__note,
+.report-stat__value small,
+.donut-legend__item,
+.donut-legend__item strong,
+.donut-center span,
+.chart-legend span,
+.badge-item strong,
+.learned-summary__item span,
+.learned-result,
+.learned-row__word small,
+.learned-row__meaning,
+.learned-row__date,
+.learned-row__state small,
+.learned-row__date small {
+  font-size: 12px !important;
+}
+
+.report-panel__desc {
+  font-size: 13px !important;
+}
+
+@media (max-width: 700px) {
+  .page-head__desc,
+  .book-info__desc,
+  .mode-card__desc,
+  .study-plan__desc,
+  .word-row__meaning {
+    font-size: 13px;
+  }
+}
