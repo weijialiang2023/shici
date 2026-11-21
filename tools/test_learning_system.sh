@@ -113,7 +113,7 @@ try {
   if (!supportLinks.feedback || !supportLinks.privacy || !supportLinks.terms) {
     throw new Error("settings support links missing");
   }
-  await page.click('button[data-action="close-drawer"]');
+  await page.click("loc=role:button[name='关闭设置']");
 
   await page.goto(BASE_URL + "/feedback.html?book=gaokao", { timeout: 30000 });
   await page.waitForSelector("#feedbackForm");

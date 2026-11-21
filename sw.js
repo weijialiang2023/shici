@@ -1,4 +1,6 @@
-const CACHE_VERSION = 'shici-v25';
+const CACHE_VERSION = 'shici-v26';
+const CACHE_NUMBER = Number((CACHE_VERSION.match(/^shici-v(\d+)$/) || [])[1] || 0);
+const RETAINED_CACHE_NUMBER = Math.max(0, CACHE_NUMBER - 1);
 const APP_SHELL = [
   './',
   './index.html',
@@ -33,7 +35,13 @@ self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys()
       .then(function (keys) {
-        return Promise.all(keys.filter(function (key) { return key !== CACHE_VERSION; })
+        return Promise.all(keys.filter(function (key) {
+          const match = key.match(/^shici-v(\d+)$/);
+          const generation = match ? Number(match[1]) : null;
+          // Keep the previous generation while old clients may still be reading
+          // a large book script from it. Delete only older or unknown caches.
+          return key !== CACHE_VERSION && (generation === null || generation < RETAINED_CACHE_NUMBER);
+        })
           .map(function (key) { return caches.delete(key); }));
       })
       .then(function () { return self.clients.claim(); })
