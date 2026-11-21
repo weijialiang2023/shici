@@ -12,7 +12,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '24';
+    return match ? decodeURIComponent(match[1]) : '25';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -2186,7 +2186,6 @@
     setBootState('正在检查学习记录', '先看看本机有没有更完整的存档。', false);
     await Store.hydrateFromIndexedDb();
     await Store.requestPersistentStorage();
-    registerOfflineSupport();
     const persistence = await Store.prepareRemote();
     if (persistence && persistence.restored) return;
 
@@ -2209,6 +2208,9 @@
         bookId: Store.getActiveBookId()
       });
       hideBootScreen();
+      // Register after the initial book has loaded. A new worker taking control
+      // during boot can interrupt dynamically loaded book scripts on upgrade.
+      registerOfflineSupport();
       window.setTimeout(function () {
         if (window.speechSynthesis) window.speechSynthesis.getVoices();
       }, 300);
