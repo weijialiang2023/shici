@@ -9,10 +9,13 @@
 
   const ROUTES = ['home', 'study', 'library', 'books', 'report'];
   const LIBRARY_PAGE_SIZE = 30;
+  // This revision changes only when book payloads change, so app-only releases
+  // can reuse the already cached 3500-word book instead of downloading it again.
+  const BOOK_ASSET_VERSION = '26';
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '27';
+    return match ? decodeURIComponent(match[1]) : '28';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -2094,15 +2097,15 @@
     }, 380);
   }
 
-  function withAssetVersion(path) {
-    return path + (window.location.protocol === 'file:' ? '' : '?v=' + ASSET_VERSION);
+  function withAssetVersion(path, version) {
+    return path + (window.location.protocol === 'file:' ? '' : '?v=' + (version || ASSET_VERSION));
   }
 
-  function loadScriptOnce(path, key) {
+  function loadScriptOnce(path, key, version) {
     if (bookScriptPromises.has(key)) return bookScriptPromises.get(key);
     const promise = new Promise(function (resolve, reject) {
       const script = document.createElement('script');
-      script.src = withAssetVersion(path);
+      script.src = withAssetVersion(path, version);
       script.async = true;
       script.fetchPriority = 'high';
       script.dataset.shiciScript = key;
@@ -2122,7 +2125,7 @@
   async function fetchBookIndex() {
     if (bookIndexCache) return bookIndexCache;
     if (!window.__SHICI_BOOK_INDEX__) {
-      await loadScriptOnce('data/books/index.js', 'book-index');
+      await loadScriptOnce('data/books/index.js', 'book-index', BOOK_ASSET_VERSION);
     }
     if (!window.__SHICI_BOOK_INDEX__) throw new Error('词书索引缺失');
     bookIndexCache = window.__SHICI_BOOK_INDEX__;
@@ -2132,7 +2135,7 @@
   async function fetchBookPayload(bookId) {
     if (bookCache.has(bookId)) return bookCache.get(bookId);
     if (!window.__SHICI_BOOKS__ || !window.__SHICI_BOOKS__[bookId]) {
-      await loadScriptOnce('data/books/' + bookId + '.js', 'book-' + bookId);
+      await loadScriptOnce('data/books/' + bookId + '.js', 'book-' + bookId, BOOK_ASSET_VERSION);
     }
     const payload = window.__SHICI_BOOKS__ && window.__SHICI_BOOKS__[bookId];
     if (!payload || !Array.isArray(payload.words) || !Array.isArray(payload.units)) {
