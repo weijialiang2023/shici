@@ -61,6 +61,46 @@ try {
     Store.updateProfile({ dailyGoal: 2 });
   });
 
+  await page.waitForSelector("#daily-plan-title");
+  const homePlan = await page.evaluate(() => {
+    const base = Store.getOverview();
+    const fixture = document.createElement("div");
+    const render = (overrides) => {
+      fixture.innerHTML = UI.renderHome({
+        overview: Object.assign({}, base, overrides),
+        wordOfTheDay: null,
+        quote: { en: "One word at a time.", author: "Test", zh: "一次一个词。" },
+        date: { weekdayCN: "周一", dateCN: "1月1日" },
+        greeting: "早上好",
+        name: "同学"
+      });
+      const cta = fixture.querySelector(".daily-card .btn--primary");
+      return {
+        title: fixture.querySelector("#daily-plan-title").textContent,
+        action: cta.getAttribute("data-action") || cta.getAttribute("href"),
+        label: cta.textContent.trim(),
+        meta: fixture.querySelector(".daily-card__meta").textContent,
+        barValue: fixture.querySelector("progress").value,
+        barMax: fixture.querySelector("progress").max,
+        hasDailyWord: Boolean(fixture.querySelector(".word-of-day"))
+      };
+    };
+    return {
+      fresh: render({ goal: 20, todayUnique: 0, planCount: 20, planNewCount: 20, planReviewCount: 0 }),
+      mixed: render({ goal: 20, todayUnique: 12, planCount: 8, planNewCount: 6, planReviewCount: 2 }),
+      due: render({ goal: 20, todayUnique: 22, planCount: 0, planNewCount: 0, planReviewCount: 0, reviewDueToday: 4 }),
+      extra: render({ goal: 20, todayUnique: 20, planCount: 0, planNewCount: 0, planReviewCount: 0, reviewDueToday: 0, newRemaining: 3 }),
+      exhausted: render({ goal: 20, todayUnique: 0, planCount: 0, planNewCount: 0, planReviewCount: 0, reviewDueToday: 0, newRemaining: 0, totalSeen: 10 }),
+      empty: render({ goal: 20, todayUnique: 0, planCount: 0, planNewCount: 0, planReviewCount: 0, reviewDueToday: 0, newRemaining: 0, totalSeen: 0 })
+    };
+  });
+  if (homePlan.fresh.action !== "start-daily" || homePlan.fresh.meta.includes("0 个待复习") || homePlan.fresh.label !== "开始今日学习") throw new Error("fresh home plan mismatch");
+  if (homePlan.mixed.label !== "继续今日学习" || !homePlan.mixed.meta.includes("2 个待复习 · 6 个新词")) throw new Error("mixed home plan mismatch");
+  if (homePlan.due.action !== "start-review" || homePlan.due.barValue !== homePlan.due.barMax) throw new Error("completed home plan mismatch");
+  if (homePlan.extra.label !== "再学 3 个新词") throw new Error("extra new CTA overstates available words");
+  if (homePlan.exhausted.action !== "start-learned" || homePlan.exhausted.title.includes("已完成")) throw new Error("exhausted book must not imply goal completion");
+  if (homePlan.empty.action !== "#books" || homePlan.empty.hasDailyWord) throw new Error("empty book fallback mismatch");
+
   await page.goto(BASE_URL + "/#report", { timeout: 30000 });
   await page.waitForSelector(".report-empty-hero");
   if (await page.evaluate(() => Boolean(document.querySelector(".report-stats")))) {

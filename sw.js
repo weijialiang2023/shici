@@ -1,15 +1,15 @@
-const CACHE_VERSION = 'shici-v22';
+const CACHE_VERSION = 'shici-v23';
 const APP_SHELL = [
   './',
   './index.html',
   './offline.html',
   './manifest.webmanifest',
-  './css/styles.css?v=22',
-  './js/data.js?v=22',
-  './js/store.js?v=22',
-  './js/ui.js?v=22',
-  './js/app.js?v=22',
-  './data/books/index.js?v=22',
+  './css/styles.css?v=23',
+  './js/data.js?v=23',
+  './js/store.js?v=23',
+  './js/ui.js?v=23',
+  './js/app.js?v=23',
+  './data/books/index.js?v=23',
   './assets/favicon.svg',
   './assets/apple-touch-icon.png',
   './assets/icon-192.png',

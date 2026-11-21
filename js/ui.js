@@ -252,45 +252,48 @@
     const overview = data.overview;
     const word = data.wordOfTheDay;
     const quote = data.quote;
-    const unit = unitFor(word);
-    const record = window.Store.getRecord(word.id);
-    const favorite = Boolean(record && record.favorite);
-    const percent = overview.goal ? Math.round((overview.todayUnique / overview.goal) * 100) : 0;
     const planCount = overview.planCount;
-    const done = planCount === 0;
-    let headline;
-    let action;
-    let actionLabel = '开始今日学习';
-    let secondary = '<button class="btn btn--ghost" type="button" data-action="scroll-to-rhythm">看看复习节奏 ' + icon('arrow-right', 'icon--shift') + '</button>';
+    const hasPlan = planCount > 0;
+    const goalReached = overview.goal > 0 && overview.todayUnique >= overview.goal;
+    const taskParts = [];
+    if (overview.planReviewCount > 0) taskParts.push(overview.planReviewCount + ' 个待复习');
+    if (overview.planNewCount > 0) taskParts.push(overview.planNewCount + ' 个新词');
 
-    if (!done) {
-      if (overview.planReviewCount > 0) {
-        headline = '今天，和 <em>' + planCount + '</em> 个词<br>再见一面。';
-      } else {
-        headline = '今天，拾起 <em>' + planCount + '</em> 个新词。';
-      }
+    let headline;
+    let meta;
+    let action;
+    let actionLabel;
+    if (hasPlan) {
+      if (!overview.planNewCount) headline = '今天复习 <em>' + planCount + '</em> 个词';
+      else if (!overview.planReviewCount && !overview.todayUnique) headline = '今天学习 <em>' + planCount + '</em> 个新词';
+      else headline = '今日计划还剩 <em>' + planCount + '</em> 个词';
+      meta = taskParts.join(' · ') + ' · 约 ' + (overview.estimatedMinutes || 1) + ' 分钟';
       action = 'start-daily';
-    } else if (overview.todayUnique > 0) {
-      headline = '今天的目标，<br>已经收好了。';
+      actionLabel = overview.todayUnique > 0 ? '继续今日学习' : '开始今日学习';
+    } else {
+      headline = goalReached ? '今日目标已完成' : '当前词书暂无计划任务';
       if (overview.reviewDueToday > 0) {
+        meta = '还有 ' + overview.reviewDueToday + ' 个词待复习，可以继续巩固。';
         action = 'start-review';
         actionLabel = '继续复习';
       } else if (overview.newRemaining > 0) {
+        meta = '还想多学一点？可以追加一组新词。';
         action = 'start-extra-new';
-        actionLabel = '再学 10 个新词';
-      } else {
+        actionLabel = '再学 ' + Math.min(overview.newRemaining, 10) + ' 个新词';
+      } else if (overview.totalSeen > 0) {
+        meta = '本书没有待学新词，可以抽查已经学过的词。';
         action = 'start-learned';
-        actionLabel = '复习已学词（全部）';
+        actionLabel = '复习已学词';
+      } else {
+        meta = '到词书书架选一本词书，开始新的学习。';
+        actionLabel = '选一本词书';
       }
-      secondary = '<button class="btn btn--ghost" type="button" data-action="navigate" data-route="report">查看学习报告 ' + icon('arrow-right', 'icon--shift') + '</button>';
-    } else {
-      headline = '从第一个词开始，<br>慢慢把表达收进口袋。';
-      action = 'start-daily';
     }
-
-    const meta = done
-      ? '今日已学 ' + overview.todayUnique + ' 个词 · 客观提取正确率 ' + (overview.attempts ? overview.recallAccuracy + '%' : '待检验') + ' · 已连续学习 ' + overview.streak + ' 天'
-      : '先复习 ' + overview.planReviewCount + ' 个，再学 ' + overview.planNewCount + ' 个新的 · 预计 ' + (overview.estimatedMinutes || 1) + ' 分钟';
+    const progressMax = Math.max(overview.goal, 1);
+    const progressText = overview.todayUnique + ' / ' + overview.goal + ' 个词';
+    const primary = action
+      ? '<button class="btn btn--primary" type="button" data-action="' + action + '">' + actionLabel + ' ' + icon('arrow-right', 'icon--shift') + '</button>'
+      : '<a class="btn btn--primary" href="#books">' + actionLabel + ' ' + icon('arrow-right') + '</a>';
 
     const unitCards = currentUnits().map(function (item) {
       const progress = findUnitProgress(item.id);
@@ -311,61 +314,51 @@
         '</a>';
     }).join('');
 
+    const dailyWord = word ? '<article class="word-of-day" aria-labelledby="daily-word-title">' +
+      '<div class="word-of-day__head"><h2 id="daily-word-title">今日一词</h2><span aria-hidden="true">DAILY PICK</span></div>' +
+      '<div class="word-of-day__body">' +
+      '<div class="word-of-day__word-row"><h3 lang="' + (word.lang === 'zh' ? 'zh-CN' : 'en') + '">' + esc(word.word) + '</h3>' +
+      '<button class="audio-btn" type="button" data-action="speak" data-word="' + esc(word.word) + '" aria-label="朗读 ' + esc(word.word) + '">' + icon('volume') + '</button></div>' +
+      ((word.ipa || word.pos) ? '<p class="word-of-day__ipa">' + esc([word.ipa, word.pos].filter(Boolean).join(' · ')) + '</p>' : '') +
+      '<p class="word-of-day__meaning">' + esc(coreMeanings(word).join('；')) + '</p>' +
+      (word.example ? '<p class="word-of-day__example" lang="' + (word.lang === 'zh' ? 'zh-CN' : 'en') + '">' + highlight(word.example, word.word) + '</p>' : '') +
+      '</div>' +
+      '<div class="word-of-day__foot">' +
+      '<span class="word-of-day__unit"><i class="dot"></i>' + esc(unitDisplay(unitFor(word))) + '</span>' +
+      '<button class="text-link" type="button" data-action="open-word" data-word-id="' + esc(word.id) + '">查看词卡 ' + icon('arrow-up-right') + '</button>' +
+      '</div></article>' : '';
+
     return '' +
       '<header class="page-head home-head">' +
       '<div>' +
-      '<p class="eyebrow">' + data.date.weekday + ' · ' + data.date.dateCN + '</p>' +
-      '<h1 class="page-title">' + esc(data.greeting) + (data.name ? '，' + esc(data.name) : '') + '。</h1>' +
-      '<p class="page-head__desc">今天也留一点时间给新的表达。不着急，一次一个词。</p>' +
+      '<p class="eyebrow">' + data.date.weekdayCN + ' · ' + data.date.dateCN + '</p>' +
+      '<h1 class="page-title">今日学习</h1>' +
+      '<p class="page-head__desc">' + esc(data.greeting) + '，' + esc(data.name || '同学') + '。不着急，一次记一个词。</p>' +
       '</div>' +
       '<div class="home-head__meta">' + bookContextHTML('home') + '</div>' +
       '</header>' +
 
-      '<section class="home-grid">' +
-      '<article class="daily-card' + (done ? ' daily-card--done' : '') + '">' +
+      '<div class="home-grid' + (word ? '' : ' home-grid--no-word') + '">' +
+      '<article class="daily-card' + (goalReached ? ' daily-card--done' : '') + '" aria-labelledby="daily-plan-title">' +
       '<div class="daily-card__copy">' +
-      '<p class="daily-card__eyebrow"><i class="live-dot"></i> 今日学习计划</p>' +
-      '<h2>' + headline + '</h2>' +
+      '<p class="daily-card__eyebrow"><i class="live-dot" aria-hidden="true"></i> 今日计划</p>' +
+      '<h2 id="daily-plan-title">' + headline + '</h2>' +
       '<p class="daily-card__meta">' + meta + '</p>' +
-      '<div class="daily-card__actions">' +
-      '<button class="btn btn--primary" type="button" data-action="' + action + '">' + actionLabel + ' ' + icon('arrow-right', 'icon--shift') + '</button>' +
-      secondary +
+      (hasPlan ? '<p class="daily-card__round">分小组学习，每组最多 ' + Math.min(planCount, 7) + ' 个词</p>' : '') +
+      '<div class="daily-card__actions">' + primary +
+      '<a class="home-secondary" href="' + (hasPlan ? '#study' : '#report') + '">' + (hasPlan ? '其他学习方式' : '学习报告') + ' ' + icon('arrow-right') + '</a>' +
       '</div>' +
+      '<div class="daily-card__progress"><div><span>今日进度</span><strong>' + progressText + '</strong></div>' +
+      '<progress aria-label="今日学习进度" aria-valuetext="已学 ' + overview.todayUnique + ' 个词，目标 ' + overview.goal + ' 个词" max="' + progressMax + '" value="' + Math.min(overview.todayUnique, progressMax) + '"></progress></div>' +
       '</div>' +
-      '<div class="hero-visual">' +
-      '<div class="progress-ring">' + circleProgress(percent) +
-      '<div class="progress-ring__inner"><strong>' + Math.min(percent, 100) + '<small>%</small></strong><span>今日进度</span></div></div>' +
-      '<span class="hero-visual__caption">' + overview.todayUnique + ' / ' + overview.goal + ' WORDS</span>' +
-      '</div>' +
-      '<span class="hero-star">' + icon('sparkles') + '</span>' +
       branchSVG() +
       '</article>' +
 
-      '<article class="word-of-day">' +
-      '<div class="word-of-day__head">' +
-      '<p>Word of the day · 今日一词</p>' +
-      '<span class="word-stamp">DAILY<br>PICK</span>' +
-      '</div>' +
-      '<div class="word-of-day__body">' +
-      '<div class="word-of-day__word-row"><h3>' + esc(word.word) + '</h3>' +
-      '<button class="audio-btn" type="button" data-action="speak" data-word="' + esc(word.word) + '" aria-label="朗读 ' + esc(word.word) + '">' + icon('volume') + '</button></div>' +
-      '<p class="word-of-day__ipa">' + esc(word.ipa || '—') + (word.pos ? ' &nbsp; ' + esc(word.pos) : '') + '</p>' +
-      '<p class="word-of-day__meaning">' + esc(coreMeanings(word).join('；')) + '</p>' +
-      (word.example ? '<p class="word-of-day__example">' + highlight(word.example, word.word) + '</p>' : '<p class="word-of-day__example">先记住它的中文意思，再到词卡里看搭配。</p>') +
-      '</div>' +
-      '<div class="word-of-day__foot">' +
-      '<span class="word-of-day__unit"><i class="dot"></i>' + esc(unitDisplay(unit)) + '</span>' +
-      '<button class="text-link" type="button" data-action="open-word" data-word-id="' + esc(word.id) + '">收进单词卡 ' + icon('arrow-up-right') + '</button>' +
-      '</div>' +
-      '</article>' +
-      '</section>' +
-
       '<section class="stat-strip" aria-label="学习概况">' +
-      '<div class="stat-item"><span class="stat-item__icon">' + icon('book-open') + '</span><div class="stat-item__text"><span class="stat-item__label">今日已学</span><strong class="stat-item__value">' + overview.todayUnique + '<small> / ' + overview.goal + '</small></strong></div></div>' +
-      '<div class="stat-item"><span class="stat-item__icon">' + icon('refresh') + '</span><div class="stat-item__text"><span class="stat-item__label">今日待复习</span><strong class="stat-item__value">' + overview.reviewDueToday + '<small> 个</small></strong></div></div>' +
+      '<div class="stat-item"><span class="stat-item__icon">' + icon('refresh') + '</span><div class="stat-item__text"><span class="stat-item__label">待复习</span><strong class="stat-item__value">' + overview.reviewDueToday + '<small> 个</small></strong></div></div>' +
       '<div class="stat-item"><span class="stat-item__icon">' + icon('trophy') + '</span><div class="stat-item__text"><span class="stat-item__label">已掌握</span><strong class="stat-item__value">' + overview.mastered + '<small> / ' + overview.totalWords + '</small></strong></div></div>' +
       '<div class="stat-item"><span class="stat-item__icon">' + icon('flame') + '</span><div class="stat-item__text"><span class="stat-item__label">连续学习</span><strong class="stat-item__value">' + overview.streak + '<small> 天</small></strong></div></div>' +
-      '</section>' +
+      '</section>' + dailyWord + '</div>' +
 
       '<section class="units-section">' +
       '<div class="section-head"><div><h2>' + (activeBook() && activeBook().id === 'curated' ? '文言核心 120 精讲' : (activeBook() && activeBook().id === 'wenyan' ? '教材精讲与高频字义' : '乱序词组')) + '</h2><p class="section-head__desc">' + (activeBook() ? activeBook().count + ' 个词，分成 ' + currentUnits().length + ' 组。' : '把词放进句子里记。') + '</p></div>' +
@@ -379,8 +372,8 @@
       '<p class="memory-card__desc">参考艾宾浩斯遗忘曲线，在快要忘记时再见一面。</p></div>' +
       '<div class="curve-legend"><span><i></i>记忆保持</span><span><i></i>复习节点</span></div></div>' +
       curveSVG('home') +
-      '<div class="review-rhythm"><span class="review-rhythm__label">复习节奏</span>' + rhythmChips() + '</div>' +
-      '<p class="curve-caption">第一次学完后，单词会在第 1、2、4、7、15、30 天再次出现；没记住的词，会回到本轮快速重现。</p>' +
+      '<div class="review-rhythm"><span class="review-rhythm__label">示例间隔</span>' + rhythmChips() + '</div>' +
+      '<p class="curve-caption">以上间隔仅作示意。实际复习时间会根据记忆表现调整，没记牢的词也会在本轮稍后再出现。</p>' +
       '</article>' +
       '<article class="quote-card">' +
       '<div><p class="quote-card__label">' + icon('sparkles') + ' Daily note · 每日一句</p>' +

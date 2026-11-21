@@ -9360,3 +9360,118 @@ input[type="search"]::-webkit-search-decoration {
     min-height: 44px;
   }
 }
+
+/* Home dashboard: prioritize the daily action and keep the editorial accents. */
+.home-head { margin-bottom: 22px; }
+.home-head .page-head__desc { font-size: 14px; }
+.home-head__meta { min-width: 0; }
+.book-context--home .book-context__copy strong { overflow-wrap: anywhere; }
+
+.home-grid {
+  grid-template-columns: minmax(0, 1.75fr) minmax(260px, 1fr);
+  grid-template-areas: "plan word" "stats word";
+  grid-template-rows: 1fr auto;
+  gap: 14px;
+  margin-bottom: clamp(26px, 4vw, 40px);
+}
+
+.home-grid--no-word {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "plan" "stats";
+  grid-template-rows: auto;
+}
+
+.home-grid .daily-card {
+  grid-area: plan;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(20px, 3vw, 34px);
+  background: linear-gradient(130deg, #edf1e8, #e0e9dc);
+}
+
+.home-grid .daily-card--done { background: linear-gradient(130deg, #f0f2e7, #e4ecdf); }
+.home-grid .daily-card__copy { max-width: none; }
+.home-grid .daily-card__eyebrow { margin-bottom: 12px; color: var(--green-700); font-size: 12px; }
+.home-grid .daily-card h2 { font-size: clamp(26px, 3vw, 39px); overflow-wrap: anywhere; }
+.home-grid .daily-card h2 em { color: #994623; font-style: normal; }
+.home-grid .daily-card__meta { margin-top: 10px; color: #334c41; font-size: 14px; line-height: 1.55; }
+.daily-card__round { margin: 5px 0 0; color: #40564b; font-size: 13px; line-height: 1.5; }
+.home-grid .daily-card__actions { gap: 8px 16px; margin-top: 16px; }
+.home-grid .daily-card__actions .btn { min-height: 46px; max-width: 100%; padding: 0 16px; font-size: 14px; }
+.home-secondary { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: var(--green-800); font-size: 13px; font-weight: 600; }
+.home-secondary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.home-secondary .icon { width: 14px; height: 14px; }
+.home-grid .hero-branch { color: rgba(49, 90, 74, 0.12); }
+
+.daily-card__progress { max-width: 38rem; margin-top: 18px; }
+.daily-card__progress div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; color: #334c41; font-size: 13px; }
+.daily-card__progress strong { color: var(--green-900); font-variant-numeric: tabular-nums; }
+.daily-card__progress progress { display: block; appearance: none; width: 100%; height: 8px; margin-top: 8px; border: 0; border-radius: 999px; overflow: hidden; color: var(--green-700); background: #c3d0c2; }
+.daily-card__progress progress::-webkit-progress-bar { background: #c3d0c2; }
+.daily-card__progress progress::-webkit-progress-value { border-radius: 999px; background: var(--green-700); }
+.daily-card__progress progress::-moz-progress-bar { border-radius: 999px; background: var(--green-700); }
+
+.home-grid .stat-strip {
+  grid-area: stats;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 12px 4px;
+  background: var(--card);
+}
+.home-grid .stat-item { padding: 0 clamp(7px, 1.1vw, 16px); }
+.home-grid .stat-item + .stat-item::before { display: block; }
+.home-grid .stat-item__label { color: var(--ink-soft); font-size: 12px; white-space: normal; }
+.home-grid .stat-item__value { font-size: clamp(19px, 2vw, 24px); }
+.home-grid .stat-item__value small { color: var(--ink-soft); font-size: 11px; }
+.home-grid .stat-item:nth-child(1) .stat-item__icon { color: #994623; background: var(--orange-soft); }
+.home-grid .stat-item:nth-child(2) .stat-item__icon { color: #75551c; background: var(--gold-soft); }
+.home-grid .stat-item:nth-child(3) .stat-item__icon { color: var(--green-700); background: var(--sage-soft); }
+
+.home-grid .word-of-day {
+  grid-area: word;
+  min-width: 0;
+  min-height: 0;
+  padding: clamp(19px, 2.4vw, 28px);
+  border-color: #e8ddc9;
+  color: var(--ink);
+  background: linear-gradient(145deg, #fffdf7, #f5eee1);
+  box-shadow: var(--shadow-card);
+}
+.home-grid .word-of-day::before { border-color: rgba(146, 112, 60, 0.13); }
+.home-grid .word-of-day::after { border-color: rgba(146, 112, 60, 0.09); }
+.word-of-day__head h2 { margin: 0; color: var(--green-900); font-size: 14px; }
+.word-of-day__head > span { color: #795d34; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.09em; }
+.home-grid .word-of-day__body { padding: 16px 0; }
+.home-grid .word-of-day h3 { color: var(--green-950); }
+.home-grid .word-of-day__ipa,
+.home-grid .word-of-day__example,
+.home-grid .word-of-day__unit { color: var(--ink-soft); }
+.home-grid .word-of-day__ipa,
+.home-grid .word-of-day__unit { font-size: 12px; }
+.home-grid .word-of-day__meaning { color: var(--ink); font-size: 14px; }
+.home-grid .word-of-day__example { margin-top: 12px; font-size: 14px; overflow-wrap: anywhere; }
+.home-grid .word-of-day__example mark { color: var(--green-950); }
+.home-grid .word-of-day__foot { flex-wrap: wrap; gap: 0 8px; padding-top: 4px; border-top-color: var(--line); }
+.home-grid .word-of-day__foot .text-link { min-height: 44px; color: var(--green-800); font-size: 13px; }
+.home-grid .word-of-day__foot .text-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.home-grid .audio-btn { width: 44px; height: 44px; border-color: #aebcaf; color: var(--green-800); background: var(--card); }
+.home-grid .audio-btn:hover { border-color: var(--green-700); background: var(--sage-soft); }
+.home-grid :focus-visible, .home-head .book-context:focus-visible { outline: 2px solid var(--green-800); outline-offset: 3px; }
+
+@media (max-width: 820px) {
+  .home-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "plan" "stats" "word"; grid-template-rows: auto; }
+  .home-grid--no-word { grid-template-areas: "plan" "stats"; }
+}
+
+@media (max-width: 700px) {
+  .home-head { margin-bottom: 14px; }
+  .home-head__meta { margin-top: 10px; }
+  .home-grid { gap: 10px; }
+  .home-grid .stat-item__icon { display: none; }
+}
+
+@media (max-width: 370px) {
+  .home-grid .daily-card__actions .btn--primary { width: 100%; }
+  .home-grid .daily-card__actions { gap: 2px 12px; }
+}
