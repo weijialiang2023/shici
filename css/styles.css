@@ -9475,3 +9475,7 @@ input[type="search"]::-webkit-search-decoration {
   .home-grid .daily-card__actions .btn--primary { width: 100%; }
   .home-grid .daily-card__actions { gap: 2px 12px; }
 }
+
+.site-footer__links { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; }
+.site-footer__links a { color: inherit; text-underline-offset: 3px; }
+.site-footer__links a:hover { color: var(--green-800); }

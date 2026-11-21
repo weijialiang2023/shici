@@ -1,0 +1,242 @@
+:root {
+  --ink: #202b25;
+  --ink-soft: #5d6962;
+  --paper: #f4f0e7;
+  --card: #fffdf8;
+  --green-950: #17322a;
+  --green-800: #214639;
+  --green-700: #315a4a;
+  --sage: #e3eadf;
+  --line: rgba(31, 52, 43, 0.14);
+  --orange: #bf6343;
+  --shadow: 0 24px 70px -46px rgba(23, 50, 42, 0.5);
+}
+
+* { box-sizing: border-box; }
+html { color-scheme: light; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(206, 219, 199, 0.55), transparent 36rem),
+    var(--paper);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
+  line-height: 1.7;
+}
+a { color: var(--green-800); text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--green-800); outline-offset: 3px; }
+
+.info-header {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px clamp(18px, 4vw, 38px) 0;
+}
+.info-brand {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 11px;
+  color: var(--green-950);
+  text-decoration: none;
+}
+.info-brand__mark {
+  display: grid;
+  width: 43px;
+  height: 43px;
+  place-items: center;
+  border-radius: 13px;
+  color: #f7f1e6;
+  background: var(--green-950);
+  font: 600 23px/1 "Songti SC", serif;
+}
+.info-brand strong {
+  font: 600 20px/1.1 "Songti SC", serif;
+}
+.info-brand small {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-soft);
+  font: 600 8px/1 var(--font-mono, monospace);
+  letter-spacing: 0.14em;
+}
+
+.info-main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 38px clamp(18px, 4vw, 38px) 72px;
+}
+.info-eyebrow {
+  margin: 0 0 8px;
+  color: var(--orange);
+  font: 600 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.info-title {
+  margin: 0;
+  color: var(--green-950);
+  font: 600 clamp(34px, 7vw, 56px)/1.18 "Songti SC", "STSong", serif;
+  letter-spacing: -0.025em;
+}
+.info-lede {
+  max-width: 720px;
+  margin: 14px 0 28px;
+  color: var(--ink-soft);
+  font-size: 16px;
+}
+
+.info-card {
+  padding: clamp(20px, 4vw, 34px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 253, 248, 0.94);
+  box-shadow: var(--shadow);
+}
+.info-card + .info-card { margin-top: 18px; }
+.info-card h2 {
+  margin: 0 0 14px;
+  color: var(--green-950);
+  font: 600 24px/1.35 "Songti SC", serif;
+}
+.info-card h3 {
+  margin: 24px 0 8px;
+  color: var(--green-950);
+  font-size: 16px;
+}
+.info-card p { margin: 0 0 12px; }
+.info-card ul, .info-card ol { margin: 8px 0 16px; padding-left: 1.4em; }
+.info-card li + li { margin-top: 6px; }
+.info-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin: 14px 0 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.info-badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--green-800);
+  background: var(--sage);
+  font-size: 12px;
+  font-weight: 650;
+}
+.info-note {
+  padding: 14px 16px;
+  border-left: 3px solid var(--orange);
+  border-radius: 0 12px 12px 0;
+  background: #fbf4e8;
+  color: #5f4d39;
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.info-link-card {
+  display: block;
+  min-height: 112px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  color: var(--ink);
+  background: #faf7ef;
+  text-decoration: none;
+}
+.info-link-card strong {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--green-950);
+}
+.info-link-card span { color: var(--ink-soft); font-size: 14px; }
+
+.feedback-form {
+  display: grid;
+  gap: 18px;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.field { display: grid; gap: 6px; }
+.field label, .field legend {
+  color: var(--green-950);
+  font-size: 14px;
+  font-weight: 650;
+}
+.field small { color: var(--ink-soft); font-size: 12px; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  border: 1px solid #b9c2ba;
+  border-radius: 12px;
+  color: var(--ink);
+  background: #fff;
+  font: inherit;
+}
+.field input, .field select { min-height: 46px; padding: 0 13px; }
+.field textarea { min-height: 132px; padding: 12px 13px; resize: vertical; }
+.check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.check-row input { width: 20px; height: 20px; margin-top: 2px; flex: 0 0 auto; }
+.form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.info-button {
+  display: inline-flex;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: #f8f4ea;
+  background: var(--green-800);
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+.info-button--secondary {
+  border-color: #aeb9b0;
+  color: var(--green-800);
+  background: transparent;
+}
+.info-button:disabled { opacity: 0.5; cursor: not-allowed; }
+.report-preview {
+  min-height: 180px;
+  white-space: pre-wrap;
+  font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.feedback-status {
+  min-height: 24px;
+  color: var(--green-700);
+  font-size: 13px;
+}
+.info-footer {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 clamp(18px, 4vw, 38px) 36px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.info-footer nav { display: flex; flex-wrap: wrap; gap: 10px 18px; }
+
+@media (max-width: 640px) {
+  .info-grid, .field-grid { grid-template-columns: 1fr; }
+  .info-main { padding-top: 26px; }
+  .info-lede { font-size: 15px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}

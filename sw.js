@@ -1,15 +1,16 @@
-const CACHE_VERSION = 'shici-v23';
+const CACHE_VERSION = 'shici-v24';
 const APP_SHELL = [
   './',
   './index.html',
   './offline.html',
   './manifest.webmanifest',
-  './css/styles.css?v=23',
-  './js/data.js?v=23',
-  './js/store.js?v=23',
-  './js/ui.js?v=23',
-  './js/app.js?v=23',
-  './data/books/index.js?v=23',
+  './css/styles.css?v=24',
+  './js/product-analytics.js?v=24',
+  './js/data.js?v=24',
+  './js/store.js?v=24',
+  './js/ui.js?v=24',
+  './js/app.js?v=24',
+  './data/books/index.js?v=24',
   './assets/favicon.svg',
   './assets/apple-touch-icon.png',
   './assets/icon-192.png',
@@ -46,17 +47,20 @@ self.addEventListener('fetch', function (event) {
   if (url.origin !== self.location.origin || url.pathname.indexOf('/api/') === 0) return;
 
   if (request.mode === 'navigate') {
+    const appRoot = new URL('./', self.location).pathname;
+    const appIndex = new URL('./index.html', self.location).pathname;
+    const cacheKey = url.pathname === appRoot || url.pathname === appIndex ? './index.html' : request;
     event.respondWith(
       fetch(request)
         .then(function (response) {
           if (response.ok) {
             const copy = response.clone();
-            caches.open(CACHE_VERSION).then(function (cache) { cache.put('./index.html', copy); });
+            caches.open(CACHE_VERSION).then(function (cache) { cache.put(cacheKey, copy); });
           }
           return response;
         })
         .catch(function () {
-          return caches.match('./index.html').then(function (cached) {
+          return caches.match(cacheKey).then(function (cached) {
             return cached || caches.match('./offline.html');
           });
         })

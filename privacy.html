@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17322A">
+  <meta name="description" content="拾词隐私与数据说明。">
+  <title>隐私与数据说明 · 拾词</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/info-pages.css?v=24">
+</head>
+<body>
+  <header class="info-header">
+    <a class="info-brand" href="./#home">
+      <span class="info-brand__mark">拾</span>
+      <span><strong>拾词</strong><small>WORD BY WORD</small></span>
+    </a>
+  </header>
+
+  <main class="info-main">
+    <p class="info-eyebrow">PRIVACY · DATA</p>
+    <h1 class="info-title">你的学习记录，先留在你的设备里。</h1>
+    <p class="info-lede">本说明适用于当前公开的拾词网页版。当前版本没有账号、云端同步、广告或第三方产品分析服务。</p>
+    <p class="info-meta"><span class="info-badge">版本 24</span><span>更新：2026-11-21</span></p>
+
+    <section class="info-card">
+      <h2>当前保存哪些数据</h2>
+      <ul>
+        <li>昵称、学习目标、发音偏好和当前词书；</li>
+        <li>学习过的词条、自评、客观题结果、复习日期、收藏和连续学习记录；</li>
+        <li>浏览器持久存储申请结果、备份时间等运行状态。</li>
+      </ul>
+      <p>这些数据保存在当前站点的浏览器 <code>localStorage</code> 和 <code>IndexedDB</code> 中。拾词网页版当前不会把这些学习记录上传到自有服务器。</p>
+    </section>
+
+    <section class="info-card">
+      <h2>本机长期服务模式</h2>
+      <p>如果你使用仓库中的本机长期服务脚本，学习记录还会写入 macOS 的用户应用支持目录：</p>
+      <p><code>~/Library/Application Support/Shici/progress/</code></p>
+      <ul>
+        <li><code>state.json</code>：当前版本；</li>
+        <li><code>state.prev.json</code>：上一版；</li>
+        <li><code>history/daily/</code>：每日第一份快照；</li>
+        <li><code>history/checkpoints/</code>：近 90 天每 6 小时快照。</li>
+      </ul>
+      <p>该模式只在本机 <code>127.0.0.1</code> 提供接口，不代表公开网站具备账号或云同步。</p>
+    </section>
+
+    <section class="info-card">
+      <h2>浏览器、托管和语音服务</h2>
+      <ul>
+        <li>GitHub Pages 负责托管公开网页，可能按照其自身政策处理访问请求、IP 地址和错误日志；</li>
+        <li>Service Worker 会在浏览器中缓存网页和词书资源，以便离线打开；</li>
+        <li>朗读功能调用浏览器或操作系统的语音合成能力；拾词应用本身不会把朗读文本发送到自有服务器，具体语音能力及数据处理由浏览器或操作系统决定。</li>
+      </ul>
+      <p>拾词当前没有接入广告、用户画像或第三方行为分析服务。版本 24 内置了一个默认关闭的匿名事件接口：未配置接收端点、未取得明确同意时，事件只在浏览器内部发出，不会上传。</p>
+    </section>
+
+    <section class="info-card">
+      <h2>反馈页面</h2>
+      <p class="info-note">GitHub Issue 是公开页面。不要在反馈中填写姓名、手机号、住址、账号密码或完整学习备份。</p>
+      <p>反馈页默认只根据你填写的内容生成报告。只有主动勾选“附带匿名诊断摘要”时，报告才会加入应用版本、浏览器摘要、视口、当前词书和记录 schema。</p>
+      <ul>
+        <li>报告不会自动上传；</li>
+        <li>点击“复制报告”只写入系统剪贴板；</li>
+        <li>点击“打开 GitHub Issue”会把预览中的报告带到 GitHub，是否发布由你确认。</li>
+      </ul>
+    </section>
+
+    <section class="info-card">
+      <h2>删除和迁移</h2>
+      <ul>
+        <li>在学习设置中点击“清除所有学习记录”可清除当前浏览器的拾词记录；</li>
+        <li>在浏览器设置中清除本站点数据也会删除本地记录；</li>
+        <li>使用“导出当前记录”迁移或备份，再在另一设备使用“导入备份”；</li>
+        <li>本机长期服务产生的文件需要由用户自行删除。</li>
+      </ul>
+      <p>由于当前没有账号，拾词无法从服务器代为恢复已经丢失的浏览器本地记录。</p>
+    </section>
+
+    <section class="info-card">
+      <h2>未来功能</h2>
+      <p>如果未来引入账号、云同步、支付或产品分析，本说明必须在功能上线前更新，并明确数据类型、用途、保存期限、第三方服务、删除方式和用户选择。当前文本不能用于描述尚未上线的能力。</p>
+    </section>
+  </main>
+
+  <footer class="info-footer">
+    <nav aria-label="页脚">
+      <a href="./#home">返回拾词</a>
+      <a href="feedback.html">反馈与帮助</a>
+      <a href="privacy.html" aria-current="page">隐私说明</a>
+      <a href="terms.html">使用条款</a>
+    </nav>
+  </footer>
+</body>
+</html>

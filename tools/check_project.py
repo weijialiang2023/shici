@@ -4,10 +4,31 @@
 from __future__ import annotations
 
 import json
+from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urlparse
 
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+class LocalLinkParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.missing: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        values = dict(attrs)
+        for key in ("href", "src"):
+            value = values.get(key)
+            if not value:
+                continue
+            parsed = urlparse(value)
+            if parsed.scheme or parsed.netloc or value.startswith("#"):
+                continue
+            relative = value.split("#", 1)[0].split("?", 1)[0]
+            if relative and not (ROOT / relative).resolve().exists():
+                self.missing.append(value)
 
 
 def require(condition, message):
@@ -47,7 +68,18 @@ def main():
         "sw.js",
         "offline.html",
         "tools/content_audit.py",
+        "tools/export_content_review.py",
         "content-audit.md",
+        "feedback.html",
+        "privacy.html",
+        "terms.html",
+        "css/info-pages.css",
+        "js/feedback.js",
+        "js/product-analytics.js",
+        "reports/content-review.csv",
+        "reports/content-review.md",
+        ".github/ISSUE_TEMPLATE/content-correction.yml",
+        ".github/ISSUE_TEMPLATE/bug-report.yml",
         ".github/workflows/pages.yml",
         "tools/install_local.sh",
         "tools/deploy_local.sh",
@@ -75,7 +107,23 @@ def main():
     require("buildSpellingPool" in app_js and "Store.studiedWords()" in app_js, "拼写挑战必须只使用已学词")
     require("serviceWorker.register" in app_js, "必须注册离线 Service Worker")
     require("ego-browser nodejs" in (ROOT / "tools/test_learning_system.sh").read_text(), "浏览器主验收必须使用 ego-browser")
-    require('rel="manifest"' in (ROOT / "index.html").read_text(), "页面必须声明 Web App Manifest")
+    index_html = (ROOT / "index.html").read_text()
+    require('rel="manifest"' in index_html, "页面必须声明 Web App Manifest")
+    require("css/styles.css?v=24" in index_html, "入口资源版本必须升级到 v24")
+    require("js/product-analytics.js?v=24" in index_html, "匿名事件接口必须随入口加载")
+    require("shici-v24" in (ROOT / "sw.js").read_text(), "Service Worker 缓存版本必须升级到 v24")
+    require("feedback.html" in (ROOT / "js/ui.js").read_text(), "设置页必须提供公开反馈入口")
+    require("privacy.html" in index_html, "页脚必须提供隐私说明")
+    analytics_js = (ROOT / "js/product-analytics.js").read_text()
+    require("SHICI_PRODUCT_ANALYTICS_CONFIG" in analytics_js, "匿名事件接口必须显式配置端点")
+    require("if (!consent || !endpoint) return true;" in analytics_js, "匿名事件不得在无同意或无端点时外发")
+    review_csv = (ROOT / "reports/content-review.csv").read_text()
+    require(review_csv.startswith("priority,priority_score,books,word,"), "内容审核队列必须包含固定表头")
+    require("review_status" in review_csv, "内容审核队列必须包含审核状态")
+    for html_path in ROOT.glob("*.html"):
+        parser = LocalLinkParser()
+        parser.feed(html_path.read_text())
+        require(not parser.missing, f"{html_path.name} 含不存在的本地资源: {parser.missing}")
     for book_id in ("gaokao", "ielts", "cet4", "cet6"):
         book_data = json.loads((ROOT / f"data/books/{book_id}.json").read_text())
         require(len(book_data["words"]) == len(index[book_id]), f"{book_id} 词数必须与索引一致")

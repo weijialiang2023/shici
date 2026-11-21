@@ -176,6 +176,16 @@ python3 tools/content_audit.py
 
 审计结果写入 [`content-audit.md`](./content-audit.md) 和 `content-audit.json`。硬性问题必须清零；人名、专业名、货币和元素等仅作为人工抽检信号保留。
 
+自动例句进入单独的人工审核队列。重新生成审核表和摘要：
+
+```bash
+python3 tools/export_content_review.py
+```
+
+审核文件位于 [`reports/content-review.csv`](./reports/content-review.csv) 和
+[`reports/content-review.md`](./reports/content-review.md)。审核前不会自动覆盖词书；
+发布前可用 `--check` 确认提交的审核表与当前词书一致。
+
 `tools/build_wenyan.py` 会校验：
 
 - 总数为 1,200；
@@ -203,27 +213,43 @@ python3 tools/build_wenyan_catalog.py \
   --xinhua /path/to/word.json
 ```
 
+## 反馈与隐私
+
+- 在线反馈与备份帮助：[feedback.html](./feedback.html)
+- 当前数据保存方式：[privacy.html](./privacy.html)
+- 服务范围和内容参考说明：[terms.html](./terms.html)
+- 内容纠错与功能问题模板：`.github/ISSUE_TEMPLATE/`
+
+`js/product-analytics.js` 提供默认关闭的匿名事件接口。它只在部署时显式配置
+`window.SHICI_PRODUCT_ANALYTICS_CONFIG.endpoint` 且用户同意后外发事件；当前公开版本
+没有配置接收端点，也没有接入第三方分析服务。
+
 ## 目录
 
 ```text
 shici/
 ├── index.html
+├── feedback.html / privacy.html / terms.html
 ├── manifest.webmanifest
 ├── sw.js
 ├── offline.html
 ├── content-audit.md / content-audit.json
-├── css/styles.css
+├── reports/content-review.md / content-review.csv
+├── css/styles.css / info-pages.css
 ├── js/
 │   ├── data.js          # 词书元数据、等级与成就
 │   ├── store.js         # 学习记录、间隔复习、自动保存
 │   ├── ui.js            # 页面、卡片、设置与学习报告
-│   └── app.js           # 路由、交互、美音与男女声
+│   ├── app.js           # 路由、交互、美音与男女声
+│   ├── feedback.js      # 反馈报告生成
+│   └── product-analytics.js # 默认关闭的匿名事件接口
 ├── data/books/          # 词书及跨词书进度索引
 ├── tools/
 │   ├── build_books.py   # 重建全部词书
 │   ├── build_wenyan.py  # 文言字词 1200 的构建与校验
 │   ├── build_wenyan_catalog.py # 高频字义目录生成
 │   ├── content_audit.py # 内容硬性问题与人工审核信号
+│   ├── export_content_review.py # 自动例句人工审核队列
 │   ├── test_learning_system.sh # ego-browser 主验收
 │   ├── wenyan_catalog.json     # 1000 条高频字义数据
 │   ├── deploy_local.sh  # 部署静态文件，保留 progress/

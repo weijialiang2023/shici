@@ -4,6 +4,7 @@
 
   const Store = window.Store;
   const UI = window.UI;
+  const ProductAnalytics = window.ProductAnalytics;
   const esc = UI.helpers.esc;
 
   const ROUTES = ['home', 'study', 'library', 'books', 'report'];
@@ -11,11 +12,12 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '21';
+    return match ? decodeURIComponent(match[1]) : '24';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
   let bookIndexCache = null;
+  let reportTracked = false;
   const VALID_STATUSES = ['all', 'new', 'learning', 'mastered', 'weak', 'favorite', 'due'];
   const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -187,6 +189,10 @@
 
   function renderPage(options) {
     const opts = options || {};
+    if (app.route === 'report' && !reportTracked) {
+      reportTracked = true;
+      trackProductEvent('report_opened', { bookId: Store.getActiveBookId() });
+    }
     const now = new Date();
     const date = UI.helpers.formatDate(now);
     const overview = Store.getOverview();
@@ -700,6 +706,15 @@
     };
   }
 
+  function trackProductEvent(name, properties) {
+    if (!ProductAnalytics) return;
+    try {
+      ProductAnalytics.track(name, properties);
+    } catch (error) {
+      // Analytics is optional and must never interrupt learning.
+    }
+  }
+
   function startSession(type, customQueue) {
     let queue = customQueue;
     const overview = Store.getOverview();
@@ -734,6 +749,11 @@
     app.session.goal = overview.goal;
     document.body.classList.add('is-session');
     overlayRoot.innerHTML = UI.renderSession(app.session);
+    trackProductEvent('session_start', {
+      bookId: Store.getActiveBookId(),
+      mode: type,
+      planSize: queue.length
+    });
     autoSpeakCurrentCard(app.session);
     syncBodyState();
     window.setTimeout(focusSessionContent, 0);
@@ -773,6 +793,11 @@
       overviewToday: overview.todayUnique,
       goal: overview.goal
     };
+    trackProductEvent('session_start', {
+      bookId: Store.getActiveBookId(),
+      mode: 'spelling',
+      planSize: questions.length
+    });
     document.body.classList.add('is-session');
     overlayRoot.innerHTML = UI.renderSession(app.session);
     syncBodyState();
@@ -820,6 +845,11 @@
     closeAllOverlays({ silent: true, skipRender: true });
     rememberFocus();
     app.session = session;
+    trackProductEvent('session_start', {
+      bookId: Store.getActiveBookId(),
+      mode: 'training',
+      planSize: words.length
+    });
     document.body.classList.add('is-session');
     Store.recordSession({ type: 'training', total: 0, correct: 0 });
     overlayRoot.innerHTML = UI.renderSession(session);
@@ -1012,6 +1042,11 @@
       seconds: seconds,
       selectedText: selectedText
     });
+    trackProductEvent('quiz_answered', {
+      bookId: Store.getActiveBookId(),
+      questionType: question.type,
+      correct: correct
+    });
     refreshSessionChrome();
     overlayRoot.innerHTML = UI.renderSession(session);
     window.setTimeout(focusSessionContent, 0);
@@ -1080,6 +1115,12 @@
       canContinue: remaining > 0,
       anotherLabel: anotherLabel
     };
+    trackProductEvent('session_complete', {
+      bookId: Store.getActiveBookId(),
+      mode: session.type,
+      planSize: outcomeList.length,
+      score: quizScore
+    });
     refreshSessionChrome();
     overlayRoot.innerHTML = UI.renderSession(session);
     window.setTimeout(focusSessionContent, 0);
@@ -1217,6 +1258,11 @@
       seconds: seconds,
       answer: answer
     });
+    trackProductEvent('quiz_answered', {
+      bookId: Store.getActiveBookId(),
+      questionType: 'spelling',
+      correct: correct
+    });
     refreshSessionChrome();
     overlayRoot.innerHTML = UI.renderSession(session);
     window.setTimeout(focusSessionContent, 0);
@@ -1253,6 +1299,12 @@
       missed: session.missed.map(function (id) { return Store.getWord(id); }).filter(Boolean),
       minutes: Math.max(1, Math.round((Date.now() - session.startedAt) / 60000))
     };
+    trackProductEvent('session_complete', {
+      bookId: Store.getActiveBookId(),
+      mode: 'spelling',
+      planSize: total,
+      score: score
+    });
     Store.recordSession({ type: 'spelling', total: total, correct: session.correctCount });
     refreshSessionChrome();
     overlayRoot.innerHTML = UI.renderSession(session);
@@ -1408,6 +1460,10 @@
       toast(result.reason === 'empty' ? '本机还没有可恢复的存档。' : '本机存档服务暂不可用。', 'info');
       return;
     }
+    trackProductEvent('sync_restore_succeeded', {
+      bookId: Store.getActiveBookId(),
+      source: 'local-server'
+    });
     toast('正在从本机存档恢复。', 'check');
   }
 
@@ -2148,6 +2204,10 @@
       Store.loadBook(meta.id, payload);
       parseHash();
       renderAll();
+      trackProductEvent('app_open', {
+        route: app.route,
+        bookId: Store.getActiveBookId()
+      });
       hideBootScreen();
       window.setTimeout(function () {
         if (window.speechSynthesis) window.speechSynthesis.getVoices();

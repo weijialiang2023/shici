@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17322A">
+  <meta name="description" content="拾词反馈、内容纠错与备份帮助。">
+  <title>反馈与帮助 · 拾词</title>
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/info-pages.css?v=24">
+</head>
+<body>
+  <header class="info-header">
+    <a class="info-brand" href="./#home">
+      <span class="info-brand__mark">拾</span>
+      <span><strong>拾词</strong><small>WORD BY WORD</small></span>
+    </a>
+  </header>
+
+  <main class="info-main">
+    <p class="info-eyebrow">FEEDBACK · HELP</p>
+    <h1 class="info-title">把一个卡住的地方，交给我们。</h1>
+    <p class="info-lede">优先处理内容错误、学习记录异常和影响完成学习的问题。反馈默认不读取你的学习记录；只有主动勾选匿名诊断时，报告才会包含设备与浏览器摘要。</p>
+
+    <section class="info-card">
+      <h2>反馈与纠错</h2>
+      <form class="feedback-form" id="feedbackForm">
+        <div class="field-grid">
+          <div class="field">
+            <label for="feedbackType">问题类型</label>
+            <select id="feedbackType" name="issueType" required>
+              <option value="内容纠错">内容纠错</option>
+              <option value="学习记录异常">学习记录异常</option>
+              <option value="功能使用问题">功能使用问题</option>
+              <option value="产品建议">产品建议</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="feedbackBook">相关词书</label>
+            <select id="feedbackBook" name="book">
+              <option value="gaokao">高中 3500</option>
+              <option value="curated">文言精讲 120</option>
+              <option value="wenyan">高中文言重点字词 1200</option>
+              <option value="ielts">雅思必背</option>
+              <option value="cet4">四级核心</option>
+              <option value="cet6">六级核心</option>
+              <option value="other">其他 / 不适用</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="feedbackWord">相关词条</label>
+          <input id="feedbackWord" name="word" type="text" maxlength="80" placeholder="例如：abandon">
+          <small>内容纠错时请填写，便于定位词条。</small>
+        </div>
+
+        <div class="field">
+          <label for="feedbackDetails">问题描述</label>
+          <textarea id="feedbackDetails" name="details" required maxlength="2000" placeholder="请说明你看到了什么、预期是什么，以及能否稳定复现。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="feedbackCorrection">建议修改</label>
+          <textarea id="feedbackCorrection" name="correction" maxlength="1200" placeholder="内容纠错时可填写建议例句、释义或译文。"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="feedbackSource">依据或来源</label>
+          <input id="feedbackSource" name="source" type="text" maxlength="500" placeholder="教材名称、词典页面或可核验的出处">
+        </div>
+
+        <label class="check-row">
+          <input id="includeDiagnostics" type="checkbox">
+          <span>附带匿名诊断摘要：应用版本、浏览器类型、视口、当前词书和记录 schema。不包含学习答案、姓名或完整学习记录。</span>
+        </label>
+
+        <div class="field">
+          <label for="reportPreview">报告预览</label>
+          <textarea class="report-preview" id="reportPreview" readonly></textarea>
+          <small>GitHub Issue 是公开页面。请先检查并删除不希望公开的信息。</small>
+        </div>
+
+        <div class="form-actions">
+          <button class="info-button" id="copyReport" type="button">复制报告</button>
+          <a class="info-button info-button--secondary" id="openIssue" href="https://github.com/weijialiang2023/shici/issues/new" target="_blank" rel="noopener">打开 GitHub Issue</a>
+        </div>
+        <p class="feedback-status" id="feedbackStatus" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="info-card">
+      <h2>学习记录异常</h2>
+      <p class="info-note">先不要清除浏览器站点数据。清除后，当前浏览器中的学习记录可能无法恢复。</p>
+      <ol>
+        <li>回到拾词首页，打开右上角或侧边栏的学习设置。</li>
+        <li>点击“导出当前记录”，把 JSON 文件保存到安全位置。</li>
+        <li>在反馈中描述异常发生前后的操作，不要直接公开附件内容。</li>
+      </ol>
+      <p>GitHub Pages 版本使用浏览器本地存储，不同浏览器、设备和站点 origin 之间不会自动同步。清理浏览器数据、重装系统或更换设备前，请先导出备份。</p>
+    </section>
+
+    <section class="info-card">
+      <h2>当前支持边界</h2>
+      <ul>
+        <li>当前没有账号系统和跨设备云端同步，因此无法从服务端找回全部历史记录。</li>
+        <li>反馈通过 GitHub Issue 或复制报告后转交；尚未配置公开支持邮箱和工单系统。</li>
+        <li>内容纠错会优先处理高频考试词、释义错误、例句明显不通和目标词缺失。</li>
+        <li>拾词不承诺考试分数，不替代学校教材、老师讲解或正式词典。</li>
+      </ul>
+    </section>
+
+    <section class="info-card">
+      <h2>相关说明</h2>
+      <div class="info-grid">
+        <a class="info-link-card" href="privacy.html">
+          <strong>隐私与数据说明</strong>
+          <span>了解浏览器存储、本机备份和反馈中会公开的信息。</span>
+        </a>
+        <a class="info-link-card" href="terms.html">
+          <strong>使用条款</strong>
+          <span>了解服务范围、内容参考性质和用户责任。</span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="info-footer">
+    <nav aria-label="页脚">
+      <a href="./#home">返回拾词</a>
+      <a href="feedback.html">反馈与帮助</a>
+      <a href="privacy.html">隐私说明</a>
+      <a href="terms.html">使用条款</a>
+    </nav>
+  </footer>
+
+  <script src="js/feedback.js?v=24"></script>
+</body>
+</html>

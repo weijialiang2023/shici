@@ -55,8 +55,10 @@ try {
   await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 30000 });
   await page.evaluate(() => {
     window.__learningErrors = [];
+    window.__productAnalyticsEvents = [];
     window.addEventListener("error", event => window.__learningErrors.push(event.message));
     window.addEventListener("unhandledrejection", event => window.__learningErrors.push(String(event.reason)));
+    document.addEventListener("shici:analytics", event => window.__productAnalyticsEvents.push(event.detail));
     Store.resetAll();
     Store.updateProfile({ dailyGoal: 2 });
   });
@@ -101,6 +103,35 @@ try {
   if (homePlan.exhausted.action !== "start-learned" || homePlan.exhausted.title.includes("已完成")) throw new Error("exhausted book must not imply goal completion");
   if (homePlan.empty.action !== "#books" || homePlan.empty.hasDailyWord) throw new Error("empty book fallback mismatch");
 
+  await page.click("#topbarProfile");
+  await page.waitForSelector('.drawer a[href^="feedback.html"]');
+  const supportLinks = await page.evaluate(() => ({
+    feedback: Boolean(document.querySelector('.drawer a[href^="feedback.html"]')),
+    privacy: Boolean(document.querySelector('.drawer a[href="privacy.html"]')),
+    terms: Boolean(document.querySelector('.drawer a[href="terms.html"]'))
+  }));
+  if (!supportLinks.feedback || !supportLinks.privacy || !supportLinks.terms) {
+    throw new Error("settings support links missing");
+  }
+  await page.click('button[data-action="close-drawer"]');
+
+  await page.goto(BASE_URL + "/feedback.html?book=gaokao", { timeout: 30000 });
+  await page.waitForSelector("#feedbackForm");
+  await page.fill("#feedbackWord", "abandon");
+  await page.fill("#feedbackDetails", "例句中的目标词与释义不一致。");
+  await page.fill("#feedbackCorrection", "请替换为一条包含 abandon 的自然例句。");
+  const feedback = await page.evaluate(() => ({
+    preview: document.querySelector("#reportPreview").value,
+    issueHref: document.querySelector("#openIssue").href,
+    selectedBook: document.querySelector("#feedbackBook").value
+  }));
+  if (!feedback.preview.includes("abandon") || feedback.selectedBook !== "gaokao") {
+    throw new Error("feedback report did not build");
+  }
+  if (!feedback.issueHref.includes("github.com/weijialiang2023/shici/issues/new")) {
+    throw new Error("feedback GitHub issue link missing");
+  }
+
   await page.goto(BASE_URL + "/#report", { timeout: 30000 });
   await page.waitForSelector(".report-empty-hero");
   if (await page.evaluate(() => Boolean(document.querySelector(".report-stats")))) {
@@ -129,9 +160,22 @@ try {
   await page.goto(BASE_URL + "/#home", { timeout: 30000 });
   await page.goto(BASE_URL + "/#study", { timeout: 30000 });
   await page.waitForSelector(".study-plan");
+  await page.evaluate(() => {
+    window.__productAnalyticsEvents = [];
+    document.addEventListener("shici:analytics", event => window.__productAnalyticsEvents.push(event.detail));
+  });
   await page.click("loc=role:button[name='开始今日学习']");
   await page.waitForSelector(".word-card");
   await page.waitForTimeout(450);
+  const analyticsEvents = await page.evaluate(() =>
+    (window.__productAnalyticsEvents || []).map(event => ({
+      event: event.event,
+      properties: event.properties
+    }))
+  );
+  if (!analyticsEvents.some(item => item.event === "session_start" && item.properties.mode === "daily")) {
+    throw new Error("privacy-safe session analytics missing");
+  }
   const speechFirst = await page.evaluate(() => ({
     word: document.querySelector(".word-card__hero h1")?.textContent || "",
     spoken: window.__spokenWords.slice()

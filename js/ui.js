@@ -995,6 +995,14 @@
       '<input id="importProgressFile" type="file" accept="application/json,.json" hidden>' +
       (persistence.server ? '<p class="settings-help">本机存档位于 macOS 的「拾词」应用支持目录：state.json 是当前版本，state.prev.json 是上一版，daily 文件夹永久保留每天的第一份快照，checkpoints 文件夹保留近 90 天每 6 小时的快照。</p>' : '<p class="settings-help">当前是浏览器存储模式。导出文件可以在另一台设备或 GitHub Pages 版本中导入。</p>') +
       '</section>' +
+      '<section class="settings-section"><span class="settings-label">反馈与帮助</span>' +
+      '<div class="settings-actions">' +
+      '<a class="btn btn--ghost btn--sm" href="feedback.html?book=' + encodeURIComponent(window.Store.getActiveBookId()) + '" target="_blank" rel="noopener">' + icon('edit') + ' 反馈与纠错</a>' +
+      '<a class="btn btn--ghost btn--sm" href="privacy.html" target="_blank" rel="noopener">' + icon('lock') + ' 隐私说明</a>' +
+      '<a class="btn btn--ghost btn--sm" href="terms.html" target="_blank" rel="noopener">' + icon('info') + ' 使用条款</a>' +
+      '</div>' +
+      '<p class="settings-help">内容纠错、学习记录异常和功能建议可从这里提交。GitHub Issue 是公开页面，请不要填写个人信息或上传完整学习记录。</p>' +
+      '</section>' +
       '<div class="settings-divider"></div>' +
       '<button class="reset-btn" type="button" data-action="ask-reset">' + icon('trash') + ' 清除所有学习记录</button>' +
       '</div>' +

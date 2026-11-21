@@ -1,0 +1,71 @@
+name: 内容纠错
+description: 报告释义、音标、例句、译文或文言出处问题
+title: "[内容纠错] "
+labels:
+  - content
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢纠错。请勿在公开 Issue 中填写姓名、手机号、住址或完整学习备份。
+        GitHub Issue 是公开页面，提交前请检查内容。
+  - type: dropdown
+    id: book
+    attributes:
+      label: 词书
+      options:
+        - 高中 3500
+        - 文言精讲 120
+        - 高中文言重点字词 1200
+        - 雅思必背
+        - 四级核心
+        - 六级核心
+        - 其他
+    validations:
+      required: true
+  - type: input
+    id: word
+    attributes:
+      label: 词条
+      placeholder: 例如 abandon
+    validations:
+      required: true
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: 问题类型
+      options:
+        - 释义错误或不完整
+        - 音标或词性错误
+        - 例句不自然或语法错误
+        - 例句不含目标词
+        - 译文错误
+        - 搭配或出处问题
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: 当前内容
+      description: 复制页面上的原文，便于定位。
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: 建议修改
+      description: 请给出可直接替换的例句、译文或释义。
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: 依据或来源
+      description: 教材名称、词典页面、公开语料或其他可核验出处。
+  - type: input
+    id: version
+    attributes:
+      label: 页面版本
+      description: 在页面地址中的 v= 参数或反馈页诊断信息中可以找到。
+      placeholder: 例如 24
