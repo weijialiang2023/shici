@@ -16,6 +16,7 @@ import threading
 from datetime import datetime, timedelta
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlsplit
 
 ROOT = Path(__file__).resolve().parent
 PORT = int(os.environ.get('SHICI_PORT', '4173'))
@@ -28,7 +29,7 @@ PREV_FILE = STATE_DIR / 'state.prev.json'
 DAILY_DIR = STATE_DIR / 'history' / 'daily'
 CHECKPOINT_DIR = STATE_DIR / 'history' / 'checkpoints'
 MAX_STATE_BYTES = 20 * 1024 * 1024
-APP_VERSION = '3.0.0'
+APP_VERSION = '3.1.0'
 _write_lock = threading.Lock()
 
 
@@ -94,7 +95,16 @@ class Handler(SimpleHTTPRequestHandler):
         os.replace(tmp, target)
         return True
 
-    def _write_state(self, raw):
+    def _current_revision(self):
+        if not STATE_FILE.exists():
+            return 0
+        try:
+            state = json.loads(STATE_FILE.read_text())
+            return max(0, int(state.get('meta', {}).get('revision', 0)))
+        except (OSError, ValueError, TypeError, json.JSONDecodeError):
+            return 0
+
+    def _write_state(self, raw, expected_revision=None):
         STATE_DIR.mkdir(parents=True, exist_ok=True)
         DAILY_DIR.mkdir(parents=True, exist_ok=True)
         CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
@@ -103,6 +113,10 @@ class Handler(SimpleHTTPRequestHandler):
         checkpoint_block = f'{today}T{hour // 6 * 6:02d}'
 
         with _write_lock:
+            current_revision = self._current_revision()
+            if expected_revision is not None and expected_revision != current_revision:
+                current_raw = STATE_FILE.read_bytes() if STATE_FILE.exists() else b'{}'
+                return 'conflict', (current_revision, current_raw)
             if STATE_FILE.exists():
                 try:
                     os.replace(STATE_FILE, PREV_FILE)
@@ -127,7 +141,7 @@ class Handler(SimpleHTTPRequestHandler):
                         snapshot.unlink()
                 except OSError:
                     pass
-        return daily_created, checkpoint_created
+        return 'ok', (daily_created, checkpoint_created)
 
     def do_GET(self):
         path = self.path.split('?', 1)[0]
@@ -172,7 +186,8 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
-        if self.path.split('?', 1)[0] != '/api/state':
+        parsed_url = urlsplit(self.path)
+        if parsed_url.path != '/api/state':
             self._json(404, {'ok': False, 'error': 'not found'})
             return
         try:
@@ -194,11 +209,36 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(400, {'ok': False, 'error': str(error)})
             return
 
-        daily_created, checkpoint_created = self._write_state(raw)
+        expected_revision = None
+        revision_header = self.headers.get('X-Shici-Base-Revision')
+        revision_query = parse_qs(parsed_url.query).get('baseRevision', [None])[0]
+        revision_value = revision_header if revision_header is not None else revision_query
+        if revision_value not in (None, ''):
+            try:
+                expected_revision = int(revision_value)
+                if expected_revision < 0:
+                    raise ValueError
+            except ValueError:
+                self._json(400, {'ok': False, 'error': 'invalid base revision'})
+                return
+
+        write_result, details = self._write_state(raw, expected_revision)
+        if write_result == 'conflict':
+            current_revision, current_raw = details
+            current_state = json.loads(current_raw.decode('utf-8'))
+            self._json(409, {
+                'ok': False,
+                'error': 'revision conflict',
+                'revision': current_revision,
+                'current': current_state,
+            })
+            return
+        daily_created, checkpoint_created = details
         self._json(200, {
             'ok': True,
             'bytes': len(raw),
             'savedAt': state.get('meta', {}).get('updatedAt'),
+            'revision': max(0, int(state.get('meta', {}).get('revision', 0))),
             'dailySnapshotCreated': daily_created,
             'checkpointCreated': checkpoint_created,
         })

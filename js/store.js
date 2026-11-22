@@ -35,6 +35,7 @@
   let remoteRetryTimer = null;
   let remoteSavedAt = null;
   let remoteSaving = false;
+  let remotePushQueued = false;
   let remoteDirty = false;
   let remoteLastError = null;
   let indexedDbPromise = null;
@@ -48,6 +49,8 @@
   let externalConflict = false;
   let conflictBackupKey = null;
   let conflictBackupPending = false;
+  let conflictIncomingState = null;
+  let conflictRemoteRevision = 0;
 
   function createDefaultState() {
     return StateSchema
@@ -249,20 +252,21 @@
   }
 
   function ensureWriterId() {
-    if (writerId) return writerId;
-    try {
-      writerId = window.sessionStorage.getItem('shici.writerId');
-    } catch (error) {
-      writerId = null;
-    }
     if (!writerId) {
-      writerId = window.crypto && typeof window.crypto.randomUUID === 'function'
-        ? window.crypto.randomUUID()
-        : 'writer-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
       try {
-        window.sessionStorage.setItem('shici.writerId', writerId);
+        writerId = window.sessionStorage.getItem('shici.writerId');
       } catch (error) {
-        // The in-memory identity still prevents duplicate IDs in this page.
+        writerId = null;
+      }
+      if (!writerId) {
+        writerId = window.crypto && typeof window.crypto.randomUUID === 'function'
+          ? window.crypto.randomUUID()
+          : 'writer-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+        try {
+          window.sessionStorage.setItem('shici.writerId', writerId);
+        } catch (error) {
+          // The in-memory identity still prevents duplicate IDs in this page.
+        }
       }
     }
     state.meta.writerId = writerId;
@@ -338,6 +342,19 @@
     return { ok: localOk, pendingIndexedDb: !localOk, indexedWrite: indexedWrite };
   }
 
+  function persistCurrentSnapshot() {
+    if (StateIntegrity) StateIntegrity.attach(state);
+    const serialized = JSON.stringify(state);
+    const snapshot = JSON.parse(serialized);
+    try {
+      window.localStorage.setItem(STORAGE_KEY, serialized);
+      storageAvailable = true;
+    } catch (error) {
+      storageAvailable = false;
+    }
+    writeIndexedDb(snapshot);
+  }
+
   function countSeenWords(value) {
     if (!value || !value.words || typeof value.words !== 'object') return 0;
     return Object.keys(value.words).reduce(function (count, id) {
@@ -375,7 +392,14 @@
       const result = await fetchRemoteState();
       remoteEnabled = true;
       remoteMode = 'server';
-      if (!result.empty && result.data && result.data.words && countSeenWords(result.data) > 0) {
+      if (!result.empty && result.data && result.data.words) {
+        const remoteRevision = Math.max(0, Number(result.data.meta && result.data.meta.revision) || 0);
+        state.meta.remoteRevision = remoteRevision;
+        if (countSeenWords(result.data) === 0) {
+          persistCurrentSnapshot();
+          scheduleRemoteSave();
+          return { mode: remoteMode, restored: false };
+        }
         const remoteIntegrity = StateIntegrity ? StateIntegrity.verify(result.data) : { status: 'unsigned' };
         if (remoteIntegrity.status === 'mismatch') {
           remoteLastError = 'remote checksum mismatch';
@@ -391,6 +415,7 @@
         const remoteIsNewer = remoteUpdated > localUpdated && remoteSeen >= localSeen;
         if (remoteTrusted && (localSeen === 0 || remoteIsNewer)) {
           try {
+            result.data.meta.remoteRevision = remoteRevision;
             window.localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
             window.location.reload();
             return { mode: remoteMode, restored: true };
@@ -398,6 +423,9 @@
             // 浏览器禁用本地存储时，保持当前会话可用，不做自动恢复。
           }
         }
+        persistCurrentSnapshot();
+      } else {
+        state.meta.remoteRevision = 0;
       }
       scheduleRemoteSave();
       return { mode: remoteMode, restored: false };
@@ -419,6 +447,11 @@
 
   async function pushRemoteNow() {
     if (!remoteEnabled || !isLocalServer()) return false;
+    if (remoteSaving) {
+      remotePushQueued = true;
+      remoteDirty = true;
+      return false;
+    }
     if (remoteRetryTimer) {
       window.clearTimeout(remoteRetryTimer);
       remoteRetryTimer = null;
@@ -426,17 +459,56 @@
     remoteSaving = true;
     try {
       const savingVersion = state.meta.updatedAt;
+      const expectedRevision = Math.max(0, Number(state.meta.remoteRevision) || 0);
       state.meta.lastServerSavedAt = savingVersion;
       const response = await fetch('/api/state', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Shici-Base-Revision': String(expectedRevision)
+        },
         body: JSON.stringify(state)
       });
+      if (response.status === 409) {
+        const payload = await response.json();
+        externalConflict = true;
+        lastSaveOk = false;
+        lastSaveError = 'remote revision conflict';
+        remoteMode = 'conflict';
+        remoteLastError = 'remote revision conflict';
+        remoteDirty = false;
+        conflictIncomingState = payload.current || null;
+        conflictRemoteRevision = Number(payload.revision) || 0;
+        conflictBackupKey = 'conflict-remote-' + Date.now();
+        conflictBackupPending = true;
+        const snapshot = {
+          detectedAt: new Date().toISOString(),
+          local: JSON.parse(JSON.stringify(state)),
+          incoming: payload.current || null,
+          remoteRevision: conflictRemoteRevision
+        };
+        writeIndexedDbValue(snapshot, conflictBackupKey).then(function (ok) {
+          conflictBackupPending = false;
+          if (!ok) conflictBackupKey = null;
+          document.dispatchEvent(new CustomEvent('shici:conflict', {
+            detail: {
+              backupKey: conflictBackupKey,
+              source: 'remote',
+              remoteRevision: snapshot.remoteRevision
+            }
+          }));
+        });
+        emitSaveStatus(false);
+        return false;
+      }
       if (!response.ok) throw new Error('backup HTTP ' + response.status);
+      const acknowledgement = await response.json().catch(function () { return {}; });
       remoteSavedAt = savingVersion;
       remoteMode = 'server';
       remoteLastError = null;
       remoteDirty = false;
+      state.meta.remoteRevision = Math.max(0, Number(acknowledgement.revision) || state.meta.revision);
+      persistCurrentSnapshot();
       return true;
     } catch (error) {
       remoteMode = 'degraded';
@@ -451,22 +523,31 @@
       return false;
     } finally {
       remoteSaving = false;
+      const shouldRerun = remotePushQueued;
+      remotePushQueued = false;
       document.dispatchEvent(new CustomEvent('shici:saved', {
         detail: { mode: remoteMode, savedAt: remoteSavedAt, remoteSaving: remoteSaving }
       }));
+      if (shouldRerun && remoteDirty && !externalConflict && remoteMode !== 'degraded') {
+        window.setTimeout(function () {
+          if (remoteDirty && !remoteSaving) pushRemoteNow();
+        }, 0);
+      }
     }
   }
 
   function flushRemoteOnExit() {
     if (!remoteEnabled || !remoteDirty || !isLocalServer()) return;
+    const baseRevision = Math.max(0, Number(state.meta.remoteRevision) || 0);
+    const endpoint = '/api/state?baseRevision=' + encodeURIComponent(String(baseRevision));
     const body = new Blob([JSON.stringify(state)], { type: 'application/json' });
     try {
-      if (navigator.sendBeacon && navigator.sendBeacon('/api/state', body)) return;
+      if (navigator.sendBeacon && navigator.sendBeacon(endpoint, body)) return;
     } catch (error) {
       // Fall through to keepalive fetch where supported.
     }
     try {
-      fetch('/api/state', {
+      fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(state),
@@ -493,6 +574,7 @@
       if (!countSeenWords(result.data)) return { ok: false, reason: 'empty' };
       const integrity = StateIntegrity ? StateIntegrity.verify(result.data) : { status: 'unsigned' };
       if (integrity.status === 'mismatch') return { ok: false, reason: 'integrity-mismatch' };
+      result.data.meta.remoteRevision = Math.max(0, Number(result.data.meta && result.data.meta.revision) || 0);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
       window.location.reload();
       return { ok: true };
@@ -516,6 +598,8 @@
     if (!incomingWriter || incomingWriter === currentWriter) return;
 
     externalConflict = true;
+    conflictIncomingState = incoming;
+    conflictRemoteRevision = Math.max(0, Number(incoming.meta && incoming.meta.revision) || 0);
     lastSaveOk = false;
     lastSaveError = 'multi-tab conflict';
     conflictBackupKey = 'conflict-' + Date.now();
@@ -540,6 +624,35 @@
   }
 
   window.addEventListener('storage', handleStorageEvent);
+
+  document.addEventListener('shici:resolve-conflict', function (event) {
+    const choice = event.detail && event.detail.choice;
+    if (choice === 'keep-local') {
+      externalConflict = false;
+      lastSaveOk = null;
+      lastSaveError = null;
+      state.meta.remoteRevision = conflictRemoteRevision;
+      conflictIncomingState = null;
+      document.dispatchEvent(new CustomEvent('shici:change'));
+      save();
+      return;
+    }
+    if (choice === 'use-incoming' && conflictIncomingState) {
+      const integrity = StateIntegrity
+        ? StateIntegrity.verify(conflictIncomingState)
+        : { status: 'unsigned' };
+      if (integrity.status === 'mismatch') return;
+      try {
+        conflictIncomingState.meta.remoteRevision =
+          Math.max(0, Number(conflictIncomingState.meta && conflictIncomingState.meta.revision) || 0);
+        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(conflictIncomingState));
+        externalConflict = false;
+        window.location.reload();
+      } catch (error) {
+        lastSaveError = error && error.message ? error.message : 'conflict resolution failed';
+      }
+    }
+  });
 
   function exportState() {
     state.meta.lastBackupAt = new Date().toISOString();
@@ -595,6 +708,7 @@
       conflictBackupKey: conflictBackupKey,
       conflictBackupPending: conflictBackupPending,
       remoteSavedAt: remoteSavedAt,
+      remoteRevision: Number(state.meta.remoteRevision) || 0,
       lastServerSavedAt: state.meta.lastServerSavedAt || null,
       error: lastSaveOk === false ? lastSaveError : remoteLastError,
       saveError: lastSaveError,
@@ -1486,6 +1600,7 @@
   function resetAll() {
     const keepBook = state.profile.activeBook || activeBookId;
     const keepSeeds = Object.assign({}, state.bookSeeds || {});
+    const keepRemoteRevision = Math.max(0, Number(state.meta.remoteRevision) || 0);
     try {
       window.localStorage.removeItem(STORAGE_KEY);
     } catch (error) {
@@ -1494,6 +1609,7 @@
     state = createDefaultState();
     state.profile.activeBook = keepBook;
     state.bookSeeds = keepSeeds;
+    state.meta.remoteRevision = keepRemoteRevision;
     activeBookId = keepBook;
     save();
   }

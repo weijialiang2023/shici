@@ -15,7 +15,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '30';
+    return match ? decodeURIComponent(match[1]) : '31';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -1657,19 +1657,36 @@
     app.conflictNoticeShown = true;
     showModal({
       icon: 'info',
-      title: '另一个标签页也更新了记录',
-      message: '本页已暂停新的保存，避免覆盖另一端进度。两端快照已保留。请先导出当前记录，再关闭其他标签页并刷新。',
-      cancelLabel: '稍后处理',
-      confirmLabel: '导出当前记录',
+      title: '发现另一份更新的学习记录',
+      message: '本页已暂停保存，两端记录都已经留底。你可以使用另一份记录，也可以确认保留本页记录；如有疑问，先用“导出记录”备份。',
+      cancelLabel: '使用另一份',
+      confirmLabel: '保留本页',
+      extraLabel: '导出记录',
+      onCancel: function () {
+        closeModal(false);
+        document.dispatchEvent(new CustomEvent('shici:resolve-conflict', {
+          detail: { choice: 'use-incoming' }
+        }));
+      },
+      onExtra: function () {
+        exportProgress();
+      },
       onConfirm: function () {
         closeModal(false);
-        exportProgress();
+        document.dispatchEvent(new CustomEvent('shici:resolve-conflict', {
+          detail: { choice: 'keep-local' }
+        }));
+        toast('已保留本页记录，并重新尝试保存。', 'check');
       }
     });
   });
 
   document.addEventListener('shici:saved', function (event) {
     const detail = event.detail || {};
+    if (detail.ok === true) {
+      app.saveFailureNoticeShown = false;
+      return;
+    }
     if (detail.ok !== false || detail.error === 'multi-tab conflict' ||
         app.saveFailureNoticeShown || app.modal) return;
     app.saveFailureNoticeShown = true;
@@ -1678,10 +1695,14 @@
       title: '学习记录暂时无法保存',
       message: '浏览器主存储和备份数据库都没有确认写入。请先导出当前记录，再检查浏览器剩余空间或隐私设置。',
       cancelLabel: '稍后处理',
-      confirmLabel: '导出当前记录',
+      confirmLabel: '重新尝试',
+      extraLabel: '导出记录',
+      onExtra: function () {
+        exportProgress();
+      },
       onConfirm: function () {
         closeModal(false);
-        exportProgress();
+        Store.updateProfile({});
       }
     });
   });
@@ -1860,8 +1881,18 @@
         switchBook(element.getAttribute('data-book-id'));
         break;
       case 'modal-cancel':
-        closeModal(true);
+        if (app.modal && typeof app.modal.onCancel === 'function') {
+          app.modal.onCancel();
+        } else {
+          closeModal(true);
+        }
         break;
+      case 'modal-extra': {
+        const extraCallback = app.modal && app.modal.onExtra;
+        if (typeof extraCallback === 'function') extraCallback();
+        else closeModal(true);
+        break;
+      }
       case 'modal-confirm': {
         const callback = app.modal && app.modal.onConfirm;
         if (typeof callback === 'function') callback();

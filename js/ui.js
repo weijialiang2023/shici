@@ -1026,6 +1026,7 @@
       '<span class="modal__icon">' + icon(data.icon || 'info') + '</span>' +
       '<h2 id="modalTitle">' + esc(data.title) + '</h2><p>' + esc(data.message) + '</p>' +
       '<div class="modal__actions"><button class="btn btn--ghost btn--sm" type="button" data-action="modal-cancel">' + esc(data.cancelLabel || '取消') + '</button>' +
+      (data.extraLabel ? '<button class="btn btn--ghost btn--sm" type="button" data-action="modal-extra">' + esc(data.extraLabel) + '</button>' : '') +
       '<button class="btn ' + (data.danger ? 'btn--orange' : 'btn--primary') + ' btn--sm" type="button" data-action="modal-confirm">' + esc(data.confirmLabel || '确定') + '</button></div>' +
       '</div></div>';
   }

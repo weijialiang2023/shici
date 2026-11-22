@@ -3,8 +3,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${SHICI_SYSTEM_TEST_PORT:-4188}"
+LEGACY_PORT="${SHICI_SYSTEM_TEST_LEGACY_PORT:-4189}"
 STATE_DIR="$(mktemp -d)"
+LEGACY_STATE_DIR="$(mktemp -d)"
 BASE_URL="http://127.0.0.1:$PORT"
+LEGACY_BASE_URL="http://127.0.0.1:$LEGACY_PORT"
 EGO_SPACE_ID="${SHICI_EGO_SPACE_ID:-}"
 
 cleanup() {
@@ -12,15 +15,27 @@ cleanup() {
     kill "$SERVER_PID" 2>/dev/null || true
     wait "$SERVER_PID" 2>/dev/null || true
   fi
+  if [[ -n "${LEGACY_SERVER_PID:-}" ]]; then
+    kill "$LEGACY_SERVER_PID" 2>/dev/null || true
+    wait "$LEGACY_SERVER_PID" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT
 
 cd "$ROOT"
 SHICI_PORT="$PORT" SHICI_STATE_DIR="$STATE_DIR" python3 serve.py >/dev/null 2>&1 &
 SERVER_PID=$!
+SHICI_PORT="$LEGACY_PORT" SHICI_STATE_DIR="$LEGACY_STATE_DIR" python3 serve.py >/dev/null 2>&1 &
+LEGACY_SERVER_PID=$!
 
 for _ in {1..40}; do
   if curl -fsS "$BASE_URL/api/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.2
+done
+for _ in {1..40}; do
+  if curl -fsS "$LEGACY_BASE_URL/api/health" >/dev/null 2>&1; then
     break
   fi
   sleep 0.2
@@ -30,6 +45,7 @@ ego-browser skill >/dev/null
 
 ego-browser nodejs <<EOF
 const BASE_URL = "$BASE_URL";
+const LEGACY_BASE_URL = "$LEGACY_BASE_URL";
 const SHOT = "/tmp/shici-learning-390.png";
 const SPACE_ID = ${EGO_SPACE_ID:-null};
 const existing = SPACE_ID === null
@@ -42,10 +58,19 @@ const task = existing ? await taskSpace(SPACE_ID) : await taskSpace("拾词学�
 const page = task.page("p1");
 let completed = false;
 
+async function waitForAppReady(target, timeout = 30000) {
+  await target.waitForSelector(".app-shell");
+  await target.waitForFunction(
+    () => Number.isFinite(window.__SHICI_BOOT_MS) &&
+      Boolean(document.getElementById("bootScreen")?.hidden),
+    undefined,
+    { timeout }
+  );
+}
+
 try {
   await page.goto(BASE_URL + "/#home", { timeout: 30000 });
-  await page.waitForSelector(".app-shell");
-  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 30000 });
+  await waitForAppReady(page);
   const bootMs = await page.evaluate(() => window.__SHICI_BOOT_MS);
   if (!Number.isFinite(bootMs) || bootMs < 0 || bootMs > 5000) {
     throw new Error("boot performance mark invalid: " + bootMs);
@@ -55,8 +80,7 @@ try {
     storageTypes: "cache_storage,service_workers,local_storage,indexeddb"
   });
   await page.cdp("Page.reload", { ignoreCache: true });
-  await page.waitForSelector(".app-shell");
-  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 30000 });
+  await waitForAppReady(page);
   await page.evaluate(() => {
     window.__learningErrors = [];
     window.__productAnalyticsEvents = [];
@@ -361,8 +385,7 @@ try {
     uploadThroughput: 0
   });
   await page.reload({ timeout: 30000 });
-  await page.waitForSelector(".app-shell");
-  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 60000 });
+  await waitForAppReady(page, 60000);
   const offline = await page.evaluate(() => ({
     bootError: Boolean(document.querySelector(".boot-screen.is-error")),
     controlled: Boolean(navigator.serviceWorker.controller),
@@ -472,8 +495,7 @@ try {
     localStorage.setItem("shici.state.v1", JSON.stringify(tampered));
   });
   await page.reload({ timeout: 30000 });
-  await page.waitForSelector(".app-shell");
-  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 45000 });
+  await waitForAppReady(page, 45000);
   const integrityRecovery = await page.evaluate(() => ({
     name: Store.getProfile().name,
     corruptBackupKey: Store.getPersistence().corruptBackupKey,
@@ -484,18 +506,18 @@ try {
       integrityRecovery.integrityError !== "checksum-mismatch" || !integrityRecovery.validIntegrity) {
     throw new Error("integrity mismatch was not quarantined and recovered from IndexedDB");
   }
+  console.log("stage: integrity recovery");
 
+  console.log("stage: opening conflict page");
   const conflictPage = await task.newPage();
   let conflictRecovery;
   try {
+    console.log("stage: conflict page created");
     await conflictPage.goto(BASE_URL + "/#home", { timeout: 30000 });
-    await conflictPage.waitForSelector(".app-shell");
-    await conflictPage.waitForFunction(
-      () => Boolean(document.getElementById("bootScreen")?.hidden),
-      undefined,
-      { timeout: 30000 }
-    );
+    await waitForAppReady(conflictPage);
+    console.log("stage: conflict page booted");
     await page.evaluate(() => Store.updateProfile({ name: "标签页一" }));
+    console.log("stage: first tab updated");
     await conflictPage.waitForFunction(
       () => {
         const persistence = Store.getPersistence();
@@ -504,68 +526,105 @@ try {
       undefined,
       { timeout: 5000 }
     );
-    conflictRecovery = await conflictPage.evaluate(() => {
-      const before = Store.getPersistence();
+    console.log("stage: conflict page observed");
+    const conflictBefore = await conflictPage.evaluate(() => Store.getPersistence());
+    console.log("stage: conflict state read");
+    const conflictAfter = await conflictPage.evaluate(() => {
       Store.updateProfile({ name: "标签页二" });
-      const after = Store.getPersistence();
-      return {
-        conflict: before.conflict,
-        backupKey: before.conflictBackupKey,
-        localWriterId: before.writerId,
-        saveBlocked: after.lastSaveOk === false && after.error === "multi-tab conflict",
-        afterSaveOk: after.lastSaveOk,
-        afterError: after.error,
-        afterRevision: after.revision
-      };
+      return Store.getPersistence();
     });
+    console.log("stage: conflict state written");
+    conflictRecovery = {
+      conflict: conflictBefore.conflict,
+      backupKey: conflictBefore.conflictBackupKey,
+      localWriterId: conflictBefore.writerId,
+      saveBlocked: conflictAfter.lastSaveOk === false && conflictAfter.error === "multi-tab conflict",
+      afterSaveOk: conflictAfter.lastSaveOk,
+      afterError: conflictAfter.error,
+      afterRevision: conflictAfter.revision
+    };
     if (!conflictRecovery.conflict || !conflictRecovery.backupKey || !conflictRecovery.saveBlocked) {
       throw new Error("multi-tab conflict was not preserved and write-blocked: " + JSON.stringify(conflictRecovery));
     }
+    console.log("stage: conflict assertion passed");
+    await conflictPage.waitForTimeout(300);
+    console.log("stage: conflict page settled");
   } finally {
-    await conflictPage.close();
+    // The page remains managed until this TaskSpace finishes; closing it after a
+    // storage conflict currently races Chrome's target-close acknowledgement.
   }
 
-  const bothLayersFail = await page.evaluate(async () => {
-    const originalSetItem = Storage.prototype.setItem;
-    const originalPut = IDBObjectStore.prototype.put;
+  await conflictPage.evaluate(() => {
+    document.dispatchEvent(new CustomEvent("shici:resolve-conflict", {
+      detail: { choice: "keep-local" }
+    }));
+  });
+  await conflictPage.waitForFunction(
+    () => !Store.getPersistence().conflict,
+    undefined,
+    { timeout: 5000 }
+  );
+  await conflictPage.cdp("Page.bringToFront");
+  console.log("stage: starting double persistence");
+  await conflictPage.evaluate(() => {
+    window.__shiciTestStorage = Storage.prototype.setItem;
+    window.__shiciTestIdbPut = IDBObjectStore.prototype.put;
     Storage.prototype.setItem = function (key, value) {
       if (key === "shici.state.v1") {
         throw new DOMException("quota test", "QuotaExceededError");
       }
-      return originalSetItem.call(this, key, value);
+      return window.__shiciTestStorage.call(this, key, value);
     };
     IDBObjectStore.prototype.put = function () {
       throw new DOMException("indexedDB test failure", "DataError");
     };
-    Store.updateProfile({ name: "双层失败" });
-    const started = Date.now();
-    while (Date.now() - started < 3000) {
-      if (Store.getPersistence().lastSaveOk === false) break;
-      await new Promise(resolve => setTimeout(resolve, 50));
-    }
-    const result = {
+  });
+  let bothLayersFail;
+  try {
+    await conflictPage.evaluate(() => Store.updateProfile({ name: "双层失败" }));
+    await conflictPage.waitForFunction(
+      () => Store.getPersistence().lastSaveOk === false,
+      undefined,
+      { timeout: 3000 }
+    );
+    bothLayersFail = await conflictPage.evaluate(() => ({
       lastSaveOk: Store.getPersistence().lastSaveOk,
       error: Store.getPersistence().error,
       warningVisible: Boolean(document.querySelector(".modal"))
-    };
-    Storage.prototype.setItem = originalSetItem;
-    IDBObjectStore.prototype.put = originalPut;
-    const cancel = document.querySelector('.modal [data-action="modal-cancel"]');
-    if (cancel) cancel.click();
-    Store.updateProfile({ name: "恢复保存" });
-    await new Promise(resolve => setTimeout(resolve, 150));
-    result.recovered = Store.getPersistence().lastSaveOk === true;
-    return result;
-  });
-  if (bothLayersFail.lastSaveOk !== false || !bothLayersFail.warningVisible || !bothLayersFail.recovered) {
-    throw new Error("double persistence failure did not block false success or recover");
+    }));
+    await conflictPage.evaluate(() => {
+      Storage.prototype.setItem = window.__shiciTestStorage;
+      IDBObjectStore.prototype.put = window.__shiciTestIdbPut;
+    });
+    await conflictPage.evaluate(() => {
+      document.querySelector('.modal [data-action="modal-cancel"]')?.click();
+    });
+    await conflictPage.evaluate(() => Store.updateProfile({ name: "恢复保存" }));
+    await conflictPage.waitForFunction(
+      () => Store.getPersistence().lastSaveOk === true,
+      undefined,
+      { timeout: 3000 }
+    );
+    bothLayersFail.recovered = await conflictPage.evaluate(() => Store.getPersistence().lastSaveOk === true);
+    if (bothLayersFail.lastSaveOk !== false || !bothLayersFail.warningVisible || !bothLayersFail.recovered) {
+      throw new Error("double persistence failure did not block false success or recover: " +
+        JSON.stringify(bothLayersFail));
+    }
+  } finally {
+    await conflictPage.evaluate(() => {
+      if (window.__shiciTestStorage) Storage.prototype.setItem = window.__shiciTestStorage;
+      if (window.__shiciTestIdbPut) IDBObjectStore.prototype.put = window.__shiciTestIdbPut;
+    }).catch(() => {});
   }
+  console.log("stage: conflict and double persistence");
 
   const legacyPage = await task.newPage();
   let legacyMigration;
   try {
-    await legacyPage.goto(BASE_URL + "/offline.html", { timeout: 30000 });
-    await legacyPage.evaluate(() => {
+    await legacyPage.goto(LEGACY_BASE_URL + "/offline.html", { timeout: 30000 });
+    await legacyPage.evaluate(async () => {
+      localStorage.clear();
+      sessionStorage.clear();
       localStorage.setItem("shici.state.v1", JSON.stringify({
         version: 1,
         profile: {
@@ -595,13 +654,8 @@ try {
         futureTopLevelField: { keep: true }
       }));
     });
-    await legacyPage.goto(BASE_URL + "/#home", { timeout: 30000 });
-    await legacyPage.waitForSelector(".app-shell");
-    await legacyPage.waitForFunction(
-      () => Boolean(document.getElementById("bootScreen")?.hidden),
-      undefined,
-      { timeout: 30000 }
-    );
+    await legacyPage.goto(LEGACY_BASE_URL + "/#home", { timeout: 30000 });
+    await waitForAppReady(legacyPage);
     legacyMigration = await legacyPage.evaluate(() => {
       const before = Store.getState();
       const record = Store.getRecord("abandon");
@@ -615,11 +669,12 @@ try {
         recordExtra: record.futureRecordField,
         topLevelExtra: before.futureTopLevelField,
         migration: before.meta.migration,
-        integrity: Store.getPersistence().integrity
+        integrity: Store.getPersistence().integrity,
+        remoteRevision: Store.getPersistence().remoteRevision
       };
     });
   } finally {
-    await legacyPage.close();
+    await legacyPage.close().catch(() => {});
   }
   if (legacyMigration.version !== 3 || legacyMigration.schema !== 3 ||
       legacyMigration.dailyGoal !== 20 || legacyMigration.activeBook !== "gaokao" ||
@@ -628,6 +683,95 @@ try {
       !legacyMigration.topLevelExtra || legacyMigration.topLevelExtra.keep !== true ||
       legacyMigration.migration.from !== 1 || !legacyMigration.integrity) {
     throw new Error("legacy V1 state migration failed: " + JSON.stringify(legacyMigration));
+  }
+  console.log("stage: legacy migration");
+
+  const remoteCas = await page.evaluate(async () => {
+    let response = await fetch("/api/state", { cache: "no-store" });
+    if (response.status === 404) {
+      await fetch("/api/state", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Shici-Base-Revision": "0"
+        },
+        body: JSON.stringify(Store.getState())
+      });
+      response = await fetch("/api/state", { cache: "no-store" });
+    }
+    const current = await response.json();
+    const currentRevision = Number(current.meta && current.meta.revision) || 0;
+    const stale = JSON.parse(JSON.stringify(current));
+    stale.profile.name = "过期客户端";
+    stale.meta.revision = currentRevision + 2;
+    const conflict = await fetch("/api/state", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shici-Base-Revision": String(currentRevision + 1)
+      },
+      body: JSON.stringify(stale)
+    });
+    const payload = await conflict.json();
+    return {
+      status: conflict.status,
+      error: payload.error,
+      serverRevision: currentRevision,
+      responseRevision: payload.revision
+    };
+  });
+  if (remoteCas.status !== 409 || remoteCas.error !== "revision conflict" ||
+      remoteCas.responseRevision !== remoteCas.serverRevision) {
+    throw new Error("remote CAS did not reject stale write: " + JSON.stringify(remoteCas));
+  }
+  console.log("stage: server CAS");
+
+  const casPage = await task.newPage();
+  let remoteConflictRecovery;
+  try {
+    await casPage.goto(BASE_URL + "/#home", { timeout: 30000 });
+    await waitForAppReady(casPage);
+    remoteConflictRecovery = await casPage.evaluate(async () => {
+      const before = Store.getPersistence();
+      const state = Store.getState();
+      state.meta.remoteRevision = before.remoteRevision + 1000;
+      window.ShiciModules.StateIntegrity.attach(state);
+      const pushed = await Store.pushRemoteNow();
+      const started = Date.now();
+      while (Date.now() - started < 3000) {
+        const current = Store.getPersistence();
+        if (current.conflict && !current.conflictBackupPending) break;
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      const conflict = Store.getPersistence();
+      document.dispatchEvent(new CustomEvent("shici:resolve-conflict", {
+        detail: { choice: "keep-local" }
+      }));
+      const resolvedAt = Date.now();
+      while (Date.now() - resolvedAt < 4000) {
+        const current = Store.getPersistence();
+        if (!current.conflict && current.remoteRevision > before.remoteRevision) break;
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      return {
+        pushAccepted: pushed,
+        conflict: conflict.conflict,
+        backupKey: conflict.conflictBackupKey,
+        error: conflict.error,
+        resolved: Store.getPersistence(),
+        beforeRemoteRevision: before.remoteRevision
+      };
+    });
+    if (remoteConflictRecovery.pushAccepted !== false || !remoteConflictRecovery.conflict ||
+        !remoteConflictRecovery.backupKey ||
+        remoteConflictRecovery.error !== "remote revision conflict" ||
+        remoteConflictRecovery.resolved.conflict ||
+        remoteConflictRecovery.resolved.remoteRevision <= remoteConflictRecovery.beforeRemoteRevision) {
+      throw new Error("remote client conflict recovery failed: " + JSON.stringify(remoteConflictRecovery));
+    }
+  console.log("stage: remote conflict recovery");
+  } finally {
+    await casPage.close().catch(() => {});
   }
 
   const manifest = await page.fetch("manifest.webmanifest");
@@ -661,6 +805,8 @@ try {
     conflictRecovery,
     bothLayersFail,
     legacyMigration,
+    remoteCas,
+    remoteConflictRecovery,
     routeResponsive,
     manifestIcons: manifestBody.icons.length,
     shot: SHOT
