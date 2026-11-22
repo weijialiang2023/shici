@@ -1,0 +1,102 @@
+sequenceDiagram
+    autonumber
+    actor Learner as 学习者
+    participant Entry as index.html / app.js
+    participant Catalog as BookCatalog
+    participant Router as Router
+    participant Ctrl as StudyController
+    participant Planner as SessionPlanner
+    participant SRS as SRSEngine
+    participant Store as StateStore
+    participant LS as localStorage
+    participant IDB as IDBBackup
+    participant Remote as LocalDaemonSync
+    participant Server as serve.py /api/state
+    participant UI as ViewRenderer
+    participant TTS as TTSService
+
+    Note over Entry,Remote: 初始化：保留 classic script 顺序与 file:// 双击能力
+    Entry->>Catalog: __init__(window.BOOKS, window.DEFAULT_BOOK)
+    Entry->>Store: __init__(IDBBackup, LocalDaemonSync)
+    Store->>LS: getItem(shici.state.v1)
+    alt 原始 JSON 损坏
+        Store->>LS: setItem(shici.state.v1.corrupt.timestamp, raw)
+        Note over Store,LS: 不覆盖原始键，保持可导出与人工恢复
+    else 有效 V3 或旧字段可归一化
+        LS-->>Store: version/profile/words/activity/bookSeeds/meta
+        Store->>IDB: hydrate(local)
+        IDB-->>Store: newer candidate 或 no-op
+    end
+    opt 仅 localhost 且 /api/state 可用
+        Store->>Remote: probe() 与 read()
+        Remote->>Server: GET /api/state
+        Server-->>Remote: 原始 V3 JSON 或 404
+        Remote-->>Store: 候选快照
+        Note over Store,Remote: 新版本需防分叉，不得以时间戳单独覆盖本地
+    end
+    Entry->>Catalog: loadBook(activeBookId, scriptPayload)
+    Catalog-->>Entry: 按 wordId 索引，curated 与 wenyan 共享 ID
+    Entry->>Router: __init__(UI, Store)
+    Router->>UI: renderHome(Store.getOverview())
+    UI-->>Learner: #home
+
+    Note over Learner,Store: 创建/读取/更新：7 词微循环与题目即时提交
+    Learner->>Ctrl: startSession(daily)
+    Ctrl->>Planner: buildDailyPlan(state, localDay)
+    Planner-->>Ctrl: 最多七个 QueueItem
+    Ctrl->>Planner: start(daily, queue, now)
+    Planner-->>Ctrl: StudySession(phase=cards)
+    loop 每张卡，包括 again 引发的一次队尾重现
+        Ctrl->>UI: renderSession(session)
+        Ctrl->>TTS: speakWord(word)
+        UI-->>Learner: 卡片、揭示和自评
+        Learner->>Ctrl: revealCard() / rateCard(again|fuzzy|known)
+        Ctrl->>Store: answerWord(id, rating, seconds)
+        Store->>SRS: answerWord(record, rating, seconds, now)
+        SRS-->>Store: WordProgress 与到期日期
+        Store->>LS: setItem(shici.state.v1, full V3 state)
+        alt localStorage 成功
+            Store-->>Ctrl: 已在 L1 持久化
+            Store->>IDB: writeCurrent(snapshot) 异步备份
+        else localStorage 失败
+            Store->>IDB: writeCurrent(snapshot) 并等待结果
+            alt IDB 也失败
+                Store-->>Ctrl: 不得宣称已保存，保留内存并提示导出
+            end
+        end
+        opt 本机服务可用
+            Store->>Remote: write(state) 去抖 450ms
+            Remote->>Server: POST /api/state 原始状态
+            alt POST 失败
+                Remote-->>Store: degraded；8s 重试且 30s 补偿
+            else POST 成功
+                Server-->>Remote: ok/savedAt
+            end
+        end
+    end
+    Ctrl->>UI: renderSession(quiz)
+    UI-->>Learner: 客观提取题
+    Learner->>Ctrl: answerQuiz(option)
+    Ctrl->>Store: recordObjectiveAnswer(id, options)
+    Store->>SRS: recordObjectiveAnswer(record, options, now)
+    SRS-->>Store: 自评与客观证据分离
+    Store->>LS: setItem(shici.state.v1, full V3 state)
+    Store->>IDB: writeCurrent(snapshot)
+    Ctrl->>Store: recordSession(summary)
+    Store->>LS: setItem(shici.state.v1, full V3 state)
+    Ctrl->>UI: renderSession(summary)
+    Learner->>Router: navigate(#report)
+    Router->>UI: renderReport(Store.getReportViewModel())
+    UI-->>Learner: 阅读报告（只读）
+
+    Note over Learner,Store: 删除只允许明确确认的 resetAll；导入/导出是显式操作
+    opt 用户确认重置或导入
+        Learner->>Store: exportState()
+        Store-->>Learner: 保留完整 JSON 备份
+        Learner->>Store: resetAll() 或 importState(raw)
+        Note over Store,LS: 先留可恢复快照；失败不得删原数据
+    end
+    opt pagehide / visibilitychange
+        Store->>Remote: flush(state)
+        Remote->>Server: sendBeacon /api/state（best effort）
+    end

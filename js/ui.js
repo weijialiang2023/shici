@@ -931,10 +931,20 @@
     const goals = window.Store.getDailyGoalOptions();
     const persistence = window.Store.getPersistence();
     const savedText = persistence.lastSavedAt ? new Date(persistence.lastSavedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '还没有新的修改';
-    const saveMode = persistence.mode === 'degraded'
+    const saveFailed = persistence.lastSaveOk === false;
+    const indexedFallback = persistence.lastSaveOk === true && persistence.localStorage === false;
+    const saveMode = saveFailed
+      ? '学习记录尚未持久保存'
+      : indexedFallback
+        ? '正在使用浏览器数据库备份'
+        : persistence.mode === 'degraded'
       ? '自动备份暂时中断'
       : (persistence.server ? '长期自动备份已开启' : '浏览器自动保存已开启');
-    const saveDetail = persistence.mode === 'degraded'
+    const saveDetail = saveFailed
+      ? '主存储和浏览器数据库都没有确认写入。请先导出当前记录，再检查浏览器存储空间或隐私设置。'
+      : indexedFallback
+        ? '浏览器主存储暂时不可用，但 IndexedDB 已确认保存。建议立即导出备份。'
+        : persistence.mode === 'degraded'
       ? '学习记录仍保存在浏览器中，系统会每 8 秒重试写入本机历史快照。'
       : (persistence.server
         ? '每次作答自动写入浏览器，并生成本机每日快照与定时快照；清除浏览器数据后可以从本机恢复。'

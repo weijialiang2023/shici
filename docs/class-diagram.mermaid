@@ -1,0 +1,177 @@
+classDiagram
+    direction LR
+    class ShiciStateV3 {
+        +number version = 3
+        +Profile profile
+        +Record~string,WordProgress~ words
+        +Record~string,DailyActivity~ activity
+        +Record~string,number~ bookSeeds
+        +StateMeta meta
+    }
+    class Profile {
+        +string name
+        +number dailyGoal
+        +string voiceGender
+        +number voiceRate
+        +number targetRetention
+        +string activeBook
+        +string createdAt
+    }
+    class StateMeta {
+        +number schema = 3
+        +string updatedAt
+        +string lastServerSavedAt
+        +string corruptBackupKey
+    }
+    class WordProgress {
+        +number stage
+        +number seen
+        +string due
+        +string lastReviewed
+        +string lastRating
+        +number objectiveSeen
+        +number objectiveCorrect
+        +number objectiveWrong
+        +number spellingSeen
+        +string[] successDates
+        +string[] successTypes
+        +number lastObjectiveIntervalDays
+        +boolean manualLongTerm
+        +string[] books
+        +boolean weak
+        +boolean favorite
+    }
+    class StudySession {
+        +string type
+        +string phase
+        +QueueItem[] queue
+        +number index
+        +boolean revealed
+        +Record~string,Outcome~ outcomes
+        +Record~string,number~ repeatMap
+        +number startedAt
+        +boolean completed
+        +object quiz
+        +object summary
+    }
+    class BookCatalog {
+        +BookMetadata[] books
+        +string activeBookId
+        +Map~string,Word~ wordMap
+        +__init__(books, defaultBookId)
+        +loadBook(bookId, payload) void
+        +getBook(bookId) BookMetadata
+        +getWord(wordId) Word
+    }
+    class SRSEngine {
+        +number[] reviewDays
+        +__init__(policy)
+        +answerWord(record, rating, seconds, now) WordProgress
+        +recordObjectiveAnswer(record, options, now) WordProgress
+        +hasVerifiedMastery(record) boolean
+        +getDue(record, today) string
+    }
+    class SessionPlanner {
+        +__init__(catalog, srs)
+        +buildDailyPlan(state, today) QueueItem[]
+        +buildReviewQueue(state, limit, today) QueueItem[]
+        +start(type, queue, now) StudySession
+    }
+    class ReportMetrics {
+        +__init__(srs)
+        +getOverview(state, catalog, today) object
+        +getRetention(state, days) object
+        +getHeatmap(state, today) object
+    }
+    class StateStore {
+        +ShiciStateV3 state
+        +boolean storageAvailable
+        +__init__(idbBackup, localSync)
+        +load() ShiciStateV3
+        +save(next) SaveResult
+        +answerWord(id, rating, seconds) WordProgress
+        +recordObjectiveAnswer(id, options) object
+        +recordSession(summary) void
+        +getOverview() object
+        +getReportViewModel() object
+        +exportState() string
+        +importState(raw) boolean
+        +resetAll() void
+    }
+    class IDBBackup {
+        +string dbName = shici-progress
+        +string storeName = state
+        +__init__(indexedDB)
+        +readCurrent() Promise~ShiciStateV3~
+        +writeCurrent(state) Promise~boolean~
+        +hydrate(local) Promise~RestoreResult~
+    }
+    class SyncTransport {
+        <<interface>>
+        +probe() Promise~boolean~
+        +read() Promise~ShiciStateV3~
+        +write(state) Promise~boolean~
+        +flush(state) boolean
+    }
+    class LocalDaemonSync {
+        +string endpoint = /api/state
+        +number debounceMs = 450
+        +number retryMs = 8000
+        +__init__(fetch, sendBeacon)
+        +probe() Promise~boolean~
+        +read() Promise~ShiciStateV3~
+        +write(state) Promise~boolean~
+        +flush(state) boolean
+    }
+    class StudyController {
+        +StudySession session
+        +__init__(store, planner, ui, tts)
+        +startSession(type) void
+        +revealCard() void
+        +rateCard(rating) void
+        +answerQuiz(option) void
+        +finishSession() void
+    }
+    class Router {
+        +string currentRoute
+        +__init__(ui, store)
+        +parseHash(hash) string
+        +navigate(route) void
+        +renderRoute(route) void
+    }
+    class TTSService {
+        +string gender
+        +number rate
+        +__init__(speechSynthesis)
+        +preferredUsVoice() Voice
+        +speakWord(word) void
+        +cancel() void
+    }
+    class ViewRenderer {
+        +__init__(helpers)
+        +renderHome(vm) string
+        +renderStudyCenter(vm) string
+        +renderLibrary(vm) string
+        +renderBooks(vm) string
+        +renderReport(vm) string
+        +renderSession(session) string
+    }
+    ShiciStateV3 "1" *-- "1" Profile : profile
+    ShiciStateV3 "1" *-- "1" StateMeta : meta
+    ShiciStateV3 "1" o-- "0..*" WordProgress : words keyed by wordId
+    StudyController "1" *-- "0..1" StudySession : active session
+    SessionPlanner ..> BookCatalog : chooses words
+    SessionPlanner ..> SRSEngine : due policy
+    ReportMetrics ..> SRSEngine : mastery policy
+    StateStore --> IDBBackup : asynchronous backup
+    StateStore --> SyncTransport : optional remote
+    SyncTransport <|.. LocalDaemonSync : implements
+    StateStore --> SRSEngine : writes learning evidence
+    StateStore --> SessionPlanner : exposes queues
+    StateStore --> ReportMetrics : exposes reports
+    StudyController --> StateStore : Store facade
+    StudyController --> SessionPlanner : seven word plan
+    StudyController --> ViewRenderer : renders session
+    StudyController --> TTSService : reads word aloud
+    Router --> ViewRenderer : renders routes
+    Router --> StateStore : read only view data

@@ -6,6 +6,8 @@
   'use strict';
 
   const STORAGE_KEY = 'shici.state.v1';
+  const SRSEngine = window.ShiciModules && window.ShiciModules.SRSEngine;
+  const StateIntegrity = window.ShiciModules && window.ShiciModules.StateIntegrity;
   const SCHEMA_VERSION = 3;
   const DB_NAME = 'shici-progress';
   const DB_STORE = 'state';
@@ -36,6 +38,12 @@
   let remoteLastError = null;
   let indexedDbPromise = null;
   let persistentStorage = null;
+  let writerId = null;
+  let lastSaveOk = null;
+  let lastSaveAt = null;
+  let lastSaveLayers = [];
+  let lastSaveError = null;
+  let lastIndexedDbOk = null;
 
   function createDefaultState() {
     return {
@@ -54,6 +62,9 @@
       bookSeeds: {},
       meta: {
         schema: SCHEMA_VERSION,
+        revision: 0,
+        writerId: null,
+        integrity: null,
         sessions: 0,
         quizSessions: 0,
         bestSpelling: 0,
@@ -168,16 +179,32 @@
       if (!raw) return;
       const saved = JSON.parse(raw);
       if (!saved || typeof saved !== 'object') return;
-      state = {
+      const integrity = StateIntegrity ? StateIntegrity.verify(saved) : { status: 'unsigned' };
+      if (integrity.status === 'mismatch') {
+        const corruptKey = STORAGE_KEY + '.integrity.' + Date.now();
+        try {
+          window.localStorage.setItem(corruptKey, raw);
+        } catch (copyError) {
+          // Keep the original key untouched if a quarantine copy cannot be made.
+        }
+        state = createDefaultState();
+        state.meta.corruptBackupKey = corruptKey;
+        state.meta.integrityError = 'checksum-mismatch';
+        return;
+      }
+      state = Object.assign({}, saved, {
         version: SCHEMA_VERSION,
         profile: Object.assign({}, createDefaultState().profile, saved.profile || {}),
         words: saved.words && typeof saved.words === 'object' ? saved.words : {},
         activity: saved.activity && typeof saved.activity === 'object' ? saved.activity : {},
         bookSeeds: saved.bookSeeds && typeof saved.bookSeeds === 'object' ? saved.bookSeeds : {},
         meta: Object.assign({}, createDefaultState().meta, saved.meta || {})
-      };
+      });
       state.version = SCHEMA_VERSION;
       state.meta.schema = SCHEMA_VERSION;
+      state.meta.revision = Math.max(0, Number(state.meta.revision) || 0);
+      state.meta.writerId = state.meta.writerId || null;
+      state.meta.integrity = state.meta.integrity || null;
       const savedGoal = Math.round(Number(state.profile.dailyGoal));
       if (!Number.isFinite(savedGoal) || savedGoal < MIN_DAILY_GOAL || savedGoal > MAX_DAILY_GOAL) {
         state.profile.dailyGoal = 20;
@@ -253,12 +280,30 @@
   }
 
   function writeIndexedDb(payload) {
-    if (!window.indexedDB) return;
-    openIndexedDb().then(function (db) {
-      const transaction = db.transaction(DB_STORE, 'readwrite');
-      transaction.objectStore(DB_STORE).put(payload, 'current');
+    if (!window.indexedDB) {
+      lastIndexedDbOk = false;
+      return Promise.resolve(false);
+    }
+    return openIndexedDb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const transaction = db.transaction(DB_STORE, 'readwrite');
+        transaction.oncomplete = function () {
+          lastIndexedDbOk = true;
+          resolve(true);
+        };
+        transaction.onerror = function () {
+          lastIndexedDbOk = false;
+          reject(transaction.error || new Error('IndexedDB write failed'));
+        };
+        transaction.onabort = function () {
+          lastIndexedDbOk = false;
+          reject(transaction.error || new Error('IndexedDB write aborted'));
+        };
+        transaction.objectStore(DB_STORE).put(payload, 'current');
+      });
     }).catch(function () {
-      // localStorage 仍是同步来源；IndexedDB 恢复是增强能力。
+      lastIndexedDbOk = false;
+      return false;
     });
   }
 
@@ -273,29 +318,40 @@
         request.onerror = function () { reject(request.error); };
       });
       if (!indexedState || !indexedState.words) return { restored: false, reason: 'empty' };
-      if (countSeenWords(state) > 0 || state.meta.corruptBackupKey) {
+      const indexedIntegrity = StateIntegrity ? StateIntegrity.verify(indexedState) : { status: 'unsigned' };
+      if (indexedIntegrity.status === 'mismatch') {
+        return { restored: false, reason: 'integrity-mismatch' };
+      }
+      if (countSeenWords(state) > 0 && !state.meta.corruptBackupKey) {
         writeIndexedDb(state);
         return { restored: false, reason: 'local-preferred' };
       }
       const localUpdated = Date.parse(state.meta.updatedAt || '') || 0;
       const indexedUpdated = Date.parse((indexedState.meta && indexedState.meta.updatedAt) || '') || 0;
-      if (countSeenWords(indexedState) === 0 || indexedUpdated < localUpdated) {
+      if (countSeenWords(indexedState) === 0 || (!state.meta.corruptBackupKey && indexedUpdated < localUpdated)) {
         return { restored: false, reason: 'not-newer' };
       }
-      state = {
+      const corruptBackupKey = state.meta.corruptBackupKey || null;
+      const integrityError = state.meta.integrityError || null;
+      state = Object.assign({}, indexedState, {
         version: SCHEMA_VERSION,
         profile: Object.assign({}, createDefaultState().profile, indexedState.profile || {}),
         words: indexedState.words || {},
         activity: indexedState.activity || {},
         bookSeeds: indexedState.bookSeeds || {},
         meta: Object.assign({}, createDefaultState().meta, indexedState.meta || {})
-      };
+      });
       state.version = SCHEMA_VERSION;
       state.meta.schema = SCHEMA_VERSION;
+      state.meta.revision = Math.max(0, Number(state.meta.revision) || 0);
+      state.meta.writerId = state.meta.writerId || null;
+      state.meta.corruptBackupKey = state.meta.corruptBackupKey || corruptBackupKey;
+      state.meta.integrityError = state.meta.integrityError || integrityError;
       Object.keys(state.words).forEach(function (id) {
         state.words[id] = normalizeRecord(state.words[id], activeBookId);
       });
       activeBookId = state.profile.activeBook || activeBookId;
+      if (StateIntegrity) StateIntegrity.attach(state);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       return { restored: true };
     } catch (error) {
@@ -321,21 +377,82 @@
     }
   }
 
-  function save() {
-    state.meta.updatedAt = new Date().toISOString();
+  function ensureWriterId() {
+    if (writerId) return writerId;
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      writerId = window.sessionStorage.getItem('shici.writerId');
+    } catch (error) {
+      writerId = null;
+    }
+    if (!writerId) {
+      writerId = state.meta.writerId ||
+        (window.crypto && typeof window.crypto.randomUUID === 'function'
+          ? window.crypto.randomUUID()
+          : 'writer-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10));
+      try {
+        window.sessionStorage.setItem('shici.writerId', writerId);
+      } catch (error) {
+        // The in-memory identity still prevents duplicate IDs in this page.
+      }
+    }
+    state.meta.writerId = writerId;
+    return writerId;
+  }
+
+  function emitSaveStatus(ok) {
+    document.dispatchEvent(new CustomEvent('shici:saved', {
+      detail: {
+        mode: remoteMode,
+        ok: ok,
+        savedAt: lastSaveAt,
+        layers: lastSaveLayers.slice(),
+        error: lastSaveError,
+        remoteSaving: remoteSaving
+      }
+    }));
+  }
+
+  function save() {
+    ensureWriterId();
+    state.meta.updatedAt = new Date().toISOString();
+    state.meta.revision = Math.max(0, Number(state.meta.revision) || 0) + 1;
+    if (StateIntegrity) StateIntegrity.attach(state);
+    const serialized = JSON.stringify(state);
+    const snapshot = JSON.parse(serialized);
+    lastSaveAt = state.meta.updatedAt;
+    lastSaveLayers = [];
+    lastSaveError = null;
+    let localOk = false;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, serialized);
       storageAvailable = true;
+      localOk = true;
+      lastSaveLayers.push('localStorage');
     } catch (error) {
       storageAvailable = false;
+      lastSaveError = error && error.message ? error.message : 'localStorage unavailable';
     }
-    writeIndexedDb(state);
+    const indexedWrite = writeIndexedDb(snapshot).then(function (ok) {
+      if (ok) {
+        if (lastSaveLayers.indexOf('indexedDB') === -1) lastSaveLayers.push('indexedDB');
+        if (!localOk) {
+          lastSaveOk = true;
+          lastSaveError = null;
+          emitSaveStatus(true);
+        }
+      } else if (!localOk) {
+        lastSaveOk = false;
+        lastSaveError = lastSaveError || 'indexedDB unavailable';
+        emitSaveStatus(false);
+      }
+      return ok;
+    });
+    lastSaveOk = localOk ? true : null;
     remoteDirty = true;
     scheduleRemoteSave();
     document.dispatchEvent(new CustomEvent('shici:change'));
-    document.dispatchEvent(new CustomEvent('shici:saved', {
-      detail: { mode: remoteMode, savedAt: state.meta.updatedAt, remoteSaving: remoteSaving }
-    }));
+    if (localOk) emitSaveStatus(true);
+    return { ok: localOk, pendingIndexedDb: !localOk, indexedWrite: indexedWrite };
   }
 
   function countSeenWords(value) {
@@ -376,6 +493,12 @@
       remoteEnabled = true;
       remoteMode = 'server';
       if (!result.empty && result.data && result.data.words && countSeenWords(result.data) > 0) {
+        const remoteIntegrity = StateIntegrity ? StateIntegrity.verify(result.data) : { status: 'unsigned' };
+        if (remoteIntegrity.status === 'mismatch') {
+          remoteLastError = 'remote checksum mismatch';
+          scheduleRemoteSave();
+          return { mode: remoteMode, restored: false };
+        }
         const remoteSchema = Number(result.data.version) || 0;
         const remoteTrusted = remoteSchema >= 2 && Number(result.data.meta && result.data.meta.schema) >= 2;
         const localSeen = countSeenWords(state);
@@ -485,6 +608,8 @@
       const result = await fetchRemoteState();
       if (result.empty || !result.data || !result.data.words) return { ok: false, reason: 'empty' };
       if (!countSeenWords(result.data)) return { ok: false, reason: 'empty' };
+      const integrity = StateIntegrity ? StateIntegrity.verify(result.data) : { status: 'unsigned' };
+      if (integrity.status === 'mismatch') return { ok: false, reason: 'integrity-mismatch' };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(result.data));
       window.location.reload();
       return { ok: true };
@@ -506,19 +631,27 @@
       throw new Error('备份文件格式不正确');
     }
     if (!parsed.profile || typeof parsed.profile !== 'object') throw new Error('备份缺少用户设置');
-    const migrated = {
+    const integrity = StateIntegrity ? StateIntegrity.verify(parsed) : { status: 'unsigned' };
+    if (integrity.status === 'mismatch') throw new Error('备份完整性校验失败');
+    const migrated = Object.assign({}, parsed, {
       version: SCHEMA_VERSION,
       profile: Object.assign({}, createDefaultState().profile, parsed.profile),
       words: parsed.words,
       activity: parsed.activity || {},
       bookSeeds: parsed.bookSeeds || {},
       meta: Object.assign({}, createDefaultState().meta, parsed.meta || {})
-    };
+    });
     migrated.version = SCHEMA_VERSION;
     migrated.meta.schema = SCHEMA_VERSION;
+    migrated.meta.revision = Math.max(0, Number(migrated.meta.revision) || 0) + 1;
     Object.keys(migrated.words).forEach(function (id) {
       migrated.words[id] = normalizeRecord(migrated.words[id], migrated.profile.activeBook || activeBookId);
     });
+    if (StateIntegrity) StateIntegrity.attach(migrated);
+    const previous = window.localStorage.getItem(STORAGE_KEY);
+    if (previous) {
+      window.localStorage.setItem(STORAGE_KEY + '.pre-import.' + Date.now(), previous);
+    }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
     writeIndexedDb(migrated);
     return true;
@@ -529,7 +662,15 @@
       mode: remoteMode,
       server: remoteEnabled,
       storage: storageAvailable,
+      localStorage: storageAvailable,
+      indexedDb: lastIndexedDbOk,
+      lastSaveOk: lastSaveOk,
+      lastSaveAt: lastSaveAt,
+      lastSaveLayers: lastSaveLayers.slice(),
       lastSavedAt: state.meta.updatedAt || null,
+      revision: Number(state.meta.revision) || 0,
+      integrity: state.meta.integrity || null,
+      integrityError: state.meta.integrityError || null,
       remoteSavedAt: remoteSavedAt,
       lastServerSavedAt: state.meta.lastServerSavedAt || null,
       error: remoteLastError,
@@ -641,7 +782,9 @@
   }
 
   function isDue(record) {
-    return Boolean(record && record.seen > 0 && record.due && record.due <= todayKey());
+    return SRSEngine
+      ? SRSEngine.isDue(record, todayKey())
+      : Boolean(record && record.seen > 0 && record.due && record.due <= todayKey());
   }
 
   function getDueLabel(record) {
@@ -656,24 +799,29 @@
   }
 
   function hasVerifiedMastery(record) {
-    if (!record) return false;
-    return normalizeStringList(record.successDates).length >= 3 &&
-      normalizeStringList(record.successTypes).length >= 2 &&
-      Number(record.lastObjectiveIntervalDays) >= 7;
+    return SRSEngine
+      ? SRSEngine.hasVerifiedMastery(record)
+      : Boolean(record &&
+        normalizeStringList(record.successDates).length >= 3 &&
+        normalizeStringList(record.successTypes).length >= 2 &&
+        Number(record.lastObjectiveIntervalDays) >= 7);
   }
 
   function nextStageFor(rating, currentStage, wasNew) {
+    if (SRSEngine) return SRSEngine.nextStageFor(rating, currentStage, wasNew);
     if (rating === 'again') return 0;
     if (rating === 'fuzzy') return wasNew ? 1 : Math.max(1, Number(currentStage) - 1);
     return clamp((wasNew ? 0 : Number(currentStage)) + 1, 0, REVIEW_DAYS.length - 1);
   }
 
   function nextDueForStage(stage, fromKey) {
+    if (SRSEngine) return SRSEngine.nextDueForStage(stage, fromKey || todayKey());
     const days = REVIEW_DAYS[clamp(stage, 0, REVIEW_DAYS.length - 1)];
     return addDays(fromKey || todayKey(), days);
   }
 
   function reviewLabelForStage(stage) {
+    if (SRSEngine) return SRSEngine.reviewLabelForStage(stage);
     const days = Number(stage);
     if (days === 0) return '今天稍后';
     return days === 1 ? '明天' : days + ' 天后';
@@ -681,8 +829,14 @@
 
   function dueForSelfRating(id, rating) {
     const record = state.words[id] || blankRecord();
-    const wasNew = !record.seen;
     const today = todayKey();
+    if (SRSEngine) {
+      return SRSEngine.dueForSelfRating(record, rating, {
+        today: today,
+        targetRetention: state.profile.targetRetention
+      });
+    }
+    const wasNew = !record.seen;
     if (wasNew) {
       if (rating === 'again') return { due: today, days: 0, stage: 0, label: '今天稍后' };
       if (rating === 'fuzzy') return { due: addDays(today, 1), days: 1, stage: 1, label: '明天' };

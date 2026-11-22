@@ -15,7 +15,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '28';
+    return match ? decodeURIComponent(match[1]) : '29';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -1460,7 +1460,14 @@
   async function restoreProgress() {
     const result = await Store.restoreRemoteState();
     if (!result.ok) {
-      toast(result.reason === 'empty' ? '本机还没有可恢复的存档。' : '本机存档服务暂不可用。', 'info');
+      toast(
+        result.reason === 'empty'
+          ? '本机还没有可恢复的存档。'
+          : (result.reason === 'integrity-mismatch'
+            ? '本机存档完整性校验失败，未覆盖当前学习记录。'
+            : '本机存档服务暂不可用。'),
+        'info'
+      );
       return;
     }
     trackProductEvent('sync_restore_succeeded', {

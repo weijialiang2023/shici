@@ -425,6 +425,66 @@ try {
   if (responsive.nav.height < 44 || responsive.mode.height < 44) throw new Error("mobile touch target too small");
   await page.screenshot({ path: SHOT, fullPage: false });
 
+  await page.goto(BASE_URL + "/#home", { timeout: 30000 });
+  await page.waitForSelector(".app-shell");
+  const storageFault = await page.evaluate(async () => {
+    Store.resetAll();
+    Store.answerWord("abandon", "known", 2);
+    Store.updateProfile({ name: "正常保存" });
+    await new Promise(resolve => setTimeout(resolve, 120));
+    const originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "shici.state.v1") {
+        throw new DOMException("quota test", "QuotaExceededError");
+      }
+      return originalSetItem.call(this, key, value);
+    };
+    Store.updateProfile({ name: "索引备份" });
+    const started = Date.now();
+    while (Date.now() - started < 3000) {
+      const current = Store.getPersistence();
+      if (current.lastSaveOk === true && current.lastSaveLayers.includes("indexedDB")) break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    const fallback = Store.getPersistence();
+    Storage.prototype.setItem = originalSetItem;
+    Store.updateProfile({ name: "正常保存" });
+    await new Promise(resolve => setTimeout(resolve, 120));
+    return {
+      localStorage: fallback.localStorage,
+      indexedDb: fallback.indexedDb,
+      lastSaveOk: fallback.lastSaveOk,
+      layers: fallback.lastSaveLayers,
+      revision: fallback.revision,
+      integrity: fallback.integrity
+    };
+  });
+  if (storageFault.localStorage !== false || storageFault.indexedDb !== true ||
+      storageFault.lastSaveOk !== true || !storageFault.layers.includes("indexedDB") ||
+      !storageFault.integrity) {
+    throw new Error("IndexedDB fallback did not confirm the save");
+  }
+
+  await page.evaluate(() => {
+    const raw = localStorage.getItem("shici.state.v1");
+    const tampered = JSON.parse(raw);
+    tampered.profile.name = "未更新校验和";
+    localStorage.setItem("shici.state.v1", JSON.stringify(tampered));
+  });
+  await page.reload({ timeout: 30000 });
+  await page.waitForSelector(".app-shell");
+  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 45000 });
+  const integrityRecovery = await page.evaluate(() => ({
+    name: Store.getProfile().name,
+    corruptBackupKey: Store.getPersistence().corruptBackupKey,
+    integrityError: Store.getPersistence().integrityError,
+    validIntegrity: Store.getPersistence().integrity
+  }));
+  if (integrityRecovery.name !== "正常保存" || !integrityRecovery.corruptBackupKey ||
+      integrityRecovery.integrityError !== "checksum-mismatch" || !integrityRecovery.validIntegrity) {
+    throw new Error("integrity mismatch was not quarantined and recovered from IndexedDB");
+  }
+
   const manifest = await page.fetch("manifest.webmanifest");
   const manifestBody = JSON.parse(manifest.body);
   if (!manifest.ok || !Array.isArray(manifestBody.icons) || manifestBody.icons.length < 2) {
@@ -451,6 +511,8 @@ try {
     offline,
     bootMs,
     responsive,
+    storageFault,
+    integrityRecovery,
     routeResponsive,
     manifestIcons: manifestBody.icons.length,
     shot: SHOT
