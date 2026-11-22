@@ -15,7 +15,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '29';
+    return match ? decodeURIComponent(match[1]) : '30';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -47,7 +47,9 @@
     modalFocus: null,
     composing: false,
     libraryTimer: null,
-    searchTimer: null
+    searchTimer: null,
+    saveFailureNoticeShown: false,
+    conflictNoticeShown: false
   };
 
   const page = document.getElementById('page');
@@ -718,6 +720,13 @@
     }
   }
 
+  function persistenceWritable() {
+    const persistence = Store.getPersistence();
+    if (!persistence.conflict && persistence.lastSaveOk !== false) return true;
+    toast('当前无法确认保存，本页已暂停新的作答。请先导出学习记录。', 'info');
+    return false;
+  }
+
   function startSession(type, customQueue) {
     let queue = customQueue;
     const overview = Store.getOverview();
@@ -885,6 +894,7 @@
     if (!item) return;
     const word = Store.getWord(item.id);
     if (!word) return;
+    if (!persistenceWritable()) return;
 
     const now = Date.now();
     const seconds = clampSeconds((now - app.session.lastAnswerAt) / 1000);
@@ -1030,6 +1040,7 @@
     if (!quiz || quiz.answered) return;
     const question = quiz.questions[quiz.index];
     if (!question) return;
+    if (!persistenceWritable()) return;
     const selected = Number(index);
     if (!Number.isInteger(selected) || selected < 0 || selected >= question.options.length) return;
     const correct = selected === question.correctIndex;
@@ -1241,6 +1252,7 @@
     const word = currentSpellingWord();
     const input = document.getElementById('spellInput');
     if (!word || !input) return;
+    if (!persistenceWritable()) return;
     const answer = input.value.trim();
     if (!answer) {
       toast('先写下你记得的拼写。', 'edit');
@@ -1639,6 +1651,40 @@
       }, 240);
     }, 2500);
   }
+
+  document.addEventListener('shici:conflict', function () {
+    if (app.conflictNoticeShown || app.modal) return;
+    app.conflictNoticeShown = true;
+    showModal({
+      icon: 'info',
+      title: '另一个标签页也更新了记录',
+      message: '本页已暂停新的保存，避免覆盖另一端进度。两端快照已保留。请先导出当前记录，再关闭其他标签页并刷新。',
+      cancelLabel: '稍后处理',
+      confirmLabel: '导出当前记录',
+      onConfirm: function () {
+        closeModal(false);
+        exportProgress();
+      }
+    });
+  });
+
+  document.addEventListener('shici:saved', function (event) {
+    const detail = event.detail || {};
+    if (detail.ok !== false || detail.error === 'multi-tab conflict' ||
+        app.saveFailureNoticeShown || app.modal) return;
+    app.saveFailureNoticeShown = true;
+    showModal({
+      icon: 'info',
+      title: '学习记录暂时无法保存',
+      message: '浏览器主存储和备份数据库都没有确认写入。请先导出当前记录，再检查浏览器剩余空间或隐私设置。',
+      cancelLabel: '稍后处理',
+      confirmLabel: '导出当前记录',
+      onConfirm: function () {
+        closeModal(false);
+        exportProgress();
+      }
+    });
+  });
 
   // ---------------------------------------------------------------------
   // Event handling

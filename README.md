@@ -201,6 +201,15 @@ python3 tools/export_content_review.py
 bash tools/test_learning_system.sh
 ```
 
+Node 金样本测试覆盖复习规则、状态完整性、旧版迁移和多层保存语义：
+
+```bash
+node --test tools/tests/*.test.cjs
+```
+
+状态与协同契约位于 `docs/contracts/`，系统设计与 WorkBuddy 分工方案位于
+`docs/system_design.md`。
+
 测试脚本可复用当前 Ego TaskSpace；通过 `SHICI_EGO_SPACE_ID` 指定已有空间。运行前会只清理测试 origin 的 Service Worker、缓存和本地学习数据。
 
 如需重新生成高频字义目录，下载 `tools/build_wenyan_catalog.py`

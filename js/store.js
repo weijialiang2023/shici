@@ -8,6 +8,7 @@
   const STORAGE_KEY = 'shici.state.v1';
   const SRSEngine = window.ShiciModules && window.ShiciModules.SRSEngine;
   const StateIntegrity = window.ShiciModules && window.ShiciModules.StateIntegrity;
+  const StateSchema = window.ShiciModules && window.ShiciModules.StateSchema;
   const SCHEMA_VERSION = 3;
   const DB_NAME = 'shici-progress';
   const DB_STORE = 'state';
@@ -44,133 +45,55 @@
   let lastSaveLayers = [];
   let lastSaveError = null;
   let lastIndexedDbOk = null;
+  let externalConflict = false;
+  let conflictBackupKey = null;
+  let conflictBackupPending = false;
 
   function createDefaultState() {
-    return {
-      version: SCHEMA_VERSION,
-      profile: {
-        name: '',
-        dailyGoal: 20,
-        voiceGender: 'female',
-        voiceRate: 0.9,
-        targetRetention: TARGET_RETENTION,
-        createdAt: new Date().toISOString(),
-        activeBook: window.DEFAULT_BOOK || 'gaokao'
-      },
-      words: {},
-      activity: {},
-      bookSeeds: {},
-      meta: {
-        schema: SCHEMA_VERSION,
-        revision: 0,
-        writerId: null,
-        integrity: null,
-        sessions: 0,
-        quizSessions: 0,
-        bestSpelling: 0,
-        lastSessionAt: null,
-        updatedAt: null,
-        lastServerSavedAt: null,
-        lastBackupAt: null,
-        lastBackupName: null,
-        storagePersisted: null,
-        corruptBackupKey: null
-      }
-    };
+    return StateSchema
+      ? StateSchema.createDefaultState({ defaultBook: window.DEFAULT_BOOK || 'gaokao' })
+      : {
+        version: SCHEMA_VERSION,
+        profile: {
+          name: '', dailyGoal: 20, voiceGender: 'female', voiceRate: 0.9,
+          targetRetention: TARGET_RETENTION, createdAt: new Date().toISOString(),
+          activeBook: window.DEFAULT_BOOK || 'gaokao'
+        },
+        words: {}, activity: {}, bookSeeds: {},
+        meta: {
+          schema: SCHEMA_VERSION, revision: 0, writerId: null, integrity: null,
+          sessions: 0, quizSessions: 0, bestSpelling: 0, lastSessionAt: null,
+          updatedAt: null, lastServerSavedAt: null, lastBackupAt: null,
+          lastBackupName: null, storagePersisted: null, corruptBackupKey: null
+        }
+      };
   }
 
   function blankRecord() {
-    return {
-      stage: 0,
-      seen: 0,
-      due: null,
-      firstSeen: null,
-      firstStudiedAt: null,
-      firstRating: null,
-      firstQuizAt: null,
-      firstQuizCorrect: null,
-      lastReviewed: null,
-      lastRating: null,
-      favorite: false,
-      correctCount: 0,
-      lapseCount: 0,
-      books: [],
-      weak: false,
-      weakSince: null,
-      quizSeen: 0,
-      quizCorrect: 0,
-      quizWrong: 0,
-      lastQuizAt: null,
-      lastQuizCorrect: null,
-      masteryStreak: 0,
-      difficulty: 0.35,
-      stabilityDays: 1,
-      objectiveSeen: 0,
-      objectiveCorrect: 0,
-      objectiveWrong: 0,
-      spellingSeen: 0,
-      spellingCorrect: 0,
-      spellingWrong: 0,
-      successDates: [],
-      successTypes: [],
-      lastObjectiveAt: null,
-      lastObjectiveType: null,
-      lastObjectiveCorrect: null,
-      lastObjectiveIntervalDays: 0,
-      hintsUsed: 0,
-      errorTypes: {},
-      confusions: [],
-      retention24: { seen: 0, correct: 0 },
-      retention7: { seen: 0, correct: 0 },
-      selfRatings: { again: 0, fuzzy: 0, known: 0 },
-      manualLongTerm: false
-    };
+    return StateSchema.blankRecord();
   }
 
   function normalizeCount(value) {
-    const number = Number(value);
-    return Number.isFinite(number) && number > 0 ? number : 0;
+    return StateSchema.normalizeCount(value);
   }
 
   function normalizeStringList(value) {
-    return Array.isArray(value)
-      ? Array.from(new Set(value.filter(function (item) { return typeof item === 'string' && item; })))
-      : [];
+    return StateSchema.normalizeStringList(value);
   }
 
   function normalizeRetention(value) {
-    return {
-      seen: normalizeCount(value && value.seen),
-      correct: normalizeCount(value && value.correct)
-    };
+    return StateSchema.normalizeRetention(value);
   }
 
   function normalizeRecord(record, fallbackBook) {
-    const next = Object.assign(blankRecord(), record || {});
-    next.difficulty = clamp(Number(next.difficulty) || 0.35, 0.05, 0.95);
-    next.stabilityDays = Math.max(0, Number(next.stabilityDays) || 0);
-    next.objectiveSeen = normalizeCount(next.objectiveSeen || next.quizSeen);
-    next.objectiveCorrect = normalizeCount(next.objectiveCorrect || next.quizCorrect);
-    next.objectiveWrong = normalizeCount(next.objectiveWrong || next.quizWrong);
-    next.spellingSeen = normalizeCount(next.spellingSeen);
-    next.spellingCorrect = normalizeCount(next.spellingCorrect);
-    next.spellingWrong = normalizeCount(next.spellingWrong);
-    next.successDates = normalizeStringList(next.successDates);
-    next.successTypes = normalizeStringList(next.successTypes);
-    next.confusions = Array.isArray(next.confusions) ? next.confusions.slice(-12) : [];
-    next.errorTypes = next.errorTypes && typeof next.errorTypes === 'object' ? next.errorTypes : {};
-    next.retention24 = normalizeRetention(next.retention24);
-    next.retention7 = normalizeRetention(next.retention7);
-    next.selfRatings = Object.assign({ again: 0, fuzzy: 0, known: 0 }, next.selfRatings || {});
-    ['again', 'fuzzy', 'known'].forEach(function (rating) {
-      next.selfRatings[rating] = normalizeCount(next.selfRatings[rating]);
+    return StateSchema.normalizeRecord(record, fallbackBook);
+  }
+
+  function normalizeState(raw) {
+    return StateSchema.normalizeState(raw, {
+      defaultBook: window.DEFAULT_BOOK || 'gaokao',
+      knownBookIds: (window.BOOKS || []).map(function (book) { return book.id; })
     });
-    if (!Array.isArray(next.books)) next.books = next.seen ? [fallbackBook] : [];
-    if (typeof next.favorite !== 'boolean') next.favorite = false;
-    if (next.seen && next.firstStudiedAt == null) {
-      next.firstStudiedAt = next.firstSeen || next.lastReviewed || null;
-    }
-    return next;
   }
 
   function load() {
@@ -192,59 +115,16 @@
         state.meta.integrityError = 'checksum-mismatch';
         return;
       }
-      state = Object.assign({}, saved, {
-        version: SCHEMA_VERSION,
-        profile: Object.assign({}, createDefaultState().profile, saved.profile || {}),
-        words: saved.words && typeof saved.words === 'object' ? saved.words : {},
-        activity: saved.activity && typeof saved.activity === 'object' ? saved.activity : {},
-        bookSeeds: saved.bookSeeds && typeof saved.bookSeeds === 'object' ? saved.bookSeeds : {},
-        meta: Object.assign({}, createDefaultState().meta, saved.meta || {})
-      });
-      state.version = SCHEMA_VERSION;
-      state.meta.schema = SCHEMA_VERSION;
-      state.meta.revision = Math.max(0, Number(state.meta.revision) || 0);
-      state.meta.writerId = state.meta.writerId || null;
-      state.meta.integrity = state.meta.integrity || null;
-      const savedGoal = Math.round(Number(state.profile.dailyGoal));
-      if (!Number.isFinite(savedGoal) || savedGoal < MIN_DAILY_GOAL || savedGoal > MAX_DAILY_GOAL) {
-        state.profile.dailyGoal = 20;
-      } else {
-        state.profile.dailyGoal = savedGoal;
-      }
-      if (state.profile.voiceGender !== 'male' && state.profile.voiceGender !== 'female') {
-        state.profile.voiceGender = 'female';
-      }
-      const savedVoiceRate = Number(state.profile.voiceRate);
-      state.profile.voiceRate = Number.isFinite(savedVoiceRate)
-        ? clamp(savedVoiceRate, 0.7, 1.15)
-        : 0.9;
-      const knownBookIds = (window.BOOKS || []).map(function (book) { return book.id; });
-      if (!state.profile.activeBook || knownBookIds.indexOf(state.profile.activeBook) === -1) {
-        state.profile.activeBook = window.DEFAULT_BOOK || 'gaokao';
-      }
+      const normalized = normalizeState(saved);
+      state = normalized.state;
       activeBookId = state.profile.activeBook;
-      const savedRetention = Number(state.profile.targetRetention);
-      state.profile.targetRetention = Number.isFinite(savedRetention)
-        ? clamp(savedRetention, 0.75, 0.95)
-        : TARGET_RETENTION;
-      // 旧记录按字段增量迁移；不删除历史，也不把旧的自评混入客观正确率。
-      Object.keys(state.words).forEach(function (id) {
-        state.words[id] = normalizeRecord(state.words[id], activeBookId);
-      });
-      Object.keys(state.activity).forEach(function (key) {
-        const day = state.activity[key] && typeof state.activity[key] === 'object' ? state.activity[key] : {};
-        day.learned = Array.isArray(day.learned) ? day.learned : [];
-        day.reviewed = Array.isArray(day.reviewed) ? day.reviewed : [];
-        day.objectiveAttempts = normalizeCount(day.objectiveAttempts);
-        day.objectiveCorrect = normalizeCount(day.objectiveCorrect);
-        day.retention24Seen = normalizeCount(day.retention24Seen);
-        day.retention24Correct = normalizeCount(day.retention24Correct);
-        day.retention7Seen = normalizeCount(day.retention7Seen);
-        day.retention7Correct = normalizeCount(day.retention7Correct);
-        day.selfRatings = Object.assign({ again: 0, fuzzy: 0, known: 0 }, day.selfRatings || {});
-        day.questionTypes = day.questionTypes && typeof day.questionTypes === 'object' ? day.questionTypes : {};
-        state.activity[key] = day;
-      });
+      if (normalized.migrated) {
+        state.meta.migration = {
+          from: normalized.migratedFrom,
+          to: SCHEMA_VERSION,
+          warnings: normalized.warnings.slice()
+        };
+      }
     } catch (error) {
       storageAvailable = false;
       state = createDefaultState();
@@ -279,7 +159,7 @@
     return indexedDbPromise;
   }
 
-  function writeIndexedDb(payload) {
+  function writeIndexedDbValue(payload, key) {
     if (!window.indexedDB) {
       lastIndexedDbOk = false;
       return Promise.resolve(false);
@@ -299,12 +179,16 @@
           lastIndexedDbOk = false;
           reject(transaction.error || new Error('IndexedDB write aborted'));
         };
-        transaction.objectStore(DB_STORE).put(payload, 'current');
+        transaction.objectStore(DB_STORE).put(payload, key || 'current');
       });
     }).catch(function () {
       lastIndexedDbOk = false;
       return false;
     });
+  }
+
+  function writeIndexedDb(payload) {
+    return writeIndexedDbValue(payload, 'current');
   }
 
   async function hydrateFromIndexedDb() {
@@ -333,23 +217,10 @@
       }
       const corruptBackupKey = state.meta.corruptBackupKey || null;
       const integrityError = state.meta.integrityError || null;
-      state = Object.assign({}, indexedState, {
-        version: SCHEMA_VERSION,
-        profile: Object.assign({}, createDefaultState().profile, indexedState.profile || {}),
-        words: indexedState.words || {},
-        activity: indexedState.activity || {},
-        bookSeeds: indexedState.bookSeeds || {},
-        meta: Object.assign({}, createDefaultState().meta, indexedState.meta || {})
-      });
-      state.version = SCHEMA_VERSION;
-      state.meta.schema = SCHEMA_VERSION;
-      state.meta.revision = Math.max(0, Number(state.meta.revision) || 0);
-      state.meta.writerId = state.meta.writerId || null;
+      const normalized = normalizeState(indexedState);
+      state = normalized.state;
       state.meta.corruptBackupKey = state.meta.corruptBackupKey || corruptBackupKey;
       state.meta.integrityError = state.meta.integrityError || integrityError;
-      Object.keys(state.words).forEach(function (id) {
-        state.words[id] = normalizeRecord(state.words[id], activeBookId);
-      });
       activeBookId = state.profile.activeBook || activeBookId;
       if (StateIntegrity) StateIntegrity.attach(state);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -385,10 +256,9 @@
       writerId = null;
     }
     if (!writerId) {
-      writerId = state.meta.writerId ||
-        (window.crypto && typeof window.crypto.randomUUID === 'function'
-          ? window.crypto.randomUUID()
-          : 'writer-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10));
+      writerId = window.crypto && typeof window.crypto.randomUUID === 'function'
+        ? window.crypto.randomUUID()
+        : 'writer-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
       try {
         window.sessionStorage.setItem('shici.writerId', writerId);
       } catch (error) {
@@ -414,6 +284,19 @@
 
   function save() {
     ensureWriterId();
+    if (externalConflict) {
+      lastSaveOk = false;
+      lastSaveAt = new Date().toISOString();
+      lastSaveError = 'multi-tab conflict';
+      document.dispatchEvent(new CustomEvent('shici:change'));
+      emitSaveStatus(false);
+      return {
+        ok: false,
+        conflict: true,
+        pendingIndexedDb: false,
+        indexedWrite: Promise.resolve(false)
+      };
+    }
     state.meta.updatedAt = new Date().toISOString();
     state.meta.revision = Math.max(0, Number(state.meta.revision) || 0) + 1;
     if (StateIntegrity) StateIntegrity.attach(state);
@@ -618,6 +501,46 @@
     }
   }
 
+  function handleStorageEvent(event) {
+    if (event.key !== STORAGE_KEY || !event.newValue) return;
+    let incoming;
+    try {
+      incoming = JSON.parse(event.newValue);
+    } catch (error) {
+      return;
+    }
+    const integrity = StateIntegrity ? StateIntegrity.verify(incoming) : { status: 'unsigned' };
+    if (integrity.status === 'mismatch') return;
+    const currentWriter = ensureWriterId();
+    const incomingWriter = incoming.meta && incoming.meta.writerId;
+    if (!incomingWriter || incomingWriter === currentWriter) return;
+
+    externalConflict = true;
+    lastSaveOk = false;
+    lastSaveError = 'multi-tab conflict';
+    conflictBackupKey = 'conflict-' + Date.now();
+    conflictBackupPending = true;
+    const snapshot = {
+      detectedAt: new Date().toISOString(),
+      local: JSON.parse(JSON.stringify(state)),
+      incoming: incoming
+    };
+    writeIndexedDbValue(snapshot, conflictBackupKey).then(function (ok) {
+      conflictBackupPending = false;
+      if (!ok) conflictBackupKey = null;
+      document.dispatchEvent(new CustomEvent('shici:conflict', {
+        detail: {
+          backupKey: conflictBackupKey,
+          localWriterId: currentWriter,
+          incomingWriterId: incomingWriter
+        }
+      }));
+    });
+    document.dispatchEvent(new CustomEvent('shici:change'));
+  }
+
+  window.addEventListener('storage', handleStorageEvent);
+
   function exportState() {
     state.meta.lastBackupAt = new Date().toISOString();
     state.meta.lastBackupName = '拾词学习记录-' + todayKey() + '.json';
@@ -633,20 +556,16 @@
     if (!parsed.profile || typeof parsed.profile !== 'object') throw new Error('备份缺少用户设置');
     const integrity = StateIntegrity ? StateIntegrity.verify(parsed) : { status: 'unsigned' };
     if (integrity.status === 'mismatch') throw new Error('备份完整性校验失败');
-    const migrated = Object.assign({}, parsed, {
-      version: SCHEMA_VERSION,
-      profile: Object.assign({}, createDefaultState().profile, parsed.profile),
-      words: parsed.words,
-      activity: parsed.activity || {},
-      bookSeeds: parsed.bookSeeds || {},
-      meta: Object.assign({}, createDefaultState().meta, parsed.meta || {})
-    });
-    migrated.version = SCHEMA_VERSION;
-    migrated.meta.schema = SCHEMA_VERSION;
+    const normalized = normalizeState(parsed);
+    const migrated = normalized.state;
     migrated.meta.revision = Math.max(0, Number(migrated.meta.revision) || 0) + 1;
-    Object.keys(migrated.words).forEach(function (id) {
-      migrated.words[id] = normalizeRecord(migrated.words[id], migrated.profile.activeBook || activeBookId);
-    });
+    if (normalized.migrated) {
+      migrated.meta.migration = {
+        from: normalized.migratedFrom,
+        to: SCHEMA_VERSION,
+        warnings: normalized.warnings.slice()
+      };
+    }
     if (StateIntegrity) StateIntegrity.attach(migrated);
     const previous = window.localStorage.getItem(STORAGE_KEY);
     if (previous) {
@@ -669,11 +588,17 @@
       lastSaveLayers: lastSaveLayers.slice(),
       lastSavedAt: state.meta.updatedAt || null,
       revision: Number(state.meta.revision) || 0,
+      writerId: state.meta.writerId || null,
       integrity: state.meta.integrity || null,
       integrityError: state.meta.integrityError || null,
+      conflict: externalConflict,
+      conflictBackupKey: conflictBackupKey,
+      conflictBackupPending: conflictBackupPending,
       remoteSavedAt: remoteSavedAt,
       lastServerSavedAt: state.meta.lastServerSavedAt || null,
-      error: remoteLastError,
+      error: lastSaveOk === false ? lastSaveError : remoteLastError,
+      saveError: lastSaveError,
+      remoteError: remoteLastError,
       lastBackupAt: state.meta.lastBackupAt || null,
       storagePersisted: persistentStorage,
       corruptBackupKey: state.meta.corruptBackupKey || null

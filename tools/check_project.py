@@ -313,13 +313,18 @@ def main():
         "css/info-pages.css",
         "js/feedback.js",
         "js/product-analytics.js",
+        "js/domain/state-schema.js",
         "js/domain/srs-engine.js",
         "js/storage/state-integrity.js",
         "tools/fixtures/state-v3.min.json",
+        "tools/fixtures/state-v1.min.json",
+        "tools/fixtures/state-v2.min.json",
+        "tools/tests/state-schema.test.cjs",
         "tools/tests/srs-engine.test.cjs",
         "tools/tests/state-integrity.test.cjs",
         "docs/contracts/baseline.md",
         "docs/contracts/storage-safety.md",
+        "docs/contracts/t02-migration-plan.md",
         "docs/system_design.md",
         "docs/01-shici-prd.md",
         "reports/content-review.csv",
@@ -359,13 +364,14 @@ def main():
     require("ego-browser nodejs" in (ROOT / "tools/test_learning_system.sh").read_text(), "浏览器主验收必须使用 ego-browser")
     index_html = (ROOT / "index.html").read_text()
     require('rel="manifest"' in index_html, "页面必须声明 Web App Manifest")
-    require("css/styles.css?v=29" in index_html, "入口资源版本必须升级到 v29")
-    require("js/product-analytics.js?v=29" in index_html, "匿名事件接口必须随入口加载")
-    require("js/domain/srs-engine.js?v=29" in index_html, "SRS 领域模块必须随入口加载")
-    require("js/storage/state-integrity.js?v=29" in index_html, "状态完整性模块必须随入口加载")
+    require("css/styles.css?v=30" in index_html, "入口资源版本必须升级到 v30")
+    require("js/product-analytics.js?v=30" in index_html, "匿名事件接口必须随入口加载")
+    require("js/domain/state-schema.js?v=30" in index_html, "状态迁移模块必须随入口加载")
+    require("js/domain/srs-engine.js?v=30" in index_html, "SRS 领域模块必须随入口加载")
+    require("js/storage/state-integrity.js?v=30" in index_html, "状态完整性模块必须随入口加载")
     sw_text = (ROOT / "sw.js").read_text()
-    require("shici-v29" in sw_text, "Service Worker 缓存版本必须升级到 v29")
-    require(sw_text.count("?v=29") == 8, "Service Worker 应用资源必须全部使用 v29")
+    require("shici-v30" in sw_text, "Service Worker 缓存版本必须升级到 v30")
+    require(sw_text.count("?v=30") == 9, "Service Worker 应用资源必须全部使用 v30")
     require("data/books/index.js?v=26" in sw_text, "词书索引必须使用独立的数据版本")
     require("feedback.html" in (ROOT / "js/ui.js").read_text(), "设置页必须提供公开反馈入口")
     require("privacy.html" in index_html, "页脚必须提供隐私说明")

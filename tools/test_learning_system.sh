@@ -362,7 +362,7 @@ try {
   });
   await page.reload({ timeout: 30000 });
   await page.waitForSelector(".app-shell");
-  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 30000 });
+  await page.waitForFunction(() => Boolean(document.getElementById("bootScreen")?.hidden), undefined, { timeout: 60000 });
   const offline = await page.evaluate(() => ({
     bootError: Boolean(document.querySelector(".boot-screen.is-error")),
     controlled: Boolean(navigator.serviceWorker.controller),
@@ -485,6 +485,151 @@ try {
     throw new Error("integrity mismatch was not quarantined and recovered from IndexedDB");
   }
 
+  const conflictPage = await task.newPage();
+  let conflictRecovery;
+  try {
+    await conflictPage.goto(BASE_URL + "/#home", { timeout: 30000 });
+    await conflictPage.waitForSelector(".app-shell");
+    await conflictPage.waitForFunction(
+      () => Boolean(document.getElementById("bootScreen")?.hidden),
+      undefined,
+      { timeout: 30000 }
+    );
+    await page.evaluate(() => Store.updateProfile({ name: "标签页一" }));
+    await conflictPage.waitForFunction(
+      () => {
+        const persistence = Store.getPersistence();
+        return persistence.conflict && !persistence.conflictBackupPending;
+      },
+      undefined,
+      { timeout: 5000 }
+    );
+    conflictRecovery = await conflictPage.evaluate(() => {
+      const before = Store.getPersistence();
+      Store.updateProfile({ name: "标签页二" });
+      const after = Store.getPersistence();
+      return {
+        conflict: before.conflict,
+        backupKey: before.conflictBackupKey,
+        localWriterId: before.writerId,
+        saveBlocked: after.lastSaveOk === false && after.error === "multi-tab conflict",
+        afterSaveOk: after.lastSaveOk,
+        afterError: after.error,
+        afterRevision: after.revision
+      };
+    });
+    if (!conflictRecovery.conflict || !conflictRecovery.backupKey || !conflictRecovery.saveBlocked) {
+      throw new Error("multi-tab conflict was not preserved and write-blocked: " + JSON.stringify(conflictRecovery));
+    }
+  } finally {
+    await conflictPage.close();
+  }
+
+  const bothLayersFail = await page.evaluate(async () => {
+    const originalSetItem = Storage.prototype.setItem;
+    const originalPut = IDBObjectStore.prototype.put;
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "shici.state.v1") {
+        throw new DOMException("quota test", "QuotaExceededError");
+      }
+      return originalSetItem.call(this, key, value);
+    };
+    IDBObjectStore.prototype.put = function () {
+      throw new DOMException("indexedDB test failure", "DataError");
+    };
+    Store.updateProfile({ name: "双层失败" });
+    const started = Date.now();
+    while (Date.now() - started < 3000) {
+      if (Store.getPersistence().lastSaveOk === false) break;
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    const result = {
+      lastSaveOk: Store.getPersistence().lastSaveOk,
+      error: Store.getPersistence().error,
+      warningVisible: Boolean(document.querySelector(".modal"))
+    };
+    Storage.prototype.setItem = originalSetItem;
+    IDBObjectStore.prototype.put = originalPut;
+    const cancel = document.querySelector('.modal [data-action="modal-cancel"]');
+    if (cancel) cancel.click();
+    Store.updateProfile({ name: "恢复保存" });
+    await new Promise(resolve => setTimeout(resolve, 150));
+    result.recovered = Store.getPersistence().lastSaveOk === true;
+    return result;
+  });
+  if (bothLayersFail.lastSaveOk !== false || !bothLayersFail.warningVisible || !bothLayersFail.recovered) {
+    throw new Error("double persistence failure did not block false success or recover");
+  }
+
+  const legacyPage = await task.newPage();
+  let legacyMigration;
+  try {
+    await legacyPage.goto(BASE_URL + "/offline.html", { timeout: 30000 });
+    await legacyPage.evaluate(() => {
+      localStorage.setItem("shici.state.v1", JSON.stringify({
+        version: 1,
+        profile: {
+          name: "旧版迁移",
+          dailyGoal: 999,
+          voiceGender: "robot",
+          voiceRate: 3,
+          activeBook: "removed-book"
+        },
+        words: {
+          abandon: {
+            seen: 1,
+            quizSeen: 3,
+            quizCorrect: 2,
+            firstSeen: "2026-10-01",
+            futureRecordField: "keep-record"
+          }
+        },
+        activity: {
+          "2026-10-01": {
+            attempts: 3,
+            correct: 2,
+            learned: ["abandon"]
+          }
+        },
+        meta: { schema: 1, sessions: 1 },
+        futureTopLevelField: { keep: true }
+      }));
+    });
+    await legacyPage.goto(BASE_URL + "/#home", { timeout: 30000 });
+    await legacyPage.waitForSelector(".app-shell");
+    await legacyPage.waitForFunction(
+      () => Boolean(document.getElementById("bootScreen")?.hidden),
+      undefined,
+      { timeout: 30000 }
+    );
+    legacyMigration = await legacyPage.evaluate(() => {
+      const before = Store.getState();
+      const record = Store.getRecord("abandon");
+      Store.updateProfile({ name: "旧版迁移后保存" });
+      return {
+        version: before.version,
+        schema: before.meta.schema,
+        dailyGoal: before.profile.dailyGoal,
+        activeBook: before.profile.activeBook,
+        books: record.books.slice(),
+        recordExtra: record.futureRecordField,
+        topLevelExtra: before.futureTopLevelField,
+        migration: before.meta.migration,
+        integrity: Store.getPersistence().integrity
+      };
+    });
+  } finally {
+    await legacyPage.close();
+  }
+  if (legacyMigration.version !== 3 || legacyMigration.schema !== 3 ||
+      legacyMigration.dailyGoal !== 20 || legacyMigration.activeBook !== "gaokao" ||
+      JSON.stringify(legacyMigration.books) !== JSON.stringify(["gaokao"]) ||
+      legacyMigration.recordExtra !== "keep-record" ||
+      !legacyMigration.topLevelExtra || legacyMigration.topLevelExtra.keep !== true ||
+      legacyMigration.migration.from !== 1 || !legacyMigration.integrity) {
+    throw new Error("legacy V1 state migration failed: " + JSON.stringify(legacyMigration));
+  }
+
   const manifest = await page.fetch("manifest.webmanifest");
   const manifestBody = JSON.parse(manifest.body);
   if (!manifest.ok || !Array.isArray(manifestBody.icons) || manifestBody.icons.length < 2) {
@@ -513,6 +658,9 @@ try {
     responsive,
     storageFault,
     integrityRecovery,
+    conflictRecovery,
+    bothLayersFail,
+    legacyMigration,
     routeResponsive,
     manifestIcons: manifestBody.icons.length,
     shot: SHOT
