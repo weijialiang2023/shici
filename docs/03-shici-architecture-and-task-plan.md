@@ -10,7 +10,7 @@
 
 | 基线 | 已核实事实 | 架构难点 |
 |---|---|---|
-| 静态入口 | `index.html` 301 行，含 SVG Sprite、`#bootScreen`、`#appShell`，预加载 `data/books/{activeBook}.js?v=26`；按 `product-analytics.js`、`data.js`、`store.js`、`ui.js`、`app.js` 顺序执行 | 全局脚本顺序及预载词书不可被重构破坏 |
+| 静态入口 | `index.html` 301 行，含 SVG Sprite、`#bootScreen`、`#appShell`，预加载 `data/books/{activeBook}.manifest.js?v=27`；按 `product-analytics.js`、`data.js`、`store.js`、`ui.js`、`app.js` 顺序执行 | 全局脚本顺序及预载词书不可被重构破坏 |
 | 状态/算法 | `js/store.js` 1657 行，公开 `window.Store`；`STORAGE_KEY='shici.state.v1'`、`SCHEMA_VERSION=3`、`DB_NAME='shici-progress'`、`REVIEW_DAYS=[1,2,4,7,15,30,60,90]`、`MASTER_STAGE=5`、`TARGET_RETENTION=0.85` | 领域计算、三层持久化、历史状态同文件交织 |
 | 渲染/控制 | `js/ui.js` 1378 行，公开 `window.UI`；`js/app.js` 2264 行，`handleAction` 约 430 行 | 拆分需保持所有旧 `data-action`、路由与调用形状 |
 | 样式/部署 | `css/styles.css` 9649 行；`serve.py` 245 行，监听 `127.0.0.1:4173`，提供 `/api/state`、`/api/health`、`/api/history`、`/api/export` | GitHub Pages 静态部署与本机进度快照 API 双模共存 |

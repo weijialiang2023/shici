@@ -294,6 +294,33 @@ def main():
         require(index[book_id] == word_ids, f"{book_id} 索引 ID 或顺序与词书不一致")
         total_words += len(book_words)
     require(total_words == 10799, f"六本词书合计必须有 10799 条，实际 {total_words} 条")
+    for book_id, expected_count in BOOK_COUNTS.items():
+        manifest_path = ROOT / f"data/books/{book_id}.manifest.js"
+        require(manifest_path.exists(), f"{book_id} 缺少分段词书清单")
+        manifest_text = manifest_path.read_text(encoding="utf-8")
+        manifest = json.loads(manifest_text.split("] = ", 1)[1].rstrip().rstrip(";"))
+        require(manifest.get("wordCount") == expected_count,
+                f"{book_id} 分段清单词数不一致")
+        require(len(manifest.get("wordIds", [])) == expected_count,
+                f"{book_id} 分段清单 ID 不完整")
+        require(sum(chunk.get("count", 0) for chunk in manifest.get("chunks", [])) == expected_count,
+                f"{book_id} 分段数量总和不一致")
+        unit_union = []
+        for ids in manifest.get("unitIds", {}).values():
+            unit_union.extend(ids)
+        require(len(unit_union) == expected_count and len(set(unit_union)) == expected_count,
+                f"{book_id} 单元 ID 映射不完整或重复")
+        chunk_ids = []
+        for chunk in manifest["chunks"]:
+            chunk_path = ROOT / chunk["path"]
+            require(chunk_path.exists(), f"{book_id} 缺少分段 {chunk['path']}")
+            require(chunk_path.stat().st_size < 300 * 1024,
+                    f"{book_id} 单段词书超过 300KB")
+            chunk_text = chunk_path.read_text(encoding="utf-8")
+            chunk_payload = json.loads(chunk_text.split("] = ", 1)[1].rstrip().rstrip(";"))
+            chunk_ids.extend(word["id"] for word in chunk_payload.get("words", []))
+        require(chunk_ids == manifest["wordIds"],
+                f"{book_id} 分段顺序与清单 ID 不一致")
     require(len(catalog.get("words", [])) == 1000, "高频字义源目录必须是 1000 条")
     require(all(row.get("pinyin") and row.get("meanings") for row in catalog["words"]), "高频字义源目录必须有读音和义项")
     require(all(source.get("license") == "MIT" and source.get("commit") for source in catalog.get("sources", [])), "高频字义数据源必须记录 MIT 授权与固定版本")
@@ -319,6 +346,7 @@ def main():
         "js/storage/state-integrity.js",
         "js/domain/entitlements.js",
         "tools/issue_memory_wall_license.py",
+        "tools/build_book_chunks.py",
         "docs/contracts/memory-wall-payment.md",
         "tools/fixtures/state-v3.min.json",
         "tools/fixtures/state-v1.min.json",
@@ -368,17 +396,20 @@ def main():
     require("ego-browser nodejs" in (ROOT / "tools/test_learning_system.sh").read_text(), "浏览器主验收必须使用 ego-browser")
     index_html = (ROOT / "index.html").read_text()
     require('rel="manifest"' in index_html, "页面必须声明 Web App Manifest")
-    require("css/styles.css?v=32" in index_html, "入口资源版本必须升级到 v32")
-    require("js/product-analytics.js?v=32" in index_html, "匿名事件接口必须随入口加载")
-    require("js/premium-config.js?v=32" in index_html, "付费产品配置必须随入口加载")
-    require("js/domain/state-schema.js?v=32" in index_html, "状态迁移模块必须随入口加载")
-    require("js/domain/srs-engine.js?v=32" in index_html, "SRS 领域模块必须随入口加载")
-    require("js/storage/state-integrity.js?v=32" in index_html, "状态完整性模块必须随入口加载")
-    require("js/domain/entitlements.js?v=32" in index_html, "离线授权校验模块必须随入口加载")
+    require("css/styles.css?v=33" in index_html, "入口资源版本必须升级到 v33")
+    require("js/product-analytics.js?v=33" in index_html, "匿名事件接口必须随入口加载")
+    require("js/premium-config.js?v=33" in index_html, "付费产品配置必须随入口加载")
+    require("js/domain/state-schema.js?v=33" in index_html, "状态迁移模块必须随入口加载")
+    require("js/domain/srs-engine.js?v=33" in index_html, "SRS 领域模块必须随入口加载")
+    require("js/storage/state-integrity.js?v=33" in index_html, "状态完整性模块必须随入口加载")
+    require("js/domain/entitlements.js?v=33" in index_html, "离线授权校验模块必须随入口加载")
     sw_text = (ROOT / "sw.js").read_text()
-    require("shici-v32" in sw_text, "Service Worker 缓存版本必须升级到 v32")
-    require(sw_text.count("?v=32") == 11, "Service Worker 应用资源必须全部使用 v32")
-    require("data/books/index.js?v=26" in sw_text, "词书索引必须使用独立的数据版本")
+    require("shici-v33" in sw_text, "Service Worker 缓存版本必须升级到 v33")
+    require(sw_text.count("?v=33") == 11, "Service Worker 应用资源必须全部使用 v33")
+    require("data/books/index.js?v=27" in sw_text, "词书索引必须使用独立的数据版本")
+    app_js = (ROOT / "js/app.js").read_text()
+    require("fetchBookManifest" in app_js and "fetchBookChunk" in app_js,
+            "应用必须支持分段词书渐进加载")
     require("feedback.html" in (ROOT / "js/ui.js").read_text(), "设置页必须提供公开反馈入口")
     require("privacy.html" in index_html, "页脚必须提供隐私说明")
     analytics_js = (ROOT / "js/product-analytics.js").read_text()

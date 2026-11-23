@@ -13,14 +13,15 @@
   const LIBRARY_PAGE_SIZE = 30;
   // This revision changes only when book payloads change, so app-only releases
   // can reuse the already cached 3500-word book instead of downloading it again.
-  const BOOK_ASSET_VERSION = '26';
+  const BOOK_ASSET_VERSION = '27';
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '32';
+    return match ? decodeURIComponent(match[1]) : '33';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
+  const bookFullPromises = new Map();
   let bookIndexCache = null;
   let reportTracked = false;
   let printTracked = false;
@@ -2385,13 +2386,13 @@
     return path + (window.location.protocol === 'file:' ? '' : '?v=' + (version || ASSET_VERSION));
   }
 
-  function loadScriptOnce(path, key, version) {
+  function loadScriptOnce(path, key, version, priority) {
     if (bookScriptPromises.has(key)) return bookScriptPromises.get(key);
     const promise = new Promise(function (resolve, reject) {
       const script = document.createElement('script');
       script.src = withAssetVersion(path, version);
       script.async = true;
-      script.fetchPriority = 'high';
+      script.fetchPriority = priority || 'high';
       script.dataset.shiciScript = key;
       script.onload = function () { resolve(); };
       script.onerror = function () {
@@ -2416,8 +2417,110 @@
     return bookIndexCache;
   }
 
+  async function fetchBookManifest(bookId) {
+    const existing = window.__SHICI_BOOK_MANIFESTS__ && window.__SHICI_BOOK_MANIFESTS__[bookId];
+    if (existing) return existing;
+    await loadScriptOnce(
+      'data/books/' + bookId + '.manifest.js',
+      'book-manifest-' + bookId,
+      BOOK_ASSET_VERSION,
+      'high'
+    );
+    return window.__SHICI_BOOK_MANIFESTS__ && window.__SHICI_BOOK_MANIFESTS__[bookId];
+  }
+
+  async function fetchBookChunk(bookId, chunk, priority) {
+    const key = bookId + ':' + chunk.index;
+    const existing = window.__SHICI_BOOK_CHUNKS__ && window.__SHICI_BOOK_CHUNKS__[key];
+    if (existing) return existing;
+    await loadScriptOnce(
+      chunk.path,
+      'book-chunk-' + bookId + '-' + chunk.index,
+      BOOK_ASSET_VERSION,
+      priority
+    );
+    return window.__SHICI_BOOK_CHUNKS__ && window.__SHICI_BOOK_CHUNKS__[key];
+  }
+
+  function compactBookPayload(bookId, manifest, chunks, partial) {
+    const words = [];
+    chunks.forEach(function (chunk) {
+      if (chunk && Array.isArray(chunk.words)) words.push.apply(words, chunk.words);
+    });
+    return {
+      id: bookId,
+      version: manifest.version || 1,
+      words: words,
+      units: manifest.units,
+      wordIds: manifest.wordIds,
+      unitIds: manifest.unitIds,
+      wordCount: manifest.wordCount,
+      partial: Boolean(partial)
+    };
+  }
+
+  async function loadFullSplitBook(bookId, manifest) {
+    if (bookFullPromises.has(bookId)) return bookFullPromises.get(bookId);
+    const promise = (async function () {
+      const chunks = [];
+      for (const chunkMeta of manifest.chunks) {
+        chunks.push(await fetchBookChunk(bookId, chunkMeta, 'low'));
+      }
+      const payload = compactBookPayload(bookId, manifest, chunks, false);
+      if (payload.words.length !== manifest.wordCount ||
+          payload.wordIds.length !== manifest.wordCount) {
+        throw new Error('分段词书数量不一致');
+      }
+      bookCache.set(bookId, payload);
+      if (Store.getActiveBookId() === bookId) {
+        Store.loadBook(bookId, payload);
+        if (!app.session) {
+          renderAll();
+        } else {
+          renderChrome(Store.getOverview());
+        }
+      }
+      return payload;
+    })().catch(function (error) {
+      bookFullPromises.delete(bookId);
+      throw error;
+    });
+    bookFullPromises.set(bookId, promise);
+    return promise;
+  }
+
+  function scheduleFullSplitBook(bookId, manifest) {
+    let waits = 0;
+    function start() {
+      if (!Number.isFinite(window.__SHICI_BOOT_MS) && waits < 200) {
+        waits += 1;
+        window.setTimeout(start, 120);
+        return;
+      }
+      if (!Number.isFinite(window.__SHICI_BOOT_MS)) return;
+      loadFullSplitBook(bookId, manifest).catch(function () {
+        // The first chunk keeps the app usable; a later navigation can retry.
+      });
+    }
+    window.setTimeout(start, 60);
+  }
+
   async function fetchBookPayload(bookId) {
     if (bookCache.has(bookId)) return bookCache.get(bookId);
+    try {
+      const manifest = await fetchBookManifest(bookId);
+      if (!manifest || !Array.isArray(manifest.chunks) || !manifest.chunks.length) {
+        throw new Error('分段词书清单缺失');
+      }
+      const firstChunk = await fetchBookChunk(bookId, manifest.chunks[0], 'high');
+      const payload = compactBookPayload(bookId, manifest, [firstChunk], manifest.chunks.length > 1);
+      bookCache.set(bookId, payload);
+      if (manifest.chunks.length > 1) scheduleFullSplitBook(bookId, manifest);
+      return payload;
+    } catch (splitError) {
+      // Older deployments may still have only the monolithic book payload.
+      if (bookCache.has(bookId)) return bookCache.get(bookId);
+    }
     if (!window.__SHICI_BOOKS__ || !window.__SHICI_BOOKS__[bookId]) {
       await loadScriptOnce('data/books/' + bookId + '.js', 'book-' + bookId, BOOK_ASSET_VERSION);
     }
@@ -2444,7 +2547,10 @@
         fetchBookIndex().catch(function () { return null; })
       ]);
       if (results[1]) Store.setBookIndex(results[1]);
-      Store.activateBook(bookId, results[0]);
+      let payload = results[0];
+      const cachedPayload = bookCache.get(bookId);
+      if (cachedPayload && !cachedPayload.partial) payload = cachedPayload;
+      Store.activateBook(bookId, payload);
       app.library = { query: '', status: 'all', unit: 'all', page: 1 };
       app.bookLoadingId = null;
       hideBootScreen();
@@ -2522,6 +2628,8 @@
         setBootState('正在打开「' + meta.title + '」', '正在读取本机恢复后的词书。', false);
         payload = await fetchBookPayload(meta.id);
       }
+      const cachedPayload = bookCache.get(activeBookId);
+      if (cachedPayload && !cachedPayload.partial) payload = cachedPayload;
       Store.loadBook(activeBookId, payload);
       parseHash();
       renderAll();

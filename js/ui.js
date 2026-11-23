@@ -108,6 +108,12 @@
     return (window.Store && window.Store.getBookMeta()) || (window.BOOKS || [])[0] || null;
   }
 
+  function bookLoadingBadge() {
+    const state = window.__SHICI_BOOK_LOAD_STATE__;
+    if (!state || state.complete || !state.total) return '';
+    return '<span class="pill book-load-pill">' + state.loaded + ' / ' + state.total + ' 词载入中</span>';
+  }
+
   function bookContextHTML(variant) {
     const book = activeBook();
     if (!book) return '';
@@ -335,7 +341,7 @@
       '<h1 class="page-title">今日学习</h1>' +
       '<p class="page-head__desc">' + esc(data.greeting) + '，' + esc(data.name || '同学') + '。不着急，一次记一个词。</p>' +
       '</div>' +
-      '<div class="home-head__meta">' + bookContextHTML('home') + '</div>' +
+      '<div class="home-head__meta">' + bookLoadingBadge() + bookContextHTML('home') + '</div>' +
       '</header>' +
 
       '<div class="home-grid' + (word ? '' : ' home-grid--no-word') + '">' +
@@ -594,7 +600,7 @@
     return '' +
       '<header class="page-head library-head">' +
       '<div><p class="eyebrow">MY WORD ATLAS</p><h1 class="page-title">我的词库</h1>' +
-      '<p class="page-head__desc">' + (activeBook() ? activeBook().title + ' · 共 ' + activeBook().count + ' 个词。' : '') + '点开任意一张词卡，读它的例句和搭配。</p></div>' +
+      '<p class="page-head__desc">' + (activeBook() ? activeBook().title + ' · 共 ' + activeBook().count + ' 个词。' : '') + (bookLoadingBadge() ? '词书正在后台补全。' : '') + '点开任意一张词卡，读它的例句和搭配。</p></div>' +
       '<button class="library-progress-card library-progress-card--button" type="button" data-action="navigate" data-route="books">' + miniRing(percent) +
       '<div class="library-progress-card__text"><strong>' + overview.totalSeen + ' <small>/ ' + overview.totalWords + ' 个词</small></strong><span>' + esc(activeBook() ? activeBook().title : '当前词书') + ' · 切换词书 ' + icon('chevron-right') + '</span></div>' +
       '</button></header>' +

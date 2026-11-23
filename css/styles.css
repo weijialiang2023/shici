@@ -9653,6 +9653,11 @@ input[type="search"]::-webkit-search-decoration {
   align-items: flex-end;
 }
 
+.book-load-pill {
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
 .memory-wall-controls {
   margin: 0 0 24px;
   padding: 22px;

@@ -13,7 +13,7 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/styles.css?v=32">
+  <link rel="stylesheet" href="css/styles.css?v=33">
   <script>
     (function () {
       try {
@@ -32,7 +32,7 @@
         preload.rel = 'preload';
         preload.as = 'script';
         preload.fetchPriority = 'high';
-        preload.href = 'data/books/' + activeBook + '.js?v=26';
+        preload.href = 'data/books/' + activeBook + '.manifest.js?v=27';
         document.head.appendChild(preload);
       } catch (error) {
         // Preloading is an optimization; normal boot can continue without it.
@@ -331,15 +331,15 @@
   <div id="overlayRoot"></div>
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="js/product-analytics.js?v=32"></script>
-  <script src="js/premium-config.js?v=32"></script>
-  <script src="js/domain/state-schema.js?v=32"></script>
-  <script src="js/domain/srs-engine.js?v=32"></script>
-  <script src="js/storage/state-integrity.js?v=32"></script>
-  <script src="js/domain/entitlements.js?v=32"></script>
-  <script src="js/data.js?v=32"></script>
-  <script src="js/store.js?v=32"></script>
-  <script src="js/ui.js?v=32"></script>
-  <script src="js/app.js?v=32"></script>
+  <script src="js/product-analytics.js?v=33"></script>
+  <script src="js/premium-config.js?v=33"></script>
+  <script src="js/domain/state-schema.js?v=33"></script>
+  <script src="js/domain/srs-engine.js?v=33"></script>
+  <script src="js/storage/state-integrity.js?v=33"></script>
+  <script src="js/domain/entitlements.js?v=33"></script>
+  <script src="js/data.js?v=33"></script>
+  <script src="js/store.js?v=33"></script>
+  <script src="js/ui.js?v=33"></script>
+  <script src="js/app.js?v=33"></script>
 </body>
 </html>

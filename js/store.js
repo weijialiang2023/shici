@@ -22,6 +22,10 @@
 
   let activeWords = [];
   let activeUnits = [];
+  let activeWordIds = [];
+  let activeWordTotal = 0;
+  let activeUnitIds = {};
+  let activeBookComplete = false;
   let wordMap = new Map();
   let unitMap = new Map();
   let activeBookId = window.DEFAULT_BOOK || 'gaokao';
@@ -951,6 +955,10 @@
     if (!payload || !Array.isArray(payload.words) || !Array.isArray(payload.units)) {
       throw new Error('词书数据格式不正确');
     }
+    const partial = Boolean(payload.partial);
+    const declaredIds = Array.isArray(payload.wordIds)
+      ? payload.wordIds.filter(function (id) { return typeof id === 'string' && id; })
+      : payload.words.map(function (word) { return word.id; });
     activeBookId = bookId;
     if (!state.bookSeeds || typeof state.bookSeeds !== 'object') state.bookSeeds = {};
     let seed = state.bookSeeds[bookId];
@@ -964,7 +972,15 @@
 
     activeWords = ordered;
     activeWords.forEach(function (word) { word.bookId = bookId; });
-    if (bookId === 'curated' || bookId === 'wenyan') {
+    activeWordIds = declaredIds;
+    activeWordTotal = Math.max(activeWords.length, Number(payload.wordCount || payload.totalWords) || declaredIds.length);
+    activeBookComplete = !partial || activeWords.length >= activeWordTotal;
+    activeUnitIds = payload.unitIds && typeof payload.unitIds === 'object'
+      ? payload.unitIds
+      : {};
+    if (partial) {
+      activeUnits = sourceUnits;
+    } else if (bookId === 'curated' || bookId === 'wenyan') {
       // 精讲词与文言字词按策划分组组织，保留原始顺序；新词队列优先核心 120，再进入拓展与高频字义。
       activeUnits = sourceUnits;
     } else {
@@ -993,10 +1009,24 @@
         word.unit = Math.min(groupCount, Math.floor(index / groupSize) + 1);
       });
     }
+    if (!partial) {
+      activeUnitIds = {};
+      activeWords.forEach(function (word) {
+        const key = String(word.unit || 1);
+        if (!activeUnitIds[key]) activeUnitIds[key] = [];
+        activeUnitIds[key].push(word.id);
+      });
+    }
     wordMap = new Map(activeWords.map(function (word) { return [word.id, word]; }));
     unitMap = new Map(activeUnits.map(function (unit) { return [unit.id, unit]; }));
     window.WORDS = activeWords;
     window.UNITS = activeUnits;
+    window.__SHICI_BOOK_LOAD_STATE__ = {
+      bookId: bookId,
+      loaded: activeWords.length,
+      total: activeWordTotal,
+      complete: activeBookComplete
+    };
     if (isNewSeed) save();
   }
 
@@ -1017,7 +1047,9 @@
   function getBookProgress(bookId) {
     let seen = 0;
     let mastered = 0;
-    const ids = Array.isArray(bookIndex[bookId]) ? bookIndex[bookId] : null;
+    const ids = Array.isArray(bookIndex[bookId])
+      ? bookIndex[bookId]
+      : (bookId === activeBookId && activeWordIds.length ? activeWordIds : null);
     if (ids) {
       ids.forEach(function (id) {
         const record = state.words[id];
@@ -1122,21 +1154,23 @@
   }
 
   function unitStats(unitId) {
-    const words = activeWords.filter(function (word) { return word.unit === unitId; });
+    const ids = Array.isArray(activeUnitIds[String(unitId)])
+      ? activeUnitIds[String(unitId)]
+      : activeWords.filter(function (word) { return word.unit === unitId; }).map(function (word) { return word.id; });
     let seen = 0;
     let mastered = 0;
-    words.forEach(function (word) {
-      const record = state.words[word.id];
+    ids.forEach(function (id) {
+      const record = state.words[id];
       if (record && record.seen) {
         seen += 1;
         if (hasVerifiedMastery(record)) mastered += 1;
       }
     });
     return {
-      total: words.length,
+      total: ids.length,
       seen: seen,
       mastered: mastered,
-      progress: words.length ? Math.round((seen / words.length) * 100) : 0
+      progress: ids.length ? Math.round((seen / ids.length) * 100) : 0
     };
   }
 
@@ -1186,8 +1220,8 @@
     let retention24 = { seen: 0, correct: 0 };
     let retention7 = { seen: 0, correct: 0 };
     const errorTypes = {};
-    activeWords.forEach(function (word) {
-      const record = state.words[word.id];
+    activeWordIds.forEach(function (id) {
+      const record = state.words[id];
       if (record && record.seen) {
         totalSeen += 1;
         if (hasVerifiedMastery(record)) mastered += 1;
@@ -1217,8 +1251,8 @@
       mastered: mastered,
       learning: learning,
       weak: weak,
-      newRemaining: activeWords.length - totalSeen,
-      totalWords: activeWords.length,
+      newRemaining: Math.max(0, activeWordTotal - totalSeen),
+      totalWords: activeWordTotal,
       due: dueWords().length,
       favorites: favorites().length,
       attempts: attempts,
@@ -1698,7 +1732,7 @@
     const reviewDueToday = dueWords().filter(function (word) {
       return !studied.has(word.id);
     }).length;
-    const newRemaining = newWords().length;
+    const newRemaining = Math.max(0, activeWordTotal - stats.totalSeen);
     let recentSeconds = 0;
     let recentWords = 0;
     for (let offset = 0; offset < 7; offset += 1) {

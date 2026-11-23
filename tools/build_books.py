@@ -14,6 +14,7 @@ from pathlib import Path
 
 from build_wenyan import build_book as build_wenyan_book
 from build_wenyan import js_payload as wenyan_js_payload
+from build_book_chunks import BOOK_IDS, build_book as build_chunks
 
 POS_MAP = {
     'n': 'n.', 'noun': 'n.', 'v': 'v.', 'vi': 'v.', 'vt': 'v.', 'verb': 'v.',
@@ -465,6 +466,9 @@ def main():
     index_target.write_text(json.dumps(index, ensure_ascii=False, separators=(',', ':')))
     index_target.with_suffix('.js').write_text(js_payload(index))
     print(f'index: {sum(len(ids) for ids in index.values())} ids -> {index_target} ({index_target.stat().st_size // 1024} KB)')
+    for book_id in BOOK_IDS:
+        chunk_info = build_chunks(book_id, out_dir)
+        print(f'{book_id}: {chunk_info["chunks"]} progressive chunks generated')
 
 
 if __name__ == '__main__':

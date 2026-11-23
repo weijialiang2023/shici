@@ -46,6 +46,7 @@ ego-browser skill >/dev/null
 ego-browser nodejs <<EOF
 const BASE_URL = "$BASE_URL";
 const LEGACY_BASE_URL = "$LEGACY_BASE_URL";
+const PARTIAL_BASE_URL = BASE_URL.replace("127.0.0.1", "localhost");
 const SHOT = "/tmp/shici-learning-390.png";
 const SPACE_ID = ${EGO_SPACE_ID:-null};
 const existing = SPACE_ID === null
@@ -81,6 +82,60 @@ try {
   });
   await page.cdp("Page.reload", { ignoreCache: true });
   await waitForAppReady(page);
+  await page.waitForFunction(
+    () => window.__SHICI_BOOK_LOAD_STATE__?.complete === true,
+    undefined,
+    { timeout: 30000 }
+  );
+  const splitBook = await page.evaluate(() => {
+    const resources = performance.getEntriesByType("resource")
+      .map(entry => entry.name)
+      .filter(name => name.includes("/data/books/"));
+    const manifest = window.__SHICI_BOOK_MANIFESTS__?.gaokao;
+    return {
+      words: Store.words.length,
+      totalWords: Store.getOverview().totalWords,
+      units: Store.units.length,
+      chunkCount: manifest?.chunks?.length || 0,
+      loadedChunks: resources.filter(name => name.includes("gaokao.chunk-")).length,
+      loadedMonolith: resources.some(name => /\/gaokao\.js(?:\?|$)/.test(name)),
+      loadState: window.__SHICI_BOOK_LOAD_STATE__
+    };
+  });
+  if (splitBook.words !== 3663 || splitBook.totalWords !== 3663 || splitBook.units !== 8 ||
+      splitBook.chunkCount !== 8 || splitBook.loadedChunks < 8 || splitBook.loadedMonolith ||
+      !splitBook.loadState?.complete) {
+    throw new Error("split book did not load completely: " + JSON.stringify(splitBook));
+  }
+
+  const partialPage = await task.newPage();
+  let partialBook;
+  try {
+    await partialPage.cdp("Network.enable");
+    await partialPage.cdp("Network.setCacheDisabled", { cacheDisabled: true });
+    await partialPage.cdp("Network.setBlockedURLs", {
+      urls: [2, 3, 4, 5, 6, 7, 8].map(index => "*gaokao.chunk-0" + index + ".js*")
+    });
+    await partialPage.goto(PARTIAL_BASE_URL + "/#home", { timeout: 30000 });
+    await waitForAppReady(partialPage);
+    await partialPage.waitForTimeout(250);
+    partialBook = await partialPage.evaluate(() => ({
+      words: Store.words.length,
+      totalWords: Store.getOverview().totalWords,
+      planSize: Store.buildDailyPlan().length,
+      loadState: window.__SHICI_BOOK_LOAD_STATE__,
+      loadingBadge: Boolean(document.querySelector(".book-load-pill")),
+      bootError: Boolean(document.querySelector(".boot-screen.is-error"))
+    }));
+    if (partialBook.words < 400 || partialBook.words >= 3663 ||
+        partialBook.totalWords !== 3663 || partialBook.planSize < 1 ||
+        partialBook.loadState?.complete || !partialBook.loadingBadge ||
+        partialBook.bootError) {
+      throw new Error("split book partial fallback failed: " + JSON.stringify(partialBook));
+    }
+  } finally {
+    await partialPage.close().catch(() => {});
+  }
   await page.evaluate(() => {
     window.__learningErrors = [];
     window.__productAnalyticsEvents = [];
@@ -896,6 +951,8 @@ try {
     ok: true,
     taskSpaceId: task.spaceId,
     intervals: logic.intervals,
+    splitBook,
+    partialBook,
     objectiveAccuracy: afterObjectiveAccuracy(logic),
     spellingTotal,
     hintsRecorded,
