@@ -45,7 +45,7 @@ STORE_METHODS = {
 }
 UI_ENTRIES = {
     "renderHome", "renderStudyCenter", "renderLibrary", "renderBooks",
-    "renderReport", "renderSession", "wordDrawer", "settingsDrawer",
+    "renderReport", "renderMemoryWall", "renderSession", "wordDrawer", "settingsDrawer",
     "modal", "searchSuggestions",
 }
 
@@ -313,9 +313,13 @@ def main():
         "css/info-pages.css",
         "js/feedback.js",
         "js/product-analytics.js",
+        "js/premium-config.js",
         "js/domain/state-schema.js",
         "js/domain/srs-engine.js",
         "js/storage/state-integrity.js",
+        "js/domain/entitlements.js",
+        "tools/issue_memory_wall_license.py",
+        "docs/contracts/memory-wall-payment.md",
         "tools/fixtures/state-v3.min.json",
         "tools/fixtures/state-v1.min.json",
         "tools/fixtures/state-v2.min.json",
@@ -364,20 +368,28 @@ def main():
     require("ego-browser nodejs" in (ROOT / "tools/test_learning_system.sh").read_text(), "浏览器主验收必须使用 ego-browser")
     index_html = (ROOT / "index.html").read_text()
     require('rel="manifest"' in index_html, "页面必须声明 Web App Manifest")
-    require("css/styles.css?v=31" in index_html, "入口资源版本必须升级到 v31")
-    require("js/product-analytics.js?v=31" in index_html, "匿名事件接口必须随入口加载")
-    require("js/domain/state-schema.js?v=31" in index_html, "状态迁移模块必须随入口加载")
-    require("js/domain/srs-engine.js?v=31" in index_html, "SRS 领域模块必须随入口加载")
-    require("js/storage/state-integrity.js?v=31" in index_html, "状态完整性模块必须随入口加载")
+    require("css/styles.css?v=32" in index_html, "入口资源版本必须升级到 v32")
+    require("js/product-analytics.js?v=32" in index_html, "匿名事件接口必须随入口加载")
+    require("js/premium-config.js?v=32" in index_html, "付费产品配置必须随入口加载")
+    require("js/domain/state-schema.js?v=32" in index_html, "状态迁移模块必须随入口加载")
+    require("js/domain/srs-engine.js?v=32" in index_html, "SRS 领域模块必须随入口加载")
+    require("js/storage/state-integrity.js?v=32" in index_html, "状态完整性模块必须随入口加载")
+    require("js/domain/entitlements.js?v=32" in index_html, "离线授权校验模块必须随入口加载")
     sw_text = (ROOT / "sw.js").read_text()
-    require("shici-v31" in sw_text, "Service Worker 缓存版本必须升级到 v31")
-    require(sw_text.count("?v=31") == 9, "Service Worker 应用资源必须全部使用 v31")
+    require("shici-v32" in sw_text, "Service Worker 缓存版本必须升级到 v32")
+    require(sw_text.count("?v=32") == 11, "Service Worker 应用资源必须全部使用 v32")
     require("data/books/index.js?v=26" in sw_text, "词书索引必须使用独立的数据版本")
     require("feedback.html" in (ROOT / "js/ui.js").read_text(), "设置页必须提供公开反馈入口")
     require("privacy.html" in index_html, "页脚必须提供隐私说明")
     analytics_js = (ROOT / "js/product-analytics.js").read_text()
     require("SHICI_PRODUCT_ANALYTICS_CONFIG" in analytics_js, "匿名事件接口必须显式配置端点")
     require("if (!consent || !endpoint) return true;" in analytics_js, "匿名事件不得在无同意或无端点时外发")
+    premium_config = (ROOT / "js/premium-config.js").read_text()
+    require("memoryWall" in premium_config and "purchaseUrl" in premium_config,
+            "记忆墙付费产品必须提供可配置购买入口")
+    entitlements_js = (ROOT / "js/domain/entitlements.js").read_text()
+    require("ECDSA" in entitlements_js and "crypto.subtle.verify" in entitlements_js,
+            "付费授权必须使用签名校验")
     review_csv = (ROOT / "reports/content-review.csv").read_text()
     require(review_csv.startswith("priority,priority_score,books,word,"), "内容审核队列必须包含固定表头")
     require("review_status" in review_csv, "内容审核队列必须包含审核状态")

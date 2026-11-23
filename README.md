@@ -64,6 +64,20 @@ GitHub Pages 与本机服务属于两个不同的浏览器 origin，各自使用
 
 每张卡片默认只显示一到两个核心义项，其余义项折叠到“拓展义项”。学习记录 schema 为 v3，旧记录会增量迁移；无法解析的旧数据会先另存为 `shici.state.v1.corrupt.*`，不会被直接覆盖。
 
+## 记忆墙打印包
+
+学习报告和设置页提供“打印记忆墙”入口，把当前词书里已经学过的词排成 A4 打印卡：
+
+- 便签卡：约 90×82mm，适合书桌、冰箱和手账；
+- 口袋条：约 90×40mm，适合单词盒、门框和抽屉；
+- 大字墙：约 90×128mm，适合衣柜、门后和书桌正前方；
+- 可以筛选最近学过、待巩固和收藏词，并开关释义、音标词性与例句；
+- 支持打印和浏览器“另存为 PDF”，不改变任何学习记录。
+
+免费版只打印 3 张带“预览”标记的卡片。完整打印包是买断付费功能，展示首发价 ¥19、常规价 ¥29。购买后使用 ECDSA P-256 签名的离线授权码解锁；签名私钥不进入仓库，客户端仅保存公钥。
+
+正式支付链接配置在 `js/premium-config.js` 的 `memoryWall.purchaseUrl`。未配置在线支付时会进入购买预登记，不收款。授权签发、订单流程、已知限制和验收要求见 `docs/contracts/memory-wall-payment.md`。
+
 ## 复习已学
 
 学习中心提供“复习已学”入口，适用于高中英语、英语文言精讲、文言 1200、雅思和四六级等全部词书：
@@ -247,10 +261,12 @@ shici/
 ├── css/styles.css / info-pages.css
 ├── js/
 │   ├── data.js          # 词书元数据、等级与成就
+│   ├── premium-config.js # 记忆墙价格和购买入口
 │   ├── store.js         # 学习记录、间隔复习、自动保存
 │   ├── ui.js            # 页面、卡片、设置与学习报告
 │   ├── app.js           # 路由、交互、美音与男女声
 │   ├── feedback.js      # 反馈报告生成
+│   ├── domain/entitlements.js # 付费授权的公钥验签
 │   └── product-analytics.js # 默认关闭的匿名事件接口
 ├── data/books/          # 词书及跨词书进度索引
 ├── tools/
@@ -259,6 +275,7 @@ shici/
 │   ├── build_wenyan_catalog.py # 高频字义目录生成
 │   ├── content_audit.py # 内容硬性问题与人工审核信号
 │   ├── export_content_review.py # 自动例句人工审核队列
+│   ├── issue_memory_wall_license.py # 签发记忆墙离线授权码
 │   ├── test_learning_system.sh # ego-browser 主验收
 │   ├── wenyan_catalog.json     # 1000 条高频字义数据
 │   ├── deploy_local.sh  # 部署静态文件，保留 progress/

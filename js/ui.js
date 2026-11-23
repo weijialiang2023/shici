@@ -816,7 +816,7 @@
       '<header class="page-head report-head">' +
       '<div><p class="eyebrow">LEARNING LOG</p><h1 class="page-title">学习报告</h1>' +
       '<p class="page-head__desc">记录不是用来比较的，只是提醒你：每一小步都算数。</p></div>' +
-      '<div class="report-head__actions">' + (overview.weak > 0 ? '<span class="pill pill--orange"><i class="dot"></i> 待巩固 ' + overview.weak + '</span>' : '') + bookContextHTML('sm') + '<button class="btn btn--ghost btn--sm" type="button" data-action="open-settings">' + icon('settings') + ' 学习设置</button></div>' +
+      '<div class="report-head__actions">' + (overview.weak > 0 ? '<span class="pill pill--orange"><i class="dot"></i> 待巩固 ' + overview.weak + '</span>' : '') + bookContextHTML('sm') + '<button class="btn btn--soft btn--sm" type="button" data-action="open-memory-wall">' + icon('notebook') + ' 打印记忆墙</button><button class="btn btn--ghost btn--sm" type="button" data-action="open-settings">' + icon('settings') + ' 学习设置</button></div>' +
       '</header>' +
 
       '<section class="report-stats">' +
@@ -873,6 +873,142 @@
       '<span class="pill pill--green">' + window.BADGE_DEFINITIONS.filter(function (badge) { return badge.test(overview); }).length + ' / ' + window.BADGE_DEFINITIONS.length + ' 已获得</span></div>' +
       '<div class="badge-grid">' + badges + '</div>' +
       '</section>';
+  }
+
+  function memoryWallCard(word, index, options) {
+    const unit = unitFor(word);
+    const record = window.Store.getRecord(word.id) || {};
+    const meaning = coreMeanings(word).slice(0, 2).join('；');
+    const example = word.example || '';
+    const translation = word.translation || '';
+    const weak = record.weak && window.Store.getStatus(word.id) !== 'mastered';
+    const sample = options.locked ? '<span class="memory-wall-card__sample">预览</span>' : '';
+    return '<article class="memory-wall-card memory-wall-card--' + esc(options.layout) + (word.lang === 'zh' ? ' is-zh' : '') + '" style="' + unitStyle(unit) + '">' +
+      sample +
+      '<header class="memory-wall-card__head"><span>' + String(index + 1).padStart(2, '0') + '</span>' +
+      '<span>' + esc(unitDisplay(unit)) + (weak ? ' · 待巩固' : '') + '</span></header>' +
+      '<div class="memory-wall-card__word">' + esc(word.word) + '</div>' +
+      '<div class="memory-wall-card__meta">' +
+      (options.showIpa && word.ipa ? '<span>' + esc(word.ipa) + '</span>' : '') +
+      (word.pos ? '<span>' + esc(word.pos) + '</span>' : '') +
+      '</div>' +
+      (options.showMeaning
+        ? '<p class="memory-wall-card__meaning">' + esc(meaning || '—') + '</p>'
+        : '<p class="memory-wall-card__meaning is-hidden">先看单词，回想它的意思。</p>') +
+      (options.showExample && example
+        ? '<div class="memory-wall-card__example"><p>' + esc(example) + '</p>' +
+          (translation ? '<span>' + esc(translation) + '</span>' : '') + '</div>'
+        : '') +
+      '<footer><span>拾词 · 看一眼，再想一次</span><i></i></footer>' +
+      '</article>';
+  }
+
+  function renderMemoryWall(data) {
+    const book = activeBook();
+    const layoutLabels = {
+      sticky: '便签卡',
+      strip: '口袋条',
+      wall: '大字墙'
+    };
+    const scopeLabels = {
+      recent: '最近学过',
+      weak: '待巩固',
+      favorite: '已收藏'
+    };
+    const layoutOptions = [
+      ['sticky', '便签卡', '一张约 90×82mm，适合桌面和冰箱'],
+      ['strip', '口袋条', '一张约 90×40mm，适合单词盒和门框'],
+      ['wall', '大字墙', '一张约 90×128mm，适合衣柜和书桌正前方']
+    ];
+    const scopeOptions = [
+      ['recent', '最近学过'],
+      ['weak', '待巩固'],
+      ['favorite', '已收藏']
+    ];
+    const countOptions = [12, 24, 40];
+    const layout = data.layout || 'sticky';
+    const scope = data.scope || 'recent';
+    const count = Number(data.count) || 24;
+    const words = data.words || [];
+    const printedWords = words.slice(0, count);
+    const perPage = layout === 'strip' ? 12 : (layout === 'wall' ? 4 : 6);
+    const pages = [];
+    for (let index = 0; index < printedWords.length; index += perPage) {
+      pages.push(printedWords.slice(index, index + perPage));
+    }
+    const date = formatDate(new Date());
+    const controls =
+      '<section class="memory-wall-controls no-print">' +
+      '<div class="memory-wall-control-group"><span>版式</span><div>' +
+      layoutOptions.map(function (item) {
+        return '<button class="memory-wall-option' + (layout === item[0] ? ' is-active' : '') + '" type="button" data-action="set-wall-layout" data-value="' + item[0] + '"><strong>' + item[1] + '</strong><small>' + item[2] + '</small></button>';
+      }).join('') + '</div></div>' +
+      '<div class="memory-wall-control-row">' +
+      '<div class="memory-wall-control-group"><span>挑选</span><div class="memory-wall-chip-row">' +
+      scopeOptions.map(function (item) {
+        return '<button class="filter-chip' + (scope === item[0] ? ' is-active' : '') + '" type="button" data-action="set-wall-scope" data-value="' + item[0] + '">' + item[1] + '</button>';
+      }).join('') + '</div></div>' +
+      '<div class="memory-wall-control-group"><span>张数</span><div class="memory-wall-chip-row">' +
+      countOptions.map(function (value) {
+        return '<button class="filter-chip' + (count === value ? ' is-active' : '') + '" type="button" data-action="set-wall-count" data-value="' + value + '">' + value + ' 张</button>';
+      }).join('') + '</div></div>' +
+      '</div>' +
+      '<div class="memory-wall-control-row memory-wall-control-row--switches">' +
+      '<button class="memory-wall-switch' + (data.showMeaning ? ' is-active' : '') + '" type="button" data-action="toggle-wall-option" data-option="showMeaning" aria-pressed="' + Boolean(data.showMeaning) + '">显示释义</button>' +
+      '<button class="memory-wall-switch' + (data.showIpa ? ' is-active' : '') + '" type="button" data-action="toggle-wall-option" data-option="showIpa" aria-pressed="' + Boolean(data.showIpa) + '">音标与词性</button>' +
+      '<button class="memory-wall-switch' + (data.showExample ? ' is-active' : '') + '" type="button" data-action="toggle-wall-option" data-option="showExample" aria-pressed="' + Boolean(data.showExample) + '">例句</button>' +
+      '</div>' +
+      '</section>';
+
+    if (!data.allStudiedCount) {
+      return '<header class="page-head memory-wall-head">' +
+        '<div><p class="eyebrow">MEMORY WALL</p><h1 class="page-title">记忆墙</h1>' +
+        '<p class="page-head__desc">把学过的词打印下来，贴到手边。先学一组词，这里就会自动出现。</p></div></header>' +
+        '<section class="memory-wall-empty"><span>' + icon('notebook') + '</span><h2>还没有可以打印的单词</h2>' +
+        '<p>学完第一组后，挑选最近学过、待巩固或收藏的词，生成适合粘贴的记忆卡。</p>' +
+        '<a class="btn btn--primary" href="#study">去学第一组 ' + icon('arrow-right', 'icon--shift') + '</a></section>';
+    }
+
+    const lockPanel = data.unlocked ? '' :
+      '<section class="memory-wall-lock no-print">' +
+      '<div class="memory-wall-lock__mark">' + icon('lock') + '</div>' +
+      '<div><p class="eyebrow">PAID PRINT PACK</p><h2>预览 3 张，完整记忆墙需解锁</h2>' +
+      '<p>完整包支持 12–40 张、三种版式、待巩固词筛选、例句和音标开关，可反复打印。首发价 <strong>' + esc(data.priceLabel) + '</strong>，原价 ' + esc(data.regularPriceLabel) + '。</p></div>' +
+      '<div class="memory-wall-lock__actions"><button class="btn btn--primary" type="button" data-action="buy-memory-wall">解锁完整打印包</button>' +
+      '<button class="btn btn--ghost" type="button" data-action="activate-memory-wall">已有授权码</button></div></section>';
+
+    const sheet = pages.map(function (pageWords, pageIndex) {
+      return '<section class="memory-wall-page memory-wall-page--' + esc(layout) + '" aria-label="第 ' + (pageIndex + 1) + ' 页">' +
+        '<header class="memory-wall-page__head"><div><span>拾词 · MEMORY WALL</span><strong>' + esc(book ? book.title : '当前词书') + '</strong></div>' +
+        '<div><span>' + esc(date.full) + '</span><strong>' + esc(scopeLabels[scope] || '已学单词') + ' · ' + layoutLabels[layout] + '</strong></div></header>' +
+        '<div class="memory-wall-grid">' +
+        pageWords.map(function (word, wordIndex) {
+          return memoryWallCard(word, pageIndex * perPage + wordIndex, {
+            layout: layout,
+            locked: !data.unlocked,
+            showMeaning: data.showMeaning,
+            showIpa: data.showIpa,
+            showExample: data.showExample
+          });
+        }).join('') +
+        '</div>' +
+        '<footer class="memory-wall-page__foot"><span>拾词 · 一次一个词</span><span>' + (pageIndex + 1) + ' / ' + pages.length + '</span></footer>' +
+        '</section>';
+    }).join('');
+
+    return '<header class="page-head memory-wall-head">' +
+      '<div><p class="eyebrow">MEMORY WALL</p><h1 class="page-title">记忆墙打印包</h1>' +
+      '<p class="page-head__desc">把已学词裁成小卡片，贴在书桌、衣柜、冰箱或错题本上。少一点信息，多一点重复遇见。</p></div>' +
+      '<div class="page-head__aside"><span class="pill pill--green">' + esc(book ? book.title : '当前词书') + '</span>' +
+      '<span class="pill">' + data.allStudiedCount + ' 个已学词</span></div></header>' +
+      controls + lockPanel +
+      '<div class="memory-wall-summary no-print"><div><strong>' + data.filteredCount + '</strong><span>个词符合条件</span></div>' +
+      '<p>' + (data.unlocked
+        ? '当前会打印 ' + printedWords.length + ' 张，共 ' + pages.length + ' 页。建议使用 A4、实际大小、开启背景图形。'
+        : '未解锁时只打印 3 张预览卡，不带完整版式和筛选。') + '</p>' +
+      '<button class="btn btn--primary" type="button" data-action="print-memory-wall">' + icon('download') + ' 打印 / 存为 PDF</button></div>' +
+      (printedWords.length ? '<div class="memory-wall-sheet">' + sheet + '</div>' :
+        '<section class="memory-wall-empty"><span>' + icon('bookmark') + '</span><h2>这个筛选里还没有词</h2><p>换一个范围，或者先复习几组词。</p></section>');
   }
 
   function wordDrawer(word) {
@@ -959,6 +1095,10 @@
     const backupNote = backupAt
       ? (backupDays >= 14 ? '上次导出备份在 ' + backupDays + ' 天前，建议现在再导出一份。' : '上次导出备份：' + backupAt.toLocaleDateString('zh-CN'))
       : '还没有手动导出备份。浏览器数据可能因清理站点数据而丢失。';
+    const entitlement = window.ShiciEntitlements
+      ? window.ShiciEntitlements.getStatus()
+      : { unlocked: false };
+    const premiumStatus = entitlement.unlocked ? '已解锁完整记忆墙打印包' : '免费预览 3 张，完整版需购买';
     const voiceControl = '<section class="settings-section"><span class="settings-label">英语发音</span>' +
       '<div class="voice-options" role="group" aria-label="选择英语发音声线">' +
       '<button class="voice-option' + (voiceGender === 'female' ? ' is-active' : '') + '" type="button" data-action="set-voice-gender" data-gender="female" aria-pressed="' + (voiceGender === 'female') + '">' +
@@ -1000,10 +1140,15 @@
       '<div class="settings-actions">' +
       '<button class="btn btn--ghost btn--sm" type="button" data-action="export-progress">' + icon('download') + ' 导出当前记录</button>' +
       '<button class="btn btn--ghost btn--sm" type="button" data-action="import-progress">' + icon('upload') + ' 导入备份</button>' +
+      '<button class="btn btn--soft btn--sm" type="button" data-action="open-memory-wall">' + icon('notebook') + ' 记忆墙打印包</button>' +
       (persistence.server ? '<button class="btn btn--ghost btn--sm" type="button" data-action="restore-remote">' + icon('refresh') + ' 从本机恢复</button>' : '') +
       '</div>' +
       '<input id="importProgressFile" type="file" accept="application/json,.json" hidden>' +
       (persistence.server ? '<p class="settings-help">本机存档位于 macOS 的「拾词」应用支持目录：state.json 是当前版本，state.prev.json 是上一版，daily 文件夹永久保留每天的第一份快照，checkpoints 文件夹保留近 90 天每 6 小时的快照。</p>' : '<p class="settings-help">当前是浏览器存储模式。导出文件可以在另一台设备或 GitHub Pages 版本中导入。</p>') +
+      '</section>' +
+      '<section class="settings-section"><span class="settings-label">付费内容</span>' +
+      '<div class="save-status"><i class="dot"></i><div><strong>' + esc(premiumStatus) + '</strong><span>记忆墙打印包提供 A4 便签卡、口袋条和大字墙，可反复打印。</span></div></div>' +
+      '<div class="settings-actions"><button class="btn btn--soft btn--sm" type="button" data-action="open-memory-wall">' + icon('notebook') + (entitlement.unlocked ? ' 打开记忆墙' : ' 查看记忆墙打印包') + '</button></div>' +
       '</section>' +
       '<section class="settings-section"><span class="settings-label">反馈与帮助</span>' +
       '<div class="settings-actions">' +
@@ -1025,6 +1170,7 @@
       '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">' +
       '<span class="modal__icon">' + icon(data.icon || 'info') + '</span>' +
       '<h2 id="modalTitle">' + esc(data.title) + '</h2><p>' + esc(data.message) + '</p>' +
+      (data.inputId ? '<label class="modal__field"><span>' + esc(data.inputLabel || '输入内容') + '</span><input class="text-input" id="' + esc(data.inputId) + '" type="text" autocomplete="off" placeholder="' + esc(data.inputPlaceholder || '') + '"></label>' : '') +
       '<div class="modal__actions"><button class="btn btn--ghost btn--sm" type="button" data-action="modal-cancel">' + esc(data.cancelLabel || '取消') + '</button>' +
       (data.extraLabel ? '<button class="btn btn--ghost btn--sm" type="button" data-action="modal-extra">' + esc(data.extraLabel) + '</button>' : '') +
       '<button class="btn ' + (data.danger ? 'btn--orange' : 'btn--primary') + ' btn--sm" type="button" data-action="modal-confirm">' + esc(data.confirmLabel || '确定') + '</button></div>' +
@@ -1378,6 +1524,7 @@
   UI.renderLibrary = renderLibrary;
   UI.renderBooks = renderBooks;
   UI.renderReport = renderReport;
+  UI.renderMemoryWall = renderMemoryWall;
   UI.wordDrawer = wordDrawer;
   UI.settingsDrawer = settingsDrawer;
   UI.modal = modal;

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '31';
+  const APP_VERSION = '32';
   const REPO_ISSUES = 'https://github.com/weijialiang2023/shici/issues/new';
   const form = document.getElementById('feedbackForm');
   const diagnosticsToggle = document.getElementById('includeDiagnostics');
@@ -18,6 +18,14 @@
       return option.value === requested;
     });
     if (hasOption) bookField.value = requested;
+  }
+  if (params.get('type') === 'memory-wall') {
+    const typeField = document.getElementById('feedbackType');
+    const detailsField = document.getElementById('feedbackDetails');
+    if (typeField) typeField.value = '购买与授权';
+    if (detailsField && !detailsField.value) {
+      detailsField.value = '我想购买记忆墙打印包，请告知购买和授权码发放方式。';
+    }
   }
 
   function safeProfile() {

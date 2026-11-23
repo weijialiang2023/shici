@@ -5,9 +5,11 @@
   const Store = window.Store;
   const UI = window.UI;
   const ProductAnalytics = window.ProductAnalytics;
+  const Entitlements = window.ShiciEntitlements;
+  const PremiumConfig = window.SHICI_PREMIUM_CONFIG || {};
   const esc = UI.helpers.esc;
 
-  const ROUTES = ['home', 'study', 'library', 'books', 'report'];
+  const ROUTES = ['home', 'study', 'library', 'books', 'report', 'print'];
   const LIBRARY_PAGE_SIZE = 30;
   // This revision changes only when book payloads change, so app-only releases
   // can reuse the already cached 3500-word book instead of downloading it again.
@@ -15,12 +17,13 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '31';
+    return match ? decodeURIComponent(match[1]) : '32';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
   let bookIndexCache = null;
   let reportTracked = false;
+  let printTracked = false;
   const VALID_STATUSES = ['all', 'new', 'learning', 'mastered', 'weak', 'favorite', 'due'];
   const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -36,6 +39,14 @@
     reportWords: {
       filter: 'all',
       page: 1
+    },
+    memoryWall: {
+      layout: 'sticky',
+      scope: 'recent',
+      count: 24,
+      showMeaning: true,
+      showIpa: true,
+      showExample: true
     },
     session: null,
     lastAutoSpokenCardKey: null,
@@ -192,8 +203,55 @@
   // Rendering
   // ---------------------------------------------------------------------
 
+  function buildMemoryWallData() {
+    const allStudied = Store.studiedWords();
+    const state = app.memoryWall;
+    let words = allStudied.slice();
+    if (state.scope === 'weak') {
+      words = words.filter(function (word) {
+        const record = Store.getRecord(word.id);
+        return record && record.weak && Store.getStatus(word.id) !== 'mastered';
+      });
+    } else if (state.scope === 'favorite') {
+      words = words.filter(function (word) {
+        const record = Store.getRecord(word.id);
+        return record && record.favorite;
+      });
+    }
+    words.sort(function (a, b) {
+      const recordA = Store.getRecord(a.id) || {};
+      const recordB = Store.getRecord(b.id) || {};
+      if (state.scope === 'weak') {
+        const lapseA = (Number(recordA.lapseCount) || 0) + (Number(recordA.quizWrong) || 0);
+        const lapseB = (Number(recordB.lapseCount) || 0) + (Number(recordB.quizWrong) || 0);
+        if (lapseA !== lapseB) return lapseB - lapseA;
+      }
+      const dateA = Date.parse(recordA.lastReviewed || recordA.firstStudiedAt || recordA.firstSeen || '') || 0;
+      const dateB = Date.parse(recordB.lastReviewed || recordB.firstStudiedAt || recordB.firstSeen || '') || 0;
+      return dateB - dateA;
+    });
+    const unlocked = Boolean(Entitlements && Entitlements.isUnlocked('memory-wall'));
+    const visibleWords = unlocked ? words.slice(0, state.count) : words.slice(0, 3);
+    const product = PremiumConfig.memoryWall || {};
+    return {
+      words: visibleWords,
+      filteredCount: words.length,
+      allStudiedCount: allStudied.length,
+      layout: state.layout,
+      scope: state.scope,
+      count: state.count,
+      showMeaning: state.showMeaning,
+      showIpa: state.showIpa,
+      showExample: state.showExample,
+      unlocked: unlocked,
+      priceLabel: product.priceLabel || '¥19',
+      regularPriceLabel: product.regularPriceLabel || '¥29'
+    };
+  }
+
   function renderPage(options) {
     const opts = options || {};
+    document.body.classList.toggle('route-print', app.route === 'print');
     if (app.route === 'report' && !reportTracked) {
       reportTracked = true;
       trackProductEvent('report_opened', { bookId: Store.getActiveBookId() });
@@ -244,6 +302,18 @@
         wordReport: buildLearnedWordReport()
       });
       document.title = '拾词 · 学习报告';
+    } else if (app.route === 'print') {
+      const wallData = buildMemoryWallData();
+      if (!printTracked) {
+        printTracked = true;
+        trackProductEvent('premium_gate_view', {
+          route: 'print',
+          bookId: Store.getActiveBookId(),
+          source: wallData.unlocked ? 'unlocked' : 'locked'
+        });
+      }
+      html = UI.renderMemoryWall(wallData);
+      document.title = '拾词 · 记忆墙打印包';
     }
 
     page.innerHTML = html;
@@ -453,6 +523,94 @@
     }, 0);
   }
 
+  function memoryWallProduct() {
+    return (PremiumConfig && PremiumConfig.memoryWall) || {};
+  }
+
+  function openMemoryWallLicenseModal() {
+    closeModal(false);
+    const product = memoryWallProduct();
+    showModal({
+      icon: 'lock',
+      title: '输入记忆墙授权码',
+      message: '授权码与购买订单对应，只在本设备保存。验证使用公钥签名，不读取你的学习内容。',
+      inputId: 'memoryWallLicense',
+      inputLabel: '授权码',
+      inputPlaceholder: product.licensePlaceholder || '粘贴购买后收到的授权码',
+      cancelLabel: '取消',
+      confirmLabel: '验证并解锁',
+      onConfirm: activateMemoryWallLicense
+    });
+  }
+
+  function openMemoryWallPaywall() {
+    const product = memoryWallProduct();
+    const purchaseUrl = String(product.purchaseUrl || '');
+    trackProductEvent('premium_gate_view', {
+      route: 'print',
+      bookId: Store.getActiveBookId(),
+      source: 'paywall'
+    });
+    showModal({
+      icon: 'lock',
+      title: '记忆墙打印包',
+      message: '首发价 ' + (product.priceLabel || '¥19') +
+        '，原价 ' + (product.regularPriceLabel || '¥29') +
+        '。完整版可打印 12–40 张、切换三种版式，并筛选待巩固或收藏词。当前未开放在线支付时，会先进入购买预登记。',
+      cancelLabel: '稍后',
+      extraLabel: '已有授权码',
+      confirmLabel: purchaseUrl ? '去购买' : '购买预登记',
+      onExtra: openMemoryWallLicenseModal,
+      onConfirm: function () {
+        closeModal(false);
+        trackProductEvent('premium_purchase_clicked', {
+          route: 'print',
+          bookId: Store.getActiveBookId(),
+          source: purchaseUrl ? 'checkout' : 'waitlist'
+        });
+        if (purchaseUrl) {
+          window.open(purchaseUrl, '_blank', 'noopener,noreferrer');
+          return;
+        }
+        window.location.href = product.supportUrl || 'feedback.html?type=memory-wall';
+      }
+    });
+  }
+
+  async function activateMemoryWallLicense() {
+    if (!Entitlements) {
+      toast('当前浏览器没有加载授权校验模块，请刷新后重试。', 'info');
+      return;
+    }
+    const input = document.getElementById('memoryWallLicense');
+    const token = input ? input.value.trim() : '';
+    if (!token) {
+      toast('请先粘贴授权码。', 'info');
+      return;
+    }
+    try {
+      await Entitlements.activate(token);
+      closeModal(false);
+      renderAll();
+      trackProductEvent('premium_license_activated', {
+        route: 'print',
+        bookId: Store.getActiveBookId(),
+        source: 'offline-license'
+      });
+      toast('记忆墙打印包已解锁。', 'check');
+    } catch (error) {
+      toast(error && error.message ? error.message : '授权码验证失败。', 'info');
+    }
+  }
+
+  function printMemoryWall() {
+    if (!Entitlements || !Entitlements.isUnlocked('memory-wall')) {
+      openMemoryWallPaywall();
+      return;
+    }
+    window.print();
+  }
+
   // ---------------------------------------------------------------------
   // Overlays and focus
   // ---------------------------------------------------------------------
@@ -619,8 +777,12 @@
     modalRoot.innerHTML = UI.modal(app.modal);
     syncBodyState();
     window.setTimeout(function () {
-      const confirm = modalRoot.querySelector('[data-action="modal-confirm"]');
-      if (confirm) confirm.focus();
+      const field = app.modal && app.modal.inputId && document.getElementById(app.modal.inputId);
+      if (field) field.focus();
+      else {
+        const confirm = modalRoot.querySelector('[data-action="modal-confirm"]');
+        if (confirm) confirm.focus();
+      }
     }, 0);
   }
 
@@ -1877,6 +2039,44 @@
         app.reportWords.page = (Number(app.reportWords.page) || 1) + 1;
         renderPage();
         break;
+      case 'open-memory-wall':
+        navigate('print');
+        break;
+      case 'set-wall-layout':
+        app.memoryWall.layout = ['sticky', 'strip', 'wall'].indexOf(element.getAttribute('data-value')) !== -1
+          ? element.getAttribute('data-value')
+          : 'sticky';
+        renderPage();
+        break;
+      case 'set-wall-scope':
+        app.memoryWall.scope = ['recent', 'weak', 'favorite'].indexOf(element.getAttribute('data-value')) !== -1
+          ? element.getAttribute('data-value')
+          : 'recent';
+        renderPage();
+        break;
+      case 'set-wall-count':
+        app.memoryWall.count = [12, 24, 40].indexOf(Number(element.getAttribute('data-value'))) !== -1
+          ? Number(element.getAttribute('data-value'))
+          : 24;
+        renderPage();
+        break;
+      case 'toggle-wall-option': {
+        const option = element.getAttribute('data-option');
+        if (option === 'showMeaning' || option === 'showIpa' || option === 'showExample') {
+          app.memoryWall[option] = !app.memoryWall[option];
+          renderPage();
+        }
+        break;
+      }
+      case 'buy-memory-wall':
+        openMemoryWallPaywall();
+        break;
+      case 'activate-memory-wall':
+        openMemoryWallLicenseModal();
+        break;
+      case 'print-memory-wall':
+        printMemoryWall();
+        break;
       case 'switch-book':
         switchBook(element.getAttribute('data-book-id'));
         break;
@@ -2304,9 +2504,13 @@
       })().catch(function () {
         return { mode: 'browser', restored: false };
       });
+      const entitlementPromise = Entitlements
+        ? Entitlements.initialize()
+        : Promise.resolve({ checked: true, unlocked: false });
       const results = await Promise.all([
         bookPromise,
-        recoveryPromise
+        recoveryPromise,
+        entitlementPromise
       ]);
       const persistence = results[1];
       if (persistence && persistence.restored) return;

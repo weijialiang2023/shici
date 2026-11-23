@@ -14,7 +14,10 @@
     'quiz_answered',
     'report_opened',
     'sync_restore_succeeded',
-    'content_issue_reported'
+    'content_issue_reported',
+    'premium_gate_view',
+    'premium_purchase_clicked',
+    'premium_license_activated'
   ]);
   const SAFE_PROPERTIES = new Set([
     'route',

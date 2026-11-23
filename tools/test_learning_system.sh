@@ -406,7 +406,7 @@ try {
     mobile: true
   });
   const routeResponsive = {};
-  for (const route of ["home", "study", "library", "books", "report"]) {
+  for (const route of ["home", "study", "library", "books", "report", "print"]) {
     await page.goto(BASE_URL + "/#" + route, { timeout: 30000 });
     await page.waitForSelector(".app-shell");
     routeResponsive[route] = await page.evaluate(() => {
@@ -446,6 +446,116 @@ try {
   const responsive = routeResponsive.study;
   if (responsive.bodyText < 15 || responsive.descriptionText < 12) throw new Error("mobile typography too small");
   if (responsive.nav.height < 44 || responsive.mode.height < 44) throw new Error("mobile touch target too small");
+
+  await page.goto(BASE_URL + "/#home", { timeout: 30000 });
+  await page.evaluate(() => {
+    Store.resetAll();
+    Store.updateProfile({ dailyGoal: 8 });
+    const ids = Store.buildNewQueue(8).map(item => item.id);
+    ids.forEach((id, index) => Store.answerWord(id, index === 0 ? "again" : (index === 1 ? "fuzzy" : "known"), 1));
+    Store.toggleFavorite(ids[2]);
+    Store.recordObjectiveAnswer(ids[0], {
+      type: "meaning",
+      correct: false,
+      seconds: 2,
+      selectedText: "记忆墙弱词测试"
+    });
+    window.__productAnalyticsEvents = [];
+  });
+  await page.goto(BASE_URL + "/#print", { timeout: 30000 });
+  await page.waitForSelector(".memory-wall-page");
+  const memoryWallLocked = await page.evaluate(() => ({
+    cards: document.querySelectorAll(".memory-wall-card").length,
+    pages: document.querySelectorAll(".memory-wall-page").length,
+    lockVisible: Boolean(document.querySelector(".memory-wall-lock")),
+    smallTextCount: [...document.querySelectorAll("body *")].filter(node => {
+      const rect = node.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      const text = [...node.childNodes].filter(child => child.nodeType === Node.TEXT_NODE)
+        .map(child => child.textContent.trim()).filter(Boolean).join(" ");
+      return rect.width > 0 && rect.height > 0 && style.display !== "none" &&
+        style.visibility !== "hidden" && text && Number.parseFloat(style.fontSize) < 12;
+    }).length,
+    overflow: document.documentElement.scrollWidth - innerWidth
+  }));
+  if (memoryWallLocked.cards !== 3 || !memoryWallLocked.lockVisible ||
+      memoryWallLocked.smallTextCount !== 0 || memoryWallLocked.overflow > 1) {
+    throw new Error("memory wall paid preview failed: " + JSON.stringify(memoryWallLocked));
+  }
+  await page.click('button[data-action="print-memory-wall"]');
+  await page.waitForSelector(".modal");
+  const paywall = await page.evaluate(() => document.querySelector(".modal")?.innerText || "");
+  if (!paywall.includes("记忆墙打印包") || !paywall.includes("¥19") || !paywall.includes("已有授权码")) {
+    throw new Error("memory wall paywall copy missing");
+  }
+  await page.click('.modal [data-action="modal-cancel"]');
+  const invalidLicense = await page.evaluate(async () => {
+    try {
+      await ShiciEntitlements.verifyLicense("invalid.license");
+      return "accepted";
+    } catch (error) {
+      return error.message;
+    }
+  });
+  if (invalidLicense === "accepted") throw new Error("invalid memory wall license was accepted");
+
+  await page.evaluate(() => localStorage.setItem("shici.license.test.memory-wall.v1", "1"));
+  await page.reload({ timeout: 30000 });
+  await waitForAppReady(page);
+  await page.waitForSelector(".memory-wall-page");
+  const memoryWallUnlocked = await page.evaluate(() => ({
+    cards: document.querySelectorAll(".memory-wall-card").length,
+    pages: document.querySelectorAll(".memory-wall-page").length,
+    lockVisible: Boolean(document.querySelector(".memory-wall-lock")),
+    status: ShiciEntitlements.getStatus()
+  }));
+  if (memoryWallUnlocked.cards !== 8 || memoryWallUnlocked.lockVisible ||
+      !memoryWallUnlocked.status.unlocked) {
+    throw new Error("memory wall local test unlock failed: " + JSON.stringify(memoryWallUnlocked));
+  }
+  await page.click('button[data-action="set-wall-scope"][data-value="favorite"]');
+  const favoriteWall = await page.evaluate(() => document.querySelectorAll(".memory-wall-card").length);
+  if (favoriteWall !== 1) throw new Error("memory wall favorite filter mismatch");
+  await page.click('button[data-action="set-wall-scope"][data-value="weak"]');
+  const weakWall = await page.evaluate(() => document.querySelectorAll(".memory-wall-card").length);
+  if (weakWall !== 1) throw new Error("memory wall weak filter mismatch");
+  await page.click('button[data-action="set-wall-scope"][data-value="recent"]');
+  await page.click('button[data-action="set-wall-layout"][data-value="wall"]');
+  const wallLayout = await page.evaluate(() => ({
+    pages: document.querySelectorAll(".memory-wall-page").length,
+    className: document.querySelector(".memory-wall-page")?.className || ""
+  }));
+  if (wallLayout.pages !== 2 || !wallLayout.className.includes("memory-wall-page--wall")) {
+    throw new Error("memory wall large layout mismatch");
+  }
+  await page.click('button[data-action="set-wall-layout"][data-value="strip"]');
+  const stripLayout = await page.evaluate(() => ({
+    pages: document.querySelectorAll(".memory-wall-page").length,
+    className: document.querySelector(".memory-wall-page")?.className || ""
+  }));
+  if (stripLayout.pages !== 1 || !stripLayout.className.includes("memory-wall-page--strip")) {
+    throw new Error("memory wall strip layout mismatch");
+  }
+  await page.cdp("Emulation.setEmulatedMedia", { media: "print" });
+  const printLayout = await page.evaluate(() => ({
+    controls: getComputedStyle(document.querySelector(".memory-wall-controls")).display,
+    lockVisible: Boolean(document.querySelector(".memory-wall-lock")),
+    pages: document.querySelectorAll(".memory-wall-page").length,
+    width: Math.round(document.querySelector(".memory-wall-page").getBoundingClientRect().width)
+  }));
+  if (printLayout.controls !== "none" || printLayout.lockVisible ||
+      printLayout.pages !== 1 || printLayout.width < 700) {
+    throw new Error("memory wall print CSS mismatch: " + JSON.stringify(printLayout));
+  }
+  const pdf = await page.cdp("Page.printToPDF", {
+    printBackground: true,
+    preferCSSPageSize: true
+  });
+  if (!pdf || !pdf.data || pdf.data.length < 10000) {
+    throw new Error("memory wall PDF export failed");
+  }
+  await page.cdp("Emulation.setEmulatedMedia", { media: "" });
+  await page.evaluate(() => localStorage.removeItem("shici.license.test.memory-wall.v1"));
   await page.screenshot({ path: SHOT, fullPage: false });
 
   await page.goto(BASE_URL + "/#home", { timeout: 30000 });
@@ -805,6 +915,13 @@ try {
     conflictRecovery,
     bothLayersFail,
     legacyMigration,
+    memoryWallLocked,
+    memoryWallUnlocked,
+    favoriteWall,
+    weakWall,
+    wallLayout,
+    stripLayout,
+    printLayout,
     remoteCas,
     remoteConflictRecovery,
     routeResponsive,
