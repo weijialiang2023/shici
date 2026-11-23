@@ -414,7 +414,7 @@ def main():
             "应用必须支持分段词书渐进加载")
     require("feedback.html" in (ROOT / "js/ui.js").read_text(), "设置页必须提供公开反馈入口")
     require("privacy.html" in index_html, "页脚必须提供隐私说明")
-    require("大陆网络可能不稳定" in (ROOT / "feedback.html").read_text(),
+    require("大陆网络下 GitHub 可能不稳定" in (ROOT / "feedback.html").read_text(),
             "反馈页必须提示 GitHub 在大陆网络下的限制")
     package_script = (ROOT / "tools/package_static.sh").read_text()
     require("progress/" in package_script and "tools/source/" in package_script,
