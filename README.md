@@ -6,7 +6,7 @@
 
 ## 在线地址
 
-- GitHub Pages：<https://weijialiang2023.github.io/shici/>
+- GitHub Pages（开发预览，大陆网络可能不稳定）：<https://weijialiang2023.github.io/shici/>
 - GitHub 仓库：<https://github.com/weijialiang2023/shici>
 - 本机长期服务：<http://127.0.0.1:4173/>
 
@@ -165,6 +165,8 @@ GitHub Pages 版本是纯前端模式：
 - 不支持本机 `/api/state` 历史快照；
 - 换浏览器、换设备或清理站点数据前，请从设置页导出 JSON 备份；
 - 不需要构建、数据库或 API Key。
+
+> 目标用户主要在中国大陆时，GitHub Pages 不能作为正式生产站。正式发布应使用自有域名和大陆可访问的对象存储/CDN。静态包构建、缓存头、三网测试和迁移条件见 `docs/operations/mainland-deployment.md`。
 
 仓库已启用 **Settings → Pages → GitHub Actions**。推送到 `main` 后，
 `.github/workflows/pages.yml` 会自动校验内容并发布。

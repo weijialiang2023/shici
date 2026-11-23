@@ -9,4 +9,5 @@ test-results/
 .playwright-cli/
 tools/source/
 progress/
+dist/
 *.tmp

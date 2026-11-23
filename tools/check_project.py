@@ -347,6 +347,8 @@ def main():
         "js/domain/entitlements.js",
         "tools/issue_memory_wall_license.py",
         "tools/build_book_chunks.py",
+        "tools/package_static.sh",
+        "docs/operations/mainland-deployment.md",
         "docs/contracts/memory-wall-payment.md",
         "tools/fixtures/state-v3.min.json",
         "tools/fixtures/state-v1.min.json",
@@ -412,6 +414,11 @@ def main():
             "应用必须支持分段词书渐进加载")
     require("feedback.html" in (ROOT / "js/ui.js").read_text(), "设置页必须提供公开反馈入口")
     require("privacy.html" in index_html, "页脚必须提供隐私说明")
+    require("大陆网络可能不稳定" in (ROOT / "feedback.html").read_text(),
+            "反馈页必须提示 GitHub 在大陆网络下的限制")
+    package_script = (ROOT / "tools/package_static.sh").read_text()
+    require("progress/" in package_script and "tools/source/" in package_script,
+            "静态发布包必须排除本地记录和私有源文件")
     analytics_js = (ROOT / "js/product-analytics.js").read_text()
     require("SHICI_PRODUCT_ANALYTICS_CONFIG" in analytics_js, "匿名事件接口必须显式配置端点")
     require("if (!consent || !endpoint) return true;" in analytics_js, "匿名事件不得在无同意或无端点时外发")
