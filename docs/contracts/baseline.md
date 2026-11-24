@@ -1,6 +1,6 @@
 # 拾词 T01/T02 可执行基线
 
-T01 已冻结公共 API、词书身份和静态入口；T02 已开始实施复习规则纯函数化与存储确认加固。当前是零构建静态站：本地通过 `python3 serve.py` 启动，再由浏览器访问 localhost；线上可由静态 HTTP 服务托管。`index.html` 按现有顺序加载脚本，`js/store.js` 挂载 `window.Store`、`js/ui.js` 挂载 `window.UI`、`js/app.js` 使用哈希路由。CSS 与应用资源为 v33，词书分段资源独立为 v27，Service Worker 缓存键为 `shici-v33`。
+T01 已冻结公共 API、词书身份和静态入口；T02 已开始实施复习规则纯函数化与存储确认加固。当前是零构建静态站：本地通过 `python3 serve.py` 启动，再由浏览器访问 localhost；线上可由静态 HTTP 服务托管。`index.html` 按现有顺序加载脚本，`js/store.js` 挂载 `window.Store`、`js/ui.js` 挂载 `window.UI`、`js/app.js` 使用哈希路由。CSS 与应用资源为 v34，词书分段资源独立为 v27，Service Worker 缓存键为 `shici-v34`。
 
 ## 本轮静态契约
 

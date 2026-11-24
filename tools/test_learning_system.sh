@@ -4,10 +4,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PORT="${SHICI_SYSTEM_TEST_PORT:-4188}"
 LEGACY_PORT="${SHICI_SYSTEM_TEST_LEGACY_PORT:-4189}"
+PARTIAL_PORT="${SHICI_SYSTEM_TEST_PARTIAL_PORT:-4190}"
 STATE_DIR="$(mktemp -d)"
 LEGACY_STATE_DIR="$(mktemp -d)"
+PARTIAL_STATE_DIR="$(mktemp -d)"
 BASE_URL="http://127.0.0.1:$PORT"
 LEGACY_BASE_URL="http://127.0.0.1:$LEGACY_PORT"
+PARTIAL_BASE_URL="http://localhost:$PARTIAL_PORT"
 EGO_SPACE_ID="${SHICI_EGO_SPACE_ID:-}"
 
 cleanup() {
@@ -19,6 +22,10 @@ cleanup() {
     kill "$LEGACY_SERVER_PID" 2>/dev/null || true
     wait "$LEGACY_SERVER_PID" 2>/dev/null || true
   fi
+  if [[ -n "${PARTIAL_SERVER_PID:-}" ]]; then
+    kill "$PARTIAL_SERVER_PID" 2>/dev/null || true
+    wait "$PARTIAL_SERVER_PID" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT
 
@@ -27,6 +34,8 @@ SHICI_PORT="$PORT" SHICI_STATE_DIR="$STATE_DIR" python3 serve.py >/dev/null 2>&1
 SERVER_PID=$!
 SHICI_PORT="$LEGACY_PORT" SHICI_STATE_DIR="$LEGACY_STATE_DIR" python3 serve.py >/dev/null 2>&1 &
 LEGACY_SERVER_PID=$!
+SHICI_PORT="$PARTIAL_PORT" SHICI_STATE_DIR="$PARTIAL_STATE_DIR" python3 serve.py >/dev/null 2>&1 &
+PARTIAL_SERVER_PID=$!
 
 for _ in {1..40}; do
   if curl -fsS "$BASE_URL/api/health" >/dev/null 2>&1; then
@@ -40,13 +49,19 @@ for _ in {1..40}; do
   fi
   sleep 0.2
 done
+for _ in {1..40}; do
+  if curl -fsS "$PARTIAL_BASE_URL/api/health" >/dev/null 2>&1; then
+    break
+  fi
+  sleep 0.2
+done
 
 ego-browser skill >/dev/null
 
 ego-browser nodejs <<EOF
 const BASE_URL = "$BASE_URL";
 const LEGACY_BASE_URL = "$LEGACY_BASE_URL";
-const PARTIAL_BASE_URL = BASE_URL.replace("127.0.0.1", "localhost");
+const PARTIAL_BASE_URL = "$PARTIAL_BASE_URL";
 const SHOT = "/tmp/shici-learning-390.png";
 const SPACE_ID = ${EGO_SPACE_ID:-null};
 const existing = SPACE_ID === null
@@ -70,18 +85,18 @@ async function waitForAppReady(target, timeout = 30000) {
 }
 
 try {
+  await page.goto(BASE_URL + "/offline.html", { timeout: 30000 });
+  await page.cdp("Storage.clearDataForOrigin", {
+    origin: new URL(BASE_URL).origin,
+    storageTypes: "cache_storage,service_workers,local_storage,indexeddb"
+  });
+  await page.cdp("Network.setCacheDisabled", { cacheDisabled: true });
   await page.goto(BASE_URL + "/#home", { timeout: 30000 });
   await waitForAppReady(page);
   const bootMs = await page.evaluate(() => window.__SHICI_BOOT_MS);
   if (!Number.isFinite(bootMs) || bootMs < 0 || bootMs > 5000) {
     throw new Error("boot performance mark invalid: " + bootMs);
   }
-  await page.cdp("Storage.clearDataForOrigin", {
-    origin: new URL(BASE_URL).origin,
-    storageTypes: "cache_storage,service_workers,local_storage,indexeddb"
-  });
-  await page.cdp("Page.reload", { ignoreCache: true });
-  await waitForAppReady(page);
   await page.waitForFunction(
     () => window.__SHICI_BOOK_LOAD_STATE__?.complete === true,
     undefined,
@@ -114,7 +129,28 @@ try {
     await partialPage.cdp("Network.enable");
     await partialPage.cdp("Network.setCacheDisabled", { cacheDisabled: true });
     await partialPage.cdp("Network.setBlockedURLs", {
-      urls: [2, 3, 4, 5, 6, 7, 8].map(index => "*gaokao.chunk-0" + index + ".js*")
+      urls: ["*/api/*"].concat(
+        [2, 3, 4, 5, 6, 7, 8].map(index => "*gaokao.chunk-0" + index + ".js*")
+      )
+    });
+    await partialPage.cdp("Page.addScriptToEvaluateOnNewDocument", {
+      source: [
+        "(() => {",
+        "  const originalFetch = window.fetch.bind(window);",
+        "  window.fetch = function (input, init) {",
+        "    const url = typeof input === 'string' ? input : (input && input.url) || '';",
+        "    if (url.includes('/api/')) return Promise.reject(new Error('isolated api'));",
+        "    return originalFetch(input, init);",
+        "  };",
+        "  const originalBeacon = navigator.sendBeacon && navigator.sendBeacon.bind(navigator);",
+        "  if (originalBeacon) {",
+        "    navigator.sendBeacon = function (url, data) {",
+        "      if (String(url).includes('/api/')) return false;",
+        "      return originalBeacon(url, data);",
+        "    };",
+        "  }",
+        "})();"
+      ].join("\\n")
     });
     await partialPage.goto(PARTIAL_BASE_URL + "/#home", { timeout: 30000 });
     await waitForAppReady(partialPage);
@@ -185,6 +221,19 @@ try {
   if (homePlan.extra.label !== "再学 3 个新词") throw new Error("extra new CTA overstates available words");
   if (homePlan.exhausted.action !== "start-learned" || homePlan.exhausted.title.includes("已完成")) throw new Error("exhausted book must not imply goal completion");
   if (homePlan.empty.action !== "#books" || homePlan.empty.hasDailyWord) throw new Error("empty book fallback mismatch");
+  const homeHierarchy = await page.evaluate(() => ({
+    primaryCards: document.querySelectorAll(".home-focus .daily-card").length,
+    topActions: document.querySelectorAll(".home-focus .daily-card__actions > *").length,
+    collapsedSections: document.querySelectorAll(".home-more:not([open])").length,
+    legacyUnitCards: document.querySelectorAll(".home-focus .unit-card").length,
+    legacyStatBlocks: document.querySelectorAll(".home-focus .stat-item").length,
+    wordRows: document.querySelectorAll(".home-unit-row").length
+  }));
+  if (homeHierarchy.primaryCards !== 1 || homeHierarchy.topActions > 2 ||
+      homeHierarchy.collapsedSections !== 2 || homeHierarchy.legacyUnitCards !== 0 ||
+      homeHierarchy.legacyStatBlocks !== 0 || homeHierarchy.wordRows !== 8) {
+    throw new Error("simplified home hierarchy mismatch: " + JSON.stringify(homeHierarchy));
+  }
 
   await page.click("#topbarProfile");
   await page.waitForSelector('.drawer a[href^="feedback.html"]');
@@ -301,8 +350,14 @@ try {
   await page.goto(BASE_URL + "/#home", { timeout: 30000 });
   await page.goto(BASE_URL + "/#study", { timeout: 30000 });
   await page.waitForSelector(".training-panel");
-  if (await page.evaluate(() => document.querySelectorAll(".mode-card").length !== 2)) {
-    throw new Error("study center should expose two main modes");
+  const studyHierarchy = await page.evaluate(() => ({
+    redundantModeCards: document.querySelectorAll(".mode-card").length,
+    primaryActions: document.querySelectorAll(".study-plan__actions .btn--primary").length,
+    trainingActions: document.querySelectorAll(".training-actions .btn").length
+  }));
+  if (studyHierarchy.redundantModeCards !== 0 || studyHierarchy.primaryActions !== 1 ||
+      studyHierarchy.trainingActions < 4) {
+    throw new Error("study center hierarchy mismatch: " + JSON.stringify(studyHierarchy));
   }
 
   const logic = await page.evaluate(() => {
@@ -427,6 +482,16 @@ try {
   if (!questionShapes.some(shape => shape.context)) throw new Error("mixed retrieval did not include a context question");
 
   await page.click("loc=role:button[name='查看学习报告']");
+  await page.waitForSelector(".learned-panel");
+  const reportHierarchy = await page.evaluate(() => ({
+    moreClosed: Boolean(document.querySelector(".report-more:not([open])")),
+    memoryExists: Boolean(document.querySelector(".memory-metrics")),
+    learnedVisible: Boolean(document.querySelector(".learned-panel"))
+  }));
+  if (!reportHierarchy.moreClosed || !reportHierarchy.memoryExists || !reportHierarchy.learnedVisible) {
+    throw new Error("simplified report hierarchy mismatch: " + JSON.stringify(reportHierarchy));
+  }
+  await page.click(".report-more > summary");
   await page.waitForSelector(".memory-metrics");
 
   await page.evaluate(() => navigator.serviceWorker.ready);
@@ -488,7 +553,7 @@ try {
         bodyText: font("body"),
         descriptionText: font(".page-head__desc"),
         nav: rectangle(".mobile-nav a"),
-        mode: rectangle(".mode-card")
+        mode: rectangle(".training-actions .btn")
       };
     });
     if (routeResponsive[route].overflow > 1) {
@@ -782,6 +847,7 @@ try {
     }).catch(() => {});
   }
   console.log("stage: conflict and double persistence");
+  await conflictPage.goto("about:blank", { timeout: 10000 }).catch(() => {});
 
   const legacyPage = await task.newPage();
   let legacyMigration;
@@ -953,6 +1019,9 @@ try {
     intervals: logic.intervals,
     splitBook,
     partialBook,
+    homeHierarchy,
+    studyHierarchy,
+    reportHierarchy,
     objectiveAccuracy: afterObjectiveAccuracy(logic),
     spellingTotal,
     hintsRecorded,

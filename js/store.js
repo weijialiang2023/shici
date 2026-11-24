@@ -475,6 +475,16 @@
       });
       if (response.status === 409) {
         const payload = await response.json();
+        const localSeen = countSeenWords(state);
+        const remoteSeen = countSeenWords(payload.current);
+        if (localSeen === 0 && remoteSeen === 0) {
+          state.meta.remoteRevision = Math.max(0, Number(payload.revision) || 0);
+          remoteDirty = true;
+          remotePushQueued = true;
+          remoteMode = 'server';
+          remoteLastError = null;
+          return false;
+        }
         externalConflict = true;
         lastSaveOk = false;
         lastSaveError = 'remote revision conflict';
@@ -540,7 +550,8 @@
     }
   }
 
-  function flushRemoteOnExit() {
+  function flushRemoteOnExit(event) {
+    if (event && event.persisted) return;
     if (!remoteEnabled || !remoteDirty || !isLocalServer()) return;
     const baseRevision = Math.max(0, Number(state.meta.remoteRevision) || 0);
     const endpoint = '/api/state?baseRevision=' + encodeURIComponent(String(baseRevision));
@@ -563,9 +574,6 @@
   }
 
   window.addEventListener('pagehide', flushRemoteOnExit);
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'hidden') flushRemoteOnExit();
-  });
   window.setInterval(function () {
     if (remoteDirty && !remoteSaving) pushRemoteNow();
   }, 30000);
