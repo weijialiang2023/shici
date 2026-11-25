@@ -17,7 +17,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '38';
+    return match ? decodeURIComponent(match[1]) : '39';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -30,6 +30,9 @@
 
   const app = {
     route: 'home',
+    bootLoading: true,
+    bootMeta: null,
+    bootError: null,
     library: {
       query: '',
       status: 'all',
@@ -329,6 +332,44 @@
     if (opts.focusLibrary) focusLibrarySearch();
   }
 
+  function startupOverview(meta) {
+    const overview = Store.getOverview();
+    if (meta && Number(meta.count)) {
+      overview.totalWords = Number(meta.count);
+      overview.newRemaining = Math.max(0, Number(meta.count) - overview.totalSeen);
+    }
+    return overview;
+  }
+
+  function renderStartupShell(meta, error) {
+    const titles = {
+      home: '今日学习',
+      study: '学习中心',
+      library: '我的词库',
+      books: '词书书架',
+      report: '学习报告',
+      print: '记忆墙打印包'
+    };
+    const title = titles[app.route] || titles.home;
+    const bookTitle = meta && meta.title ? meta.title : '当前词书';
+    document.title = '拾词 · ' + title;
+    if (error) {
+      return '<header class="page-head"><div><h1 class="page-title">' + title + '</h1>' +
+        '<p class="page-head__desc">页面已打开，但词书没有载入。</p></div></header>' +
+        '<section class="startup-state is-error" role="alert"><strong>词书没有打开</strong>' +
+        '<p>请检查网络或确认 data/books 文件可访问，然后重新加载。</p>' +
+        '<button class="btn btn--primary" type="button" data-action="retry-boot">重新加载</button></section>';
+    }
+    return '<header class="page-head"><div><h1 class="page-title">' + title + '</h1>' +
+      '<p class="page-head__desc">页面已打开，正在后台载入「' + esc(bookTitle) + '」。</p></div></header>' +
+      '<section class="startup-state" aria-busy="true" aria-label="正在载入词书">' +
+      '<div class="startup-state__status"><i></i><strong>正在准备今天的词</strong><span>页面框架已可用</span></div>' +
+      '<div class="startup-state__line startup-state__line--wide"></div>' +
+      '<div class="startup-state__line"></div>' +
+      '<div class="startup-state__actions"><span></span><span></span></div>' +
+      '</section>';
+  }
+
   function filterLibrary() {
     const q = app.library.query.trim().toLowerCase();
     const status = app.library.status;
@@ -511,6 +552,14 @@
   }
 
   function renderAll(options) {
+    if (app.bootLoading) {
+      document.body.classList.remove('route-print');
+      page.innerHTML = renderStartupShell(app.bootMeta, app.bootError);
+      renderChrome(startupOverview(app.bootMeta));
+      renderOverlays();
+      renderModal();
+      return;
+    }
     renderPage(options);
     renderOverlays();
     renderModal();
@@ -2049,6 +2098,9 @@
       case 'open-memory-wall':
         navigate('print');
         break;
+      case 'retry-boot':
+        window.location.reload();
+        break;
       case 'set-wall-layout':
         app.memoryWall.layout = ['sticky', 'strip', 'wall'].indexOf(element.getAttribute('data-value')) !== -1
           ? element.getAttribute('data-value')
@@ -2379,9 +2431,14 @@
     if (retry) retry.hidden = !isError;
   }
 
-  function hideBootScreen() {
+  function hideBootScreen(immediate) {
     const screen = document.getElementById('bootScreen');
     if (!screen || screen.hidden) return;
+    if (immediate) {
+      screen.classList.add('is-hiding');
+      screen.hidden = true;
+      return;
+    }
     screen.classList.add('is-hiding');
     window.setTimeout(function () {
       if (screen && screen.classList.contains('is-hiding')) screen.hidden = true;
@@ -2597,13 +2654,19 @@
     if (!window.location.hash) {
       window.history.replaceState(null, '', '#home');
     }
-    document.getElementById('bootScreen').hidden = false;
+    parseHash();
     const retry = document.getElementById('bootRetry');
     if (retry) retry.addEventListener('click', function () { window.location.reload(); });
 
     const initialBookId = Store.getProfile().activeBook || window.DEFAULT_BOOK || 'gaokao';
     let meta = getBookMeta(initialBookId) || getBookMeta(window.DEFAULT_BOOK) || (window.BOOKS || [])[0];
-    setBootState('正在打开「' + (meta ? meta.title : '词书') + '」', '把今天的词，慢慢收进口袋。', false);
+    app.bootLoading = true;
+    app.bootMeta = meta;
+    app.bootError = null;
+    renderAll();
+    hideBootScreen(true);
+    markBootReady();
+    window.__SHICI_SHELL_READY_AT__ = performance.now();
 
     try {
       const bookPromise = fetchBookPayload(meta.id).then(
@@ -2624,27 +2687,28 @@
         recoveryPromise,
         entitlementPromise
       ]);
-      const persistence = results[1];
-      if (persistence && persistence.restored) return;
       if (results[0].error) throw results[0].error;
       let payload = results[0].payload;
       const activeBookId = Store.getActiveBookId();
       if (activeBookId !== meta.id) {
         meta = getBookMeta(activeBookId) || meta;
-        setBootState('正在打开「' + meta.title + '」', '正在读取本机恢复后的词书。', false);
+        app.bootMeta = meta;
+        renderAll();
         payload = await fetchBookPayload(meta.id);
       }
       const cachedPayload = bookCache.get(activeBookId);
       if (cachedPayload && !cachedPayload.partial) payload = cachedPayload;
       Store.loadBook(activeBookId, payload);
       parseHash();
+      app.bootLoading = false;
+      app.bootMeta = null;
+      app.bootError = null;
       renderAll();
+      window.__SHICI_BOOK_READY_AT__ = performance.now();
       trackProductEvent('app_open', {
         route: app.route,
         bookId: Store.getActiveBookId()
       });
-      hideBootScreen();
-      markBootReady();
       // Register after the initial book has loaded. A new worker taking control
       // during boot can interrupt dynamically loaded book scripts on upgrade.
       registerOfflineSupport();
@@ -2658,7 +2722,9 @@
         if (window.speechSynthesis) window.speechSynthesis.getVoices();
       }, 300);
     } catch (error) {
-      setBootState('词书没有打开', '没有读到词书文件。请确认 data/books 文件夹与页面在一起，然后刷新重试。', true);
+      app.bootLoading = true;
+      app.bootError = error || new Error('词书没有打开');
+      renderAll();
     }
   }
 

@@ -12883,3 +12883,128 @@ body:not(.route-print) {
     border-radius: 12px;
   }
 }
+
+/* --------------------------------------------------------------------------
+   v39 progressive startup
+   The application shell is interactive before the book payload arrives.
+   -------------------------------------------------------------------------- */
+
+.startup-state {
+  display: grid;
+  max-width: 1040px;
+  min-height: 280px;
+  align-content: center;
+  gap: 16px;
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--shadow-card);
+}
+
+.startup-state__status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.startup-state__status i {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.startup-state__status strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.startup-state__status span {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.startup-state__line {
+  width: min(420px, 72%);
+  height: 14px;
+  border-radius: 4px;
+  background: #eceff1;
+}
+
+.startup-state__line--wide {
+  width: min(620px, 90%);
+  height: 36px;
+  margin-top: 4px;
+}
+
+.startup-state__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.startup-state__actions span {
+  width: 116px;
+  height: 42px;
+  border-radius: 9px;
+  background: #eceff1;
+}
+
+.startup-state__actions span:first-child {
+  background: var(--green-800);
+}
+
+.startup-state.is-error {
+  min-height: 220px;
+}
+
+.startup-state.is-error strong {
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.startup-state.is-error p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.startup-state.is-error .btn {
+  width: fit-content;
+  margin-top: 4px;
+}
+
+@media (max-width: 700px) {
+  .startup-state {
+    min-height: 240px;
+    padding: 22px 20px;
+    border-radius: 14px;
+  }
+
+  .startup-state__status {
+    flex-wrap: wrap;
+  }
+
+  .startup-state__status span {
+    width: 100%;
+    margin-left: 17px;
+  }
+
+  .startup-state__line {
+    width: 88%;
+  }
+
+  .startup-state__line--wide {
+    width: 100%;
+    height: 30px;
+  }
+}
