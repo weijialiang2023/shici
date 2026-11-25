@@ -17,7 +17,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '35';
+    return match ? decodeURIComponent(match[1]) : '36';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -47,7 +47,8 @@
       count: 24,
       showMeaning: true,
       showIpa: true,
-      showExample: true
+      showExample: true,
+      settingsOpen: false
     },
     session: null,
     lastAutoSpokenCardKey: null,
@@ -244,6 +245,7 @@
       showMeaning: state.showMeaning,
       showIpa: state.showIpa,
       showExample: state.showExample,
+      settingsOpen: state.settingsOpen,
       unlocked: unlocked,
       priceLabel: product.priceLabel || '¥19',
       regularPriceLabel: product.regularPriceLabel || '¥29'
@@ -252,6 +254,10 @@
 
   function renderPage(options) {
     const opts = options || {};
+    const openWallSettings = app.route === 'print'
+      ? document.querySelector('.memory-wall-settings')
+      : null;
+    if (openWallSettings) app.memoryWall.settingsOpen = openWallSettings.open;
     document.body.classList.toggle('route-print', app.route === 'print');
     if (app.route === 'report' && !reportTracked) {
       reportTracked = true;
@@ -454,7 +460,7 @@
     const topbarDate = document.getElementById('topbarDate');
     const dayIndex = studyDayIndex(profile);
     if (topbarDate) {
-      topbarDate.textContent = 'DAY ' + String(dayIndex).padStart(2, '0') + ' · 拾词学习台';
+      topbarDate.textContent = '第 ' + dayIndex + ' 天';
     }
 
     const streakText = document.getElementById('streakPillText');

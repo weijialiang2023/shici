@@ -1,15 +1,15 @@
 :root {
-  --ink: #202b25;
-  --ink-soft: #5d6962;
-  --paper: #f4f0e7;
+  --ink: #2d2a25;
+  --ink-soft: #625c54;
+  --paper: #f5f1e8;
   --card: #fffdf8;
-  --green-950: #17322a;
-  --green-800: #214639;
-  --green-700: #315a4a;
-  --sage: #e3eadf;
-  --line: rgba(31, 52, 43, 0.14);
+  --green-950: #2d2923;
+  --green-800: #3f382f;
+  --green-700: #5c5044;
+  --sage: #eee6da;
+  --line: rgba(48, 44, 38, 0.14);
   --orange: #bf6343;
-  --shadow: 0 24px 70px -46px rgba(23, 50, 42, 0.5);
+  --shadow: 0 24px 70px -46px rgba(50, 45, 38, 0.5);
 }
 
 * { box-sizing: border-box; }
@@ -19,7 +19,7 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background:
-    radial-gradient(circle at 90% 0%, rgba(206, 219, 199, 0.55), transparent 36rem),
+    radial-gradient(circle at 90% 0%, rgba(226, 215, 201, 0.55), transparent 36rem),
     var(--paper);
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
   line-height: 1.7;
@@ -174,7 +174,7 @@ a:hover { text-decoration-thickness: 2px; }
 .field small { color: var(--ink-soft); font-size: 12px; }
 .field input, .field select, .field textarea {
   width: 100%;
-  border: 1px solid #b9c2ba;
+  border: 1px solid #cbbda9;
   border-radius: 12px;
   color: var(--ink);
   background: #fff;
@@ -207,7 +207,7 @@ a:hover { text-decoration-thickness: 2px; }
   cursor: pointer;
 }
 .info-button--secondary {
-  border-color: #aeb9b0;
+  border-color: #bdb3a5;
   color: var(--green-800);
   background: transparent;
 }

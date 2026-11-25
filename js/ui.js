@@ -4,6 +4,25 @@
 
   const UI = {};
 
+  const WARM_COLOR_MAP = {
+    '#17322A': '#2D2923',
+    '#132A23': '#28241F',
+    '#21463A': '#3C352C',
+    '#214639': '#3F382F',
+    '#315A4A': '#5C5044',
+    '#3F6B7F': '#5F6470',
+    '#6C7A41': '#806444',
+    '#4F6E8A': '#606575',
+    '#E5EADF': '#EEE6DA',
+    '#DDE9ED': '#E8E1E5',
+    '#E8E8D3': '#EEE4D4',
+    '#DEE9F0': '#E7E2E3'
+  };
+
+  function warmTone(value) {
+    return WARM_COLOR_MAP[String(value || '').toUpperCase()] || value;
+  }
+
   function currentWords() {
     return window.Store ? window.Store.words : window.WORDS;
   }
@@ -27,11 +46,11 @@
 
   function unitFor(word) {
     const units = currentUnits();
-    return units.find(function (unit) { return unit.id === word.unit; }) || units[0] || { id: 1, title: '词书', en: 'WORDS', description: '', icon: 'book', accent: '#315A4A', tint: '#E5EADF' };
+    return units.find(function (unit) { return unit.id === word.unit; }) || units[0] || { id: 1, title: '词书', en: 'WORDS', description: '', icon: 'book', accent: '#5C5044', tint: '#EEE6DA' };
   }
 
   function unitStyle(unit) {
-    return '--unit-accent:' + unit.accent + ';--tint:' + unit.tint + ';';
+    return '--unit-accent:' + warmTone(unit.accent) + ';--tint:' + warmTone(unit.tint) + ';';
   }
 
   function unitDisplay(unit) {
@@ -118,7 +137,7 @@
     const book = activeBook();
     if (!book) return '';
     const extra = variant ? ' book-context--' + variant : '';
-    return '<button class="book-context' + extra + '" type="button" data-action="navigate" data-route="books" style="--book-accent:' + book.accent + ';--book-tint:' + book.tint + ';">' +
+    return '<button class="book-context' + extra + '" type="button" data-action="navigate" data-route="books" style="--book-accent:' + warmTone(book.accent) + ';--book-tint:' + warmTone(book.tint) + ';">' +
       '<span class="book-context__mark">' + esc(book.coverMark) + '</span>' +
       '<span class="book-context__copy"><small>当前词书</small><strong>' + esc(book.title) + '</strong></span>' +
       '<span class="book-context__count">' + book.count + ' 词</span>' +
@@ -214,8 +233,8 @@
     const fillId = 'curveFade-' + (id || Math.random().toString(36).slice(2, 7));
     return '<svg class="forgetting-curve" viewBox="0 0 520 132" role="img" aria-label="艾宾浩斯遗忘曲线与复习节点示意图">' +
       '<defs><linearGradient id="' + fillId + '" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#6f8f7f" stop-opacity=".2"></stop>' +
-      '<stop offset="100%" stop-color="#6f8f7f" stop-opacity="0"></stop></linearGradient></defs>' +
+      '<stop offset="0%" stop-color="#94806a" stop-opacity=".2"></stop>' +
+      '<stop offset="100%" stop-color="#94806a" stop-opacity="0"></stop></linearGradient></defs>' +
       '<line class="axis" x1="16" y1="112" x2="504" y2="112"></line>' +
       '<path class="decay-fill" fill="url(#' + fillId + ')" d="M16 112 L16 30 C48 32 80 70 100 76 L105 34 C138 36 170 78 195 83 L200 42 C235 45 265 85 290 89 L295 48 C330 52 360 90 385 95 L390 56 C430 59 465 92 504 100 L504 112 Z"></path>' +
       '<path class="decay" d="M16 30 C48 32 80 70 100 76 L105 34 C138 36 170 78 195 83 L200 42 C235 45 265 85 290 89 L295 48 C330 52 360 90 385 95 L390 56 C430 59 465 92 504 100"></path>' +
@@ -388,7 +407,7 @@
       const percentLabel = progress.seen > 0 && rawPercent < 1 ? '<1' : String(percent);
       const isActive = book.id === activeId;
       const isLoading = book.id === loadingId;
-      return '<article class="book-card' + (isActive ? ' is-active' : '') + '" style="--book-accent:' + book.accent + ';--book-tint:' + book.tint + ';--book-deep:' + (book.deep || book.accent) + ';">' +
+      return '<article class="book-card' + (isActive ? ' is-active' : '') + '" style="--book-accent:' + warmTone(book.accent) + ';--book-tint:' + warmTone(book.tint) + ';--book-deep:' + warmTone(book.deep || book.accent) + ';">' +
         '<div class="book-cover">' +
         '<div class="book-cover__top"><span>' + esc(book.category) + '</span><span>' + book.count + ' 词</span></div>' +
         '<span class="book-cover__mark">' + esc(book.coverMark) + '</span>' +
@@ -760,17 +779,17 @@
       '<div class="memory-metric"><span>7 天保持</span><strong>' + (overview.retention7Rate == null ? '待积累' : overview.retention7Rate + '%') + '</strong><small>' + overview.retention7.correct + ' / ' + overview.retention7.seen + ' 次长间隔提取</small></div>' +
       '<div class="memory-metric"><span>需要留意</span><div class="diagnostic-chips">' + diagnostics + '</div><small>答错的词会按题型进入待巩固</small></div>' +
       '</div></section>';
+    const promoWord = wordReport.list[0] && wordReport.list[0].word;
     const memoryWallPromo = overview.totalSeen > 0
       ? '<section class="memory-wall-promo">' +
-        '<div class="memory-wall-promo__copy"><span>记忆墙打印</span>' +
-        '<h2>把学过的词，贴到手边。</h2>' +
-        '<p>生成 A4 便签卡、口袋条或大字墙。免费预览 3 张，完整版可筛选和反复打印。</p>' +
+        '<div class="memory-wall-promo__copy"><span>把单词贴到手边</span>' +
+        '<h2>打印一张，随时看见。</h2>' +
+        '<p>A4 便签卡、口袋条或大字墙。免费预览 3 张，完整版可筛选、调版式并反复打印。</p>' +
         '<button class="btn btn--primary" type="button" data-action="open-memory-wall">' + icon('notebook') + ' 打开记忆墙</button></div>' +
-        '<div class="memory-wall-promo__preview" aria-hidden="true">' +
-        wordReport.list.slice(0, 3).map(function (item) {
-          return '<span><strong>' + esc(item.word.word) + '</strong><small>' + esc(coreMeanings(item.word)[0] || '') + '</small></span>';
-        }).join('') +
-        '</div></section>'
+        (promoWord
+          ? '<div class="memory-wall-promo__sample" aria-hidden="true"><small>记忆卡</small><strong>' + esc(promoWord.word) + '</strong><span>' + esc(coreMeanings(promoWord)[0] || '') + '</span></div>'
+          : '') +
+        '</section>'
       : '';
     return '' +
       '<header class="page-head report-head">' +
@@ -903,7 +922,7 @@
     }
     const date = formatDate(new Date());
     const controls =
-      '<section class="memory-wall-controls no-print">' +
+      '<div class="memory-wall-controls no-print">' +
       '<div class="memory-wall-control-group"><span>版式</span><div>' +
       layoutOptions.map(function (item) {
         return '<button class="memory-wall-option' + (layout === item[0] ? ' is-active' : '') + '" type="button" data-action="set-wall-layout" data-value="' + item[0] + '"><strong>' + item[1] + '</strong><small>' + item[2] + '</small></button>';
@@ -923,7 +942,7 @@
       '<button class="memory-wall-switch' + (data.showIpa ? ' is-active' : '') + '" type="button" data-action="toggle-wall-option" data-option="showIpa" aria-pressed="' + Boolean(data.showIpa) + '">音标与词性</button>' +
       '<button class="memory-wall-switch' + (data.showExample ? ' is-active' : '') + '" type="button" data-action="toggle-wall-option" data-option="showExample" aria-pressed="' + Boolean(data.showExample) + '">例句</button>' +
       '</div>' +
-      '</section>';
+      '</div>';
 
     if (!data.allStudiedCount) {
       return '<header class="page-head memory-wall-head">' +
@@ -935,12 +954,9 @@
     }
 
     const lockPanel = data.unlocked ? '' :
-      '<section class="memory-wall-lock no-print">' +
-      '<div class="memory-wall-lock__mark">' + icon('lock') + '</div>' +
-      '<div><p class="eyebrow">PAID PRINT PACK</p><h2>预览 3 张，完整记忆墙需解锁</h2>' +
-      '<p>完整包支持 12–40 张、三种版式、待巩固词筛选、例句和音标开关，可反复打印。首发价 <strong>' + esc(data.priceLabel) + '</strong>，原价 ' + esc(data.regularPriceLabel) + '。</p></div>' +
-      '<div class="memory-wall-lock__actions"><button class="btn btn--primary" type="button" data-action="buy-memory-wall">解锁完整打印包</button>' +
-      '<button class="btn btn--ghost" type="button" data-action="activate-memory-wall">已有授权码</button></div></section>';
+      '<div class="memory-wall-lock no-print">' +
+      '<div><strong>免费预览 3 张</strong><span>完整版 ' + esc(data.priceLabel) + ' · 12–40 张 · 三种版式 · 可反复打印</span></div>' +
+      '<button class="memory-wall-license-link" type="button" data-action="activate-memory-wall">已有授权码</button></div>';
 
     const sheet = pages.map(function (pageWords, pageIndex) {
       return '<section class="memory-wall-page memory-wall-page--' + esc(layout) + '" aria-label="第 ' + (pageIndex + 1) + ' 页">' +
@@ -965,20 +981,26 @@
       ? '<div class="memory-wall-sheet">' + sheet + '</div>'
       : '<section class="memory-wall-empty"><span>' + icon('bookmark') + '</span><h2>这个筛选里还没有词</h2><p>换一个范围，或者先复习几组词。</p></section>';
 
+    const commandLabel = data.unlocked
+      ? '打印 ' + printedWords.length + ' 张记忆卡'
+      : '先打印 3 张试用';
+    const commandMeta = (layoutLabels[layout] || '便签卡') + ' · ' + (scopeLabels[scope] || '最近学过') + ' · A4 实际大小';
+    const settings = '<details class="memory-wall-settings no-print"' + (data.settingsOpen ? ' open' : '') + '>' +
+      '<summary><span>打印设置</span><strong>' + esc(layoutLabels[layout]) + ' · ' + esc(scopeLabels[scope]) + ' · ' + (data.unlocked ? count + ' 张' : '预览 3 张') + '</strong><i>调整</i></summary>' +
+      controls +
+      '</details>';
+
     return '<header class="page-head memory-wall-head">' +
       '<div><p class="eyebrow">MEMORY WALL</p><h1 class="page-title">记忆墙打印包</h1>' +
       '<p class="page-head__desc">把学过的词变成看得见、摸得到的记忆卡。挑一组，打印，然后贴到手边。</p></div>' +
       '<div class="page-head__aside"><span class="pill pill--green">' + esc(book ? book.title : '当前词书') + '</span>' +
       '<span class="pill">' + data.allStudiedCount + ' 个已学词</span></div></header>' +
       '<div class="memory-wall-studio">' +
-      '<aside class="memory-wall-rail">' +
-      controls + lockPanel +
-      '<div class="memory-wall-summary no-print"><div><strong>' + data.filteredCount + '</strong><span>个词符合条件</span></div>' +
-      '<p>' + (data.unlocked
-        ? '当前会打印 ' + printedWords.length + ' 张，共 ' + pages.length + ' 页。建议使用 A4、实际大小、开启背景图形。'
-        : '未解锁时只打印 3 张预览卡，不带完整版式和筛选。') + '</p>' +
+      '<section class="memory-wall-command no-print">' +
+      '<div class="memory-wall-command__main"><div><strong>' + esc(commandLabel) + '</strong><span>' + esc(commandMeta) + ' · ' + data.filteredCount + ' 个词符合条件</span></div>' +
       '<button class="btn btn--primary memory-wall-print-btn" type="button" data-action="print-memory-wall">' + icon('download') + ' 打印 / 存为 PDF</button></div>' +
-      '</aside>' +
+      lockPanel + '</section>' +
+      settings +
       '<section class="memory-wall-stage no-print-frame">' +
       '<header class="memory-wall-stage__head no-print"><div><strong>A4 预览</strong><span>' + (pages.length || 1) + ' 页 · ' + (layoutLabels[layout] || '便签卡') + '</span></div><span>' + (data.unlocked ? '可打印完整版' : '免费预览') + '</span></header>' +
       preview +

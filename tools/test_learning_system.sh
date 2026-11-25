@@ -633,6 +633,7 @@ try {
       !memoryWallUnlocked.status.unlocked) {
     throw new Error("memory wall local test unlock failed: " + JSON.stringify(memoryWallUnlocked));
   }
+  await page.click('.memory-wall-settings > summary');
   await page.click('button[data-action="set-wall-scope"][data-value="favorite"]');
   const favoriteWall = await page.evaluate(() => document.querySelectorAll(".memory-wall-card").length);
   if (favoriteWall !== 1) throw new Error("memory wall favorite filter mismatch");
