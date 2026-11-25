@@ -17,7 +17,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '39';
+    return match ? decodeURIComponent(match[1]) : '40';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -2666,7 +2666,9 @@
     renderAll();
     hideBootScreen(true);
     markBootReady();
-    window.__SHICI_SHELL_READY_AT__ = performance.now();
+    window.__SHICI_SHELL_READY_AT__ = Number.isFinite(window.__SHICI_STATIC_SHELL_AT__)
+      ? window.__SHICI_STATIC_SHELL_AT__
+      : performance.now();
 
     try {
       const bookPromise = fetchBookPayload(meta.id).then(

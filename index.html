@@ -13,7 +13,7 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/styles.css?v=39">
+  <link rel="stylesheet" href="css/styles.css?v=40">
   <script>
     (function () {
       try {
@@ -291,7 +291,20 @@
         </div>
       </header>
 
-      <main class="page" id="page" tabindex="-1"></main>
+      <main class="page" id="page" tabindex="-1">
+        <header class="page-head">
+          <div>
+            <h1 class="page-title" id="initialShellTitle">今日学习</h1>
+            <p class="page-head__desc">页面已打开，正在后台载入词书。</p>
+          </div>
+        </header>
+        <section class="startup-state" aria-busy="true" aria-label="正在载入词书">
+          <div class="startup-state__status"><i></i><strong>正在准备今天的词</strong><span>页面框架已可用</span></div>
+          <div class="startup-state__line startup-state__line--wide"></div>
+          <div class="startup-state__line"></div>
+          <div class="startup-state__actions"><span></span><span></span></div>
+        </section>
+      </main>
       <footer class="site-footer">
         <span>拾词 · 从高中到大学，一本一本往前学</span>
         <span>复习节奏参考艾宾浩斯遗忘曲线 · 数据保存在你的浏览器</span>
@@ -322,15 +335,37 @@
   <div id="overlayRoot"></div>
   <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="js/product-analytics.js?v=39"></script>
-  <script src="js/premium-config.js?v=39"></script>
-  <script src="js/domain/state-schema.js?v=39"></script>
-  <script src="js/domain/srs-engine.js?v=39"></script>
-  <script src="js/storage/state-integrity.js?v=39"></script>
-  <script src="js/domain/entitlements.js?v=39"></script>
-  <script src="js/data.js?v=39"></script>
-  <script src="js/store.js?v=39"></script>
-  <script src="js/ui.js?v=39"></script>
-  <script src="js/app.js?v=39"></script>
+  <script>
+    (function () {
+      var titles = { home: '今日学习', study: '学习中心', library: '我的词库', books: '词书书架', report: '学习报告', print: '记忆墙打印包' };
+      var route = (location.hash || '#home').replace(/^#/, '').split('?')[0] || 'home';
+      var title = titles[route] || titles.home;
+      var screen = document.getElementById('bootScreen');
+      var titleNode = document.getElementById('initialShellTitle');
+      if (titleNode) titleNode.textContent = title;
+      document.title = '拾词 · ' + title;
+      document.querySelectorAll('[data-nav]').forEach(function (link) {
+        var active = link.getAttribute('data-nav') === route;
+        link.classList.toggle('is-active', active);
+        if (active) link.setAttribute('aria-current', 'page');
+      });
+      if (screen) {
+        screen.classList.add('is-hiding');
+        screen.hidden = true;
+      }
+      window.__SHICI_STATIC_SHELL_AT__ = performance.now();
+      try { performance.mark('shici-static-shell-ready'); } catch (error) {}
+    })();
+  </script>
+  <script defer src="js/product-analytics.js?v=40"></script>
+  <script defer src="js/premium-config.js?v=40"></script>
+  <script defer src="js/domain/state-schema.js?v=40"></script>
+  <script defer src="js/domain/srs-engine.js?v=40"></script>
+  <script defer src="js/storage/state-integrity.js?v=40"></script>
+  <script defer src="js/domain/entitlements.js?v=40"></script>
+  <script defer src="js/data.js?v=40"></script>
+  <script defer src="js/store.js?v=40"></script>
+  <script defer src="js/ui.js?v=40"></script>
+  <script defer src="js/app.js?v=40"></script>
 </body>
 </html>

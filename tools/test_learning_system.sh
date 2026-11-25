@@ -115,6 +115,7 @@ try {
       loadedChunks: resources.filter(name => name.includes("gaokao.chunk-")).length,
       loadedMonolith: resources.some(name => /\/gaokao\.js(?:\?|$)/.test(name)),
       loadState: window.__SHICI_BOOK_LOAD_STATE__,
+      staticShellAt: window.__SHICI_STATIC_SHELL_AT__,
       shellReadyAt: window.__SHICI_SHELL_READY_AT__,
       bookReadyAt: window.__SHICI_BOOK_READY_AT__,
       bootHidden: Boolean(document.getElementById("bootScreen")?.hidden),
@@ -124,6 +125,7 @@ try {
   if (splitBook.words !== 3663 || splitBook.totalWords !== 3663 || splitBook.units !== 8 ||
       splitBook.chunkCount !== 8 || splitBook.loadedChunks < 8 || splitBook.loadedMonolith ||
       !splitBook.loadState?.complete || !splitBook.bootHidden || !splitBook.startupGone ||
+      !Number.isFinite(splitBook.staticShellAt) || splitBook.staticShellAt > splitBook.shellReadyAt ||
       !Number.isFinite(splitBook.shellReadyAt) || !Number.isFinite(splitBook.bookReadyAt) ||
       splitBook.shellReadyAt > splitBook.bookReadyAt) {
     throw new Error("split book did not load completely: " + JSON.stringify(splitBook));
