@@ -24,12 +24,12 @@ flowchart LR
     S --> API[仅 localhost: /api/state]
     API --> PY[serve.py]
     PY --> P[用户目录 progress/state.json 与历史快照]
-    SW[sw.js shici-v34] --> H
+    SW[sw.js shici-v35] --> H
     SW --> B
     ETL[tools/build_*.py + content_audit.py] --> B
 ```
 
-当前 `index.html` 以 **product-analytics → premium-config → state-schema → srs-engine → state-integrity → entitlements → data → store → ui → app** 的传统脚本顺序启动；`js/app.js` 先加载词书清单和首个约 180KB 分段，再在后台补齐剩余分段，而非阻塞等待完整词书。CSS 与应用资源 `?v=34`，词书分段 `?v=27`，SW 缓存键为 `shici-v34`。词书为 gaokao 3663、curated 120、wenyan 1200、ielts 3426、cet4 1162、cet6 1228，共 **10,799**；`curated` 的 120 个词条 ID 与 `wenyan` 核心 120 的 ID 和顺序一致，状态在 `state.words[id]` 上共享。
+当前 `index.html` 以 **product-analytics → premium-config → state-schema → srs-engine → state-integrity → entitlements → data → store → ui → app** 的传统脚本顺序启动；`js/app.js` 先加载词书清单和首个约 180KB 分段，再在后台补齐剩余分段，而非阻塞等待完整词书。CSS 与应用资源 `?v=35`，词书分段 `?v=27`，SW 缓存键为 `shici-v35`。词书为 gaokao 3663、curated 120、wenyan 1200、ielts 3426、cet4 1162、cet6 1228，共 **10,799**；`curated` 的 120 个词条 ID 与 `wenyan` 核心 120 的 ID 和顺序一致，状态在 `state.words[id]` 上共享。
 
 | 巨石/边界 | 实际耦合与证据 | 具体风险 | 首要解法 |
 |---|---|---|---|
@@ -467,7 +467,7 @@ Codex CLI 用绝对路径定位；`codex exec` 要求非交互、提示词限定
 3. **本机进度隔离**：默认 `~/Library/Application Support/Shici/progress/`，含 `state.json`、`state.prev.json`、`history/daily`、`history/checkpoints`，**不在仓库**。部署 `tools/deploy_local.sh` 的 `--exclude 'progress/'` 绝不删除/覆盖；在任何 ETL、测试、Codex 脚本中不得复制真实数据进 fixtures、日志、提交或上传。破坏性用例临时目录 `SHICI_STATE_DIR` + 独立端口/profile。
 4. **持久化升级顺序**：归一化旧字段而非重新命名；先备份可恢复原始字节，写入后验证；只有 L1 或 L2 一层确实成功才能显示“已保存”。损坏原文隔离 `shici.state.v1.corrupt.*`；双方分叉时禁止只看“时间更新”直接覆盖。无日志无法安全做跨设备计数相加，P2 另做事件身份设计。
 5. **词条身份与时间**：进度按词条 ID 而非书名/位置；curated 120 同 wenyan 核心 120 共享。`due`/`activity` key 是本地 `YYYY-MM-DD`；`createdAt/updatedAt/lastReviewed` 为时间点（已有字段可能历史格式不一，迁移前从 fixture核验）。不要统一替换成 UTC 日期而改变复习跨天语义。
-6. **Service Worker 版本**：当前 `shici-v34` 保留前一代，资产 `?v=34`，词书分段 `?v=27`；拆分脚本/CSS 同时更新预缓存清单和应用版本，词书内容未变不得无故 bump 内容版本。当前安装 `cache.add` 逐项吞错，目标需核心资源成功才激活新版本；已验证线上 `v27 → v28` 词书复用升级，并继续验证每次新版本首访在线→离线、旧标签运行→新版本激活、旧缓存保留与下一次刷新，任何缓存逻辑**不得**拦截 `/api/` 或清浏览器存储。
+6. **Service Worker 版本**：当前 `shici-v35` 保留前一代，资产 `?v=35`，词书分段 `?v=27`；拆分脚本/CSS 同时更新预缓存清单和应用版本，词书内容未变不得无故 bump 内容版本。当前安装 `cache.add` 逐项吞错，目标需核心资源成功才激活新版本；已验证线上 `v27 → v28` 词书复用升级，并继续验证每次新版本首访在线→离线、旧标签运行→新版本激活、旧缓存保留与下一次刷新，任何缓存逻辑**不得**拦截 `/api/` 或清浏览器存储。
 7. **内容工具现状**：`check_project.py` 已经精确锁 API 与词书顺序；`export_content_review.py --check` 校验审阅表一致性，当前 508 待复核；计划中的 `--strict`、`--output`、构建工具 `--check` 和 `tools/check_static.mjs` 不在现有基线中，不能直接当验收命令。
 8. **可访问与信任体验**：UI 动态内容必须 HTML 转义；键盘焦点、`aria-live`、抽屉恢复、390px 触控；朗读选择 `en-US` 男女声与语速，TTS 无声/权限失败不能阻塞答题。自评与客观提取在统计与文案中分开呈现。
 

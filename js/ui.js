@@ -760,6 +760,18 @@
       '<div class="memory-metric"><span>7 天保持</span><strong>' + (overview.retention7Rate == null ? '待积累' : overview.retention7Rate + '%') + '</strong><small>' + overview.retention7.correct + ' / ' + overview.retention7.seen + ' 次长间隔提取</small></div>' +
       '<div class="memory-metric"><span>需要留意</span><div class="diagnostic-chips">' + diagnostics + '</div><small>答错的词会按题型进入待巩固</small></div>' +
       '</div></section>';
+    const memoryWallPromo = overview.totalSeen > 0
+      ? '<section class="memory-wall-promo">' +
+        '<div class="memory-wall-promo__copy"><span>记忆墙打印</span>' +
+        '<h2>把学过的词，贴到手边。</h2>' +
+        '<p>生成 A4 便签卡、口袋条或大字墙。免费预览 3 张，完整版可筛选和反复打印。</p>' +
+        '<button class="btn btn--primary" type="button" data-action="open-memory-wall">' + icon('notebook') + ' 打开记忆墙</button></div>' +
+        '<div class="memory-wall-promo__preview" aria-hidden="true">' +
+        wordReport.list.slice(0, 3).map(function (item) {
+          return '<span><strong>' + esc(item.word.word) + '</strong><small>' + esc(coreMeanings(item.word)[0] || '') + '</small></span>';
+        }).join('') +
+        '</div></section>'
+      : '';
     return '' +
       '<header class="page-head report-head">' +
       '<div><p class="eyebrow">LEARNING LOG</p><h1 class="page-title">学习报告</h1>' +
@@ -774,6 +786,7 @@
       '<article class="report-stat"><span class="report-stat__label">' + icon('target') + ' 提取正确率</span><strong class="report-stat__value">' + (overview.attempts ? overview.recallAccuracy : '—') + '<small>' + (overview.attempts ? '%' : '') + '</small></strong><span class="report-stat__note">只含 ' + overview.attempts + ' 次客观题</span></article>' +
       '</section>' +
 
+      memoryWallPromo +
       learnedSection +
 
       '<details class="report-more">' +
@@ -948,19 +961,28 @@
         '</section>';
     }).join('');
 
+    const preview = printedWords.length
+      ? '<div class="memory-wall-sheet">' + sheet + '</div>'
+      : '<section class="memory-wall-empty"><span>' + icon('bookmark') + '</span><h2>这个筛选里还没有词</h2><p>换一个范围，或者先复习几组词。</p></section>';
+
     return '<header class="page-head memory-wall-head">' +
       '<div><p class="eyebrow">MEMORY WALL</p><h1 class="page-title">记忆墙打印包</h1>' +
-      '<p class="page-head__desc">把已学词裁成小卡片，贴在书桌、衣柜、冰箱或错题本上。少一点信息，多一点重复遇见。</p></div>' +
+      '<p class="page-head__desc">把学过的词变成看得见、摸得到的记忆卡。挑一组，打印，然后贴到手边。</p></div>' +
       '<div class="page-head__aside"><span class="pill pill--green">' + esc(book ? book.title : '当前词书') + '</span>' +
       '<span class="pill">' + data.allStudiedCount + ' 个已学词</span></div></header>' +
+      '<div class="memory-wall-studio">' +
+      '<aside class="memory-wall-rail">' +
       controls + lockPanel +
       '<div class="memory-wall-summary no-print"><div><strong>' + data.filteredCount + '</strong><span>个词符合条件</span></div>' +
       '<p>' + (data.unlocked
         ? '当前会打印 ' + printedWords.length + ' 张，共 ' + pages.length + ' 页。建议使用 A4、实际大小、开启背景图形。'
         : '未解锁时只打印 3 张预览卡，不带完整版式和筛选。') + '</p>' +
-      '<button class="btn btn--primary" type="button" data-action="print-memory-wall">' + icon('download') + ' 打印 / 存为 PDF</button></div>' +
-      (printedWords.length ? '<div class="memory-wall-sheet">' + sheet + '</div>' :
-        '<section class="memory-wall-empty"><span>' + icon('bookmark') + '</span><h2>这个筛选里还没有词</h2><p>换一个范围，或者先复习几组词。</p></section>');
+      '<button class="btn btn--primary memory-wall-print-btn" type="button" data-action="print-memory-wall">' + icon('download') + ' 打印 / 存为 PDF</button></div>' +
+      '</aside>' +
+      '<section class="memory-wall-stage no-print-frame">' +
+      '<header class="memory-wall-stage__head no-print"><div><strong>A4 预览</strong><span>' + (pages.length || 1) + ' 页 · ' + (layoutLabels[layout] || '便签卡') + '</span></div><span>' + (data.unlocked ? '可打印完整版' : '免费预览') + '</span></header>' +
+      preview +
+      '</section></div>';
   }
 
   function wordDrawer(word) {
