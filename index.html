@@ -13,7 +13,58 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-  <link rel="stylesheet" href="css/styles.css?v=40">
+  <style id="criticalShellStyles">
+    :root{--paper:#f5f4f2;--ink:#20262d;--ink-soft:#59636d;--line:rgba(32,38,45,.1);--accent:#3d5f75}
+    [hidden]{display:none!important}
+    html{background:var(--paper)}
+    body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+    .svg-sprite{position:absolute;width:0;height:0;overflow:hidden}
+    .app-shell{display:flex;min-height:100vh}
+    .sidebar{position:fixed;inset:0 auto 0 0;z-index:30;display:flex;width:240px;flex-direction:column;padding:24px 16px 18px;border-right:1px solid var(--line);background:#f1f2f3}
+    .sidebar__top{flex:1}.sidebar__bottom{display:flex;flex-direction:column;gap:8px}
+    .brand{display:flex;align-items:center;gap:10px;margin:0 8px 32px;color:inherit;text-decoration:none}
+    .brand__mark{display:grid;place-items:center;width:40px;height:40px;border-radius:9px;background:#26343f;color:#fff;font-size:20px;font-weight:600}
+    .brand__text strong{display:block;font-size:18px;font-weight:600}.brand__text small{display:none}
+    .main-nav{display:flex;flex-direction:column;gap:2px}
+    .nav-item{display:flex;height:40px;align-items:center;gap:12px;padding:0 12px;border-radius:8px;color:var(--ink-soft);font-size:14px;text-decoration:none}
+    .nav-item.is-active{background:#fff;color:var(--ink);box-shadow:inset 3px 0 0 var(--accent)}
+    .nav-item .icon{width:18px;height:18px}.nav-bubble{margin-left:auto}
+    .main-shell{min-width:0;flex:1;margin-left:240px}
+    .topbar{display:flex;height:64px;align-items:center;justify-content:space-between;padding:0 32px}
+    .topbar__left,.topbar__actions{display:flex;align-items:center;gap:10px}
+    .topbar__date{margin:0;color:var(--ink-soft);font-size:12px}.mobile-brand{display:none}
+    .global-search{display:flex;width:248px;height:36px;align-items:center;gap:8px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:#fff}
+    .global-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--ink)}.global-search kbd{font-size:10px}
+    .avatar--top{width:36px;height:36px;border:0;border-radius:50%;background:#26343f;color:#fff}
+    .page{width:100%;max-width:1320px;margin:0 auto;padding:24px 32px 56px}
+    .page-head{margin:8px 0 24px}.page-title{margin:0;font-size:clamp(32px,3.2vw,40px);font-weight:600;letter-spacing:-.02em;line-height:1.18}
+    .page-head__desc{max-width:640px;margin:8px 0 0;color:var(--ink-soft);font-size:14px;line-height:1.7}
+    .startup-state{display:grid;max-width:1040px;min-height:280px;align-content:center;gap:16px;padding:32px;border:1px solid var(--line);border-radius:16px;background:#fff}
+    .startup-state__status{display:flex;align-items:center;gap:10px;color:var(--ink-soft);font-size:13px}
+    .startup-state__status i{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--accent)}
+    .startup-state__status strong{color:var(--ink);font-size:14px}.startup-state__status span{margin-left:auto;color:#7e878f}
+    .startup-state__line{width:min(420px,72%);height:14px;border-radius:4px;background:#eceff1}
+    .startup-state__line--wide{width:min(620px,90%);height:36px;margin-top:4px}
+    .startup-state__actions{display:flex;gap:8px;margin-top:8px}.startup-state__actions span{width:116px;height:42px;border-radius:9px;background:#eceff1}.startup-state__actions span:first-child{background:#344451}
+    .mobile-nav{display:none}
+    @media(max-width:980px){.sidebar{display:none}.main-shell{margin-left:0}.mobile-brand{display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none}.mobile-brand__mark{display:grid;width:30px;height:30px;place-items:center;border-radius:7px;background:#26343f;color:#fff}}
+    @media(max-width:700px){.topbar{height:56px;padding:0 16px}.global-search{width:36px;padding:0;justify-content:center}.global-search input,.global-search kbd{display:none}.page{padding:20px 16px 104px}.page-title{font-size:32px}.startup-state{min-height:240px;padding:22px 20px;border-radius:14px}.startup-state__status{flex-wrap:wrap}.startup-state__status span{width:100%;margin-left:17px}.startup-state__line{width:88%}.startup-state__line--wide{width:100%;height:30px}.mobile-nav{position:fixed;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));left:8px;display:grid;height:58px;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.92)}}
+  </style>
+  <script>
+    window.__SHICI_STYLE_READY__ = new Promise(function (resolve) {
+      var settled = false;
+      function finish() {
+        if (settled) return;
+        settled = true;
+        resolve();
+      }
+      window.__SHICI_STYLE_READY_RESOLVE__ = finish;
+      window.setTimeout(finish, 6000);
+    });
+  </script>
+  <link rel="preload" href="css/styles.css?v=41" as="style">
+  <link id="appStyles" rel="stylesheet" href="css/styles.css?v=41" media="print" onload="this.media='all';this.dataset.loaded='true';window.__SHICI_STYLE_READY_RESOLVE__&&window.__SHICI_STYLE_READY_RESOLVE__()" onerror="window.__SHICI_STYLE_READY_RESOLVE__&&window.__SHICI_STYLE_READY_RESOLVE__()">
+  <noscript><link rel="stylesheet" href="css/styles.css?v=41"></noscript>
   <script>
     (function () {
       try {
@@ -201,7 +252,7 @@
   </svg>
 
 
-  <div class="boot-screen" id="bootScreen">
+  <div class="boot-screen" id="bootScreen" hidden>
     <div class="boot-screen__inner">
       <div class="boot-screen__mark">拾</div>
       <p class="boot-screen__eyebrow">WORD BY WORD</p>
@@ -357,15 +408,15 @@
       try { performance.mark('shici-static-shell-ready'); } catch (error) {}
     })();
   </script>
-  <script defer src="js/product-analytics.js?v=40"></script>
-  <script defer src="js/premium-config.js?v=40"></script>
-  <script defer src="js/domain/state-schema.js?v=40"></script>
-  <script defer src="js/domain/srs-engine.js?v=40"></script>
-  <script defer src="js/storage/state-integrity.js?v=40"></script>
-  <script defer src="js/domain/entitlements.js?v=40"></script>
-  <script defer src="js/data.js?v=40"></script>
-  <script defer src="js/store.js?v=40"></script>
-  <script defer src="js/ui.js?v=40"></script>
-  <script defer src="js/app.js?v=40"></script>
+  <script defer src="js/product-analytics.js?v=41"></script>
+  <script defer src="js/premium-config.js?v=41"></script>
+  <script defer src="js/domain/state-schema.js?v=41"></script>
+  <script defer src="js/domain/srs-engine.js?v=41"></script>
+  <script defer src="js/storage/state-integrity.js?v=41"></script>
+  <script defer src="js/domain/entitlements.js?v=41"></script>
+  <script defer src="js/data.js?v=41"></script>
+  <script defer src="js/store.js?v=41"></script>
+  <script defer src="js/ui.js?v=41"></script>
+  <script defer src="js/app.js?v=41"></script>
 </body>
 </html>

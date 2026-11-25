@@ -99,8 +99,8 @@ dist/shici-static-YYYYMMDD-HHMMSS.zip
 | `index.html` | `no-cache` 或最长 5 分钟 |
 | `offline.html` | 最长 5 分钟 |
 | `manifest.webmanifest` | 最长 1 小时 |
-| `css/styles.css?v=40` | 一年 immutable |
-| `js/*.js?v=40` | 一年 immutable |
+| `css/styles.css?v=41` | 一年 immutable |
+| `js/*.js?v=41` | 一年 immutable |
 | `data/books/*.manifest.js?v=27` | 一年 immutable |
 | `data/books/*.chunk-*.js?v=27` | 一年 immutable |
 | 图片和图标 | 一年 immutable |

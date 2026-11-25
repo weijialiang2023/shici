@@ -17,7 +17,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '40';
+    return match ? decodeURIComponent(match[1]) : '41';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -2687,7 +2687,8 @@
       const results = await Promise.all([
         bookPromise,
         recoveryPromise,
-        entitlementPromise
+        entitlementPromise,
+        window.__SHICI_STYLE_READY__ || Promise.resolve()
       ]);
       if (results[0].error) throw results[0].error;
       let payload = results[0].payload;

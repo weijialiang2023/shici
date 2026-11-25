@@ -12885,7 +12885,7 @@ body:not(.route-print) {
 }
 
 /* --------------------------------------------------------------------------
-   v40 progressive startup
+   v41 progressive startup
    The application shell is interactive before the book payload arrives.
    -------------------------------------------------------------------------- */
 
