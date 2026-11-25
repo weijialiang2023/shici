@@ -317,8 +317,8 @@
     const progressMax = Math.max(overview.goal, 1);
     const progressText = overview.todayUnique + ' / ' + overview.goal + ' 个词';
     const primary = action
-      ? '<button class="btn btn--primary" type="button" data-action="' + action + '">' + actionLabel + ' ' + icon('arrow-right', 'icon--shift') + '</button>'
-      : '<a class="btn btn--primary" href="#books">' + actionLabel + ' ' + icon('arrow-right') + '</a>';
+      ? '<button class="btn btn--primary" type="button" data-action="' + action + '">' + actionLabel + '</button>'
+      : '<a class="btn btn--primary" href="#books">' + actionLabel + '</a>';
 
     const unitRows = currentUnits().map(function (item) {
       const progress = findUnitProgress(item.id);
@@ -342,7 +342,7 @@
       '<div>' +
       '<p class="eyebrow">' + data.date.weekdayCN + ' · ' + data.date.dateCN + '</p>' +
       '<h1 class="page-title">今日学习</h1>' +
-      '<p class="page-head__desc">' + esc(data.greeting) + '，' + esc(data.name || '同学') + '。不着急，一次记一个词。</p>' +
+      '<p class="page-head__desc">按今日计划学习，到期的复习会穿插出现。</p>' +
       '</div>' +
       '<div class="home-head__meta">' + bookLoadingBadge() + bookContextHTML('home') + '</div>' +
       '</header>' +
@@ -354,7 +354,7 @@
       '<h2 id="daily-plan-title">' + headline + '</h2>' +
       '<p class="daily-card__meta">' + meta + '</p>' +
       '<div class="daily-card__actions">' + primary +
-      '<a class="home-secondary" href="' + (hasPlan ? '#study' : '#report') + '">' + (hasPlan ? '全部学习方式' : '学习报告') + '</a>' +
+      '<a class="home-secondary" href="' + (hasPlan ? '#study' : '#report') + '">' + (hasPlan ? '学习中心' : '学习报告') + '</a>' +
       '</div>' +
       '<div class="daily-card__progress"><div><span>今日进度</span><strong>' + progressText + '</strong></div>' +
       '<progress aria-label="今日学习进度" aria-valuetext="已学 ' + overview.todayUnique + ' 个词，目标 ' + overview.goal + ' 个词" max="' + progressMax + '" value="' + Math.min(overview.todayUnique, progressMax) + '"></progress></div>' +
@@ -450,8 +450,8 @@
     let primaryLabel = '开始今日学习';
     let primaryAction = 'start-daily';
     if (done) {
-      title = '今日份的词，<br>已经收好了。';
-      desc = '还可以复习全部已学词，或去拼写里检验一下。待巩固和不够熟练的词会优先出现。';
+      title = '今日计划已完成';
+      desc = '可继续复习已学词；待巩固和不够熟练的词会优先出现。';
       if (overview.reviewDueToday > 0) {
         primaryAction = 'start-review';
         primaryLabel = '继续复习';
@@ -463,15 +463,15 @@
         primaryLabel = '复习已学词（全部）';
       }
     } else {
-      title = '今天还剩 <em>' + planCount + '</em> 个词，<br>按自己的节奏来。';
-      desc = '先复习 ' + overview.planReviewCount + ' 个，再学 ' + overview.planNewCount + ' 个新的 · 预计 ' + (overview.estimatedMinutes || 1) + ' 分钟。复习与新词会交错出现，答错的词会在本轮稍后重现。';
+      title = '今天还剩 <em>' + planCount + '</em> 个词';
+      desc = '先复习 ' + overview.planReviewCount + ' 个，再学 ' + overview.planNewCount + ' 个新词。预计 ' + (overview.estimatedMinutes || 1) + ' 分钟。';
     }
 
     const isChineseBook = activeBook().id === 'wenyan' || activeBook().id === 'curated';
     return '' +
       '<header class="page-head">' +
       '<div><p class="eyebrow">STUDY ROOM</p><h1 class="page-title">学习中心</h1>' +
-      '<p class="page-head__desc">不追求一次记住，只让每次见面都更熟一点。</p></div>' +
+      '<p class="page-head__desc">按遗忘曲线安排复习，答错的词会在本轮再次出现。</p></div>' +
       '<div class="page-head__aside">' + bookContextHTML('sm') + '</div>' +
       '</header>' +
 
@@ -481,7 +481,7 @@
       '<h2>' + title + '</h2>' +
       '<p class="study-plan__desc">' + desc + '</p>' +
       '<div class="study-plan__actions">' +
-      '<button class="btn btn--primary" type="button" data-action="' + primaryAction + '">' + primaryLabel + ' ' + icon('arrow-right', 'icon--shift') + '</button>' +
+      '<button class="btn btn--primary" type="button" data-action="' + primaryAction + '">' + primaryLabel + '</button>' +
       '</div></div>' +
       '<div class="study-plan__visual">' +
       '<div class="dark-progress">' + circleProgress(percent) +
@@ -496,7 +496,7 @@
       '<div class="training-panel__head"><div><h2 id="trainingTitle">继续练习</h2>' +
       '<p>' + overview.totalSeen + ' 个已学词可用</p></div></div>' +
       '<div class="training-actions">' +
-      '<button class="btn btn--ghost" type="button" data-action="start-new"' + (overview.newRemaining ? '' : ' disabled') + '>' + icon('sparkles') + ' 新词学习</button>' +
+      '<button class="btn btn--ghost" type="button" data-action="start-new"' + (overview.newRemaining ? '' : ' disabled') + '>' + icon('book-open') + ' 新词学习</button>' +
       '<button class="btn btn--ghost" type="button" data-action="' + (overview.weak ? 'start-relearn-all' : 'start-learned') + '"' + (overview.totalSeen ? '' : ' disabled') + '>' + icon('refresh') + (overview.weak ? ' 错词重学（' + overview.weak + '）' : ' 已学词回看') + '</button>' +
       '<button class="btn btn--ghost" type="button" data-action="start-training"' + (overview.totalSeen && !isChineseBook ? '' : ' disabled') + '>' + icon('target') + ' 混合提取</button>' +
       '<button class="btn btn--ghost" type="button" data-action="start-spelling"' + (overview.totalSeen && !isChineseBook ? '' : ' disabled') + '>' + icon('keyboard') + ' 拼写挑战</button>' +
@@ -782,9 +782,9 @@
     const promoWord = wordReport.list[0] && wordReport.list[0].word;
     const memoryWallPromo = overview.totalSeen > 0
       ? '<section class="memory-wall-promo">' +
-        '<div class="memory-wall-promo__copy"><span>把单词贴到手边</span>' +
-        '<h2>打印一张，随时看见。</h2>' +
-        '<p>A4 便签卡、口袋条或大字墙。免费预览 3 张，完整版可筛选、调版式并反复打印。</p>' +
+        '<div class="memory-wall-promo__copy"><span>记忆墙</span>' +
+        '<h2>把已学词打印成记忆卡</h2>' +
+        '<p>A4 便签卡、口袋条或大字墙。免费预览 3 张，完整版可调版式和数量。</p>' +
         '<button class="btn btn--primary" type="button" data-action="open-memory-wall">' + icon('notebook') + ' 打开记忆墙</button></div>' +
         (promoWord
           ? '<div class="memory-wall-promo__sample" aria-hidden="true"><small>记忆卡</small><strong>' + esc(promoWord.word) + '</strong><span>' + esc(coreMeanings(promoWord)[0] || '') + '</span></div>'
@@ -794,7 +794,7 @@
     return '' +
       '<header class="page-head report-head">' +
       '<div><p class="eyebrow">LEARNING LOG</p><h1 class="page-title">学习报告</h1>' +
-      '<p class="page-head__desc">记录不是用来比较的，只是提醒你：每一小步都算数。</p></div>' +
+      '<p class="page-head__desc">客观提取、自评与跨日保持分开统计。</p></div>' +
       '<div class="report-head__actions">' + bookContextHTML('sm') + '<button class="btn btn--ghost btn--sm" type="button" data-action="open-memory-wall">' + icon('notebook') + ' 打印</button><button class="btn btn--ghost btn--sm" type="button" data-action="open-settings">' + icon('settings') + ' 设置</button></div>' +
       '</header>' +
 
@@ -947,7 +947,7 @@
     if (!data.allStudiedCount) {
       return '<header class="page-head memory-wall-head">' +
         '<div><p class="eyebrow">MEMORY WALL</p><h1 class="page-title">记忆墙</h1>' +
-        '<p class="page-head__desc">把学过的词打印下来，贴到手边。先学一组词，这里就会自动出现。</p></div></header>' +
+        '<p class="page-head__desc">学完一组词后，可在这里生成 A4 记忆卡。</p></div></header>' +
         '<section class="memory-wall-empty"><span>' + icon('notebook') + '</span><h2>还没有可以打印的单词</h2>' +
         '<p>学完第一组后，挑选最近学过、待巩固或收藏的词，生成适合粘贴的记忆卡。</p>' +
         '<a class="btn btn--primary" href="#study">去学第一组 ' + icon('arrow-right', 'icon--shift') + '</a></section>';
@@ -992,7 +992,7 @@
 
     return '<header class="page-head memory-wall-head">' +
       '<div><p class="eyebrow">MEMORY WALL</p><h1 class="page-title">记忆墙打印包</h1>' +
-      '<p class="page-head__desc">把学过的词变成看得见、摸得到的记忆卡。挑一组，打印，然后贴到手边。</p></div>' +
+      '<p class="page-head__desc">选择版式、范围和张数，打印或存为 PDF。</p></div>' +
       '<div class="page-head__aside"><span class="pill pill--green">' + esc(book ? book.title : '当前词书') + '</span>' +
       '<span class="pill">' + data.allStudiedCount + ' 个已学词</span></div></header>' +
       '<div class="memory-wall-studio">' +
