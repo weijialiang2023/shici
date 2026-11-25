@@ -17,7 +17,7 @@
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '37';
+    return match ? decodeURIComponent(match[1]) : '38';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();

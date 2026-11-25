@@ -1,15 +1,15 @@
 :root {
   --ink: #2d2a25;
   --ink-soft: #625c54;
-  --paper: #f5f1e8;
+  --paper: #f5f4f2;
   --card: #fffdf8;
   --green-950: #2d2923;
   --green-800: #3f382f;
   --green-700: #5c5044;
-  --sage: #eee6da;
-  --line: rgba(48, 44, 38, 0.14);
-  --orange: #bf6343;
-  --shadow: 0 24px 70px -46px rgba(50, 45, 38, 0.5);
+  --sage: #e9edf0;
+  --line: rgba(32, 38, 45, 0.12);
+  --orange: #b56649;
+  --shadow: 0 8px 24px -22px rgba(32, 38, 45, 0.3);
 }
 
 * { box-sizing: border-box; }
@@ -19,7 +19,7 @@ body {
   min-height: 100vh;
   color: var(--ink);
   background:
-    radial-gradient(circle at 90% 0%, rgba(226, 215, 201, 0.55), transparent 36rem),
+    radial-gradient(circle at 90% 0%, rgba(225, 229, 232, 0.55), transparent 36rem),
     var(--paper);
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
   line-height: 1.7;
@@ -174,7 +174,7 @@ a:hover { text-decoration-thickness: 2px; }
 .field small { color: var(--ink-soft); font-size: 12px; }
 .field input, .field select, .field textarea {
   width: 100%;
-  border: 1px solid #cbbda9;
+  border: 1px solid #c4cbd0;
   border-radius: 12px;
   color: var(--ink);
   background: #fff;
