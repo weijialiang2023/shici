@@ -1059,7 +1059,7 @@
       '</aside>';
   }
 
-  function settingsDrawer(profile) {
+  function settingsDrawer(profile, themePreference) {
     const goals = window.Store.getDailyGoalOptions();
     const persistence = window.Store.getPersistence();
     const savedText = persistence.lastSavedAt ? new Date(persistence.lastSavedAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '还没有新的修改';
@@ -1095,6 +1095,19 @@
       ? window.ShiciEntitlements.getStatus()
       : { unlocked: false };
     const premiumStatus = entitlement.unlocked ? '已解锁完整记忆墙打印包' : '免费预览 3 张，完整版需购买';
+    const themeChoice = ['system', 'light', 'dark'].indexOf(themePreference) !== -1
+      ? themePreference
+      : 'system';
+    const themeMode = document.documentElement.dataset.theme || 'light';
+    const themeStatus = themeChoice === 'system'
+      ? '当前跟随系统，显示为' + (themeMode === 'dark' ? '深色' : '浅色') + '。'
+      : '当前固定为' + (themeChoice === 'dark' ? '深色' : '浅色') + '。';
+    const themeControl = '<section class="settings-section"><span class="settings-label">界面外观</span>' +
+      '<div class="theme-options" role="group" aria-label="选择界面主题">' +
+      '<button class="theme-option' + (themeChoice === 'system' ? ' is-active' : '') + '" type="button" data-action="set-theme" data-theme-choice="system" aria-pressed="' + (themeChoice === 'system') + '"><strong>跟随系统</strong><small>随设备切换</small></button>' +
+      '<button class="theme-option' + (themeChoice === 'light' ? ' is-active' : '') + '" type="button" data-action="set-theme" data-theme-choice="light" aria-pressed="' + (themeChoice === 'light') + '"><strong>浅色</strong><small>始终明亮</small></button>' +
+      '<button class="theme-option' + (themeChoice === 'dark' ? ' is-active' : '') + '" type="button" data-action="set-theme" data-theme-choice="dark" aria-pressed="' + (themeChoice === 'dark') + '"><strong>深色</strong><small>降低亮度</small></button>' +
+      '</div><p class="settings-help" id="settingsThemeStatus">' + themeStatus + ' 选择后立即生效，并保存在当前设备。</p></section>';
     const voiceControl = '<section class="settings-section"><span class="settings-label">英语发音</span>' +
       '<div class="voice-options" role="group" aria-label="选择英语发音声线">' +
       '<button class="voice-option' + (voiceGender === 'female' ? ' is-active' : '') + '" type="button" data-action="set-voice-gender" data-gender="female" aria-pressed="' + (voiceGender === 'female') + '">' +
@@ -1127,6 +1140,7 @@
         return '<button class="goal-preset" type="button" data-action="set-goal" data-value="' + goal + '">' + goal + '</button>';
       }).join('') + '</div>' +
       '<p class="settings-help">可设置 ' + window.Store.MIN_DAILY_GOAL + '–' + window.Store.MAX_DAILY_GOAL + ' 之间的任意整数。按“当天学过的不同单词数”计算，复习也算在目标里。</p></section>' +
+      themeControl +
       voiceControl +
       '<section class="data-safety-card' + (backupDays == null || backupDays >= 14 ? ' is-warning' : '') + '">' +
       '<span class="data-safety-card__icon">' + icon('lock') + '</span><div><strong>数据安全</strong><p>' + esc(backupNote) + '</p>' +

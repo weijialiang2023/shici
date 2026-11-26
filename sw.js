@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'shici-v42';
+const CACHE_VERSION = 'shici-v43';
 const CACHE_NUMBER = Number((CACHE_VERSION.match(/^shici-v(\d+)$/) || [])[1] || 0);
 const RETAINED_CACHE_NUMBER = Math.max(0, CACHE_NUMBER - 1);
 const APP_SHELL = [
@@ -6,17 +6,17 @@ const APP_SHELL = [
   './index.html',
   './offline.html',
   './manifest.webmanifest',
-  './css/styles.css?v=42',
-  './js/product-analytics.js?v=42',
-  './js/premium-config.js?v=42',
-  './js/domain/state-schema.js?v=42',
-  './js/domain/srs-engine.js?v=42',
-  './js/storage/state-integrity.js?v=42',
-  './js/domain/entitlements.js?v=42',
-  './js/data.js?v=42',
-  './js/store.js?v=42',
-  './js/ui.js?v=42',
-  './js/app.js?v=42',
+  './css/styles.css?v=43',
+  './js/product-analytics.js?v=43',
+  './js/premium-config.js?v=43',
+  './js/domain/state-schema.js?v=43',
+  './js/domain/srs-engine.js?v=43',
+  './js/storage/state-integrity.js?v=43',
+  './js/domain/entitlements.js?v=43',
+  './js/data.js?v=43',
+  './js/store.js?v=43',
+  './js/ui.js?v=43',
+  './js/app.js?v=43',
   './data/books/index.js?v=27',
   './assets/favicon.svg',
   './assets/apple-touch-icon.png',

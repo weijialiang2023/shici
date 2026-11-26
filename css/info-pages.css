@@ -240,3 +240,57 @@ a:hover { text-decoration-thickness: 2px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; }
 }
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #edf1f3;
+  --ink-soft: #a8b2ba;
+  --paper: #171b1f;
+  --card: #20262c;
+  --green-950: #f2f6f8;
+  --green-800: #9dbed1;
+  --green-700: #86afc5;
+  --sage: #26323a;
+  --line: rgba(237, 241, 243, 0.11);
+  --orange: #d88b68;
+  --shadow: 0 8px 24px -20px rgba(0, 0, 0, 0.7);
+}
+
+html[data-theme="dark"] body {
+  background: var(--paper);
+}
+
+html[data-theme="dark"] .info-brand__mark {
+  color: #20262d;
+  background: #dbe5ea;
+}
+
+html[data-theme="dark"] .info-card,
+html[data-theme="dark"] .info-link-card {
+  border-color: var(--line);
+  background: var(--card);
+}
+
+html[data-theme="dark"] .info-note {
+  color: #ddc39a;
+  background: #2a251e;
+}
+
+html[data-theme="dark"] .field input,
+html[data-theme="dark"] .field select,
+html[data-theme="dark"] .field textarea {
+  border-color: var(--line);
+  color: var(--ink);
+  background: #252c33;
+}
+
+html[data-theme="dark"] .info-button {
+  color: #f3f7f9;
+  background: #35596d;
+}
+
+html[data-theme="dark"] .info-button--secondary {
+  border-color: var(--line-strong);
+  color: var(--green-800);
+  background: transparent;
+}

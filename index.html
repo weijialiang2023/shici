@@ -13,8 +13,26 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <script>
+    (function () {
+      var preference = 'system';
+      try {
+        var saved = localStorage.getItem('shici.theme.v1');
+        if (saved === 'light' || saved === 'dark' || saved === 'system') preference = saved;
+      } catch (error) {}
+      var systemDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = preference === 'system' ? (systemDark ? 'dark' : 'light') : preference;
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.themePreference = preference;
+      document.documentElement.style.colorScheme = theme;
+      var themeColor = document.querySelector('meta[name="theme-color"]');
+      if (themeColor) themeColor.setAttribute('content', theme === 'dark' ? '#171B1F' : '#F5F4F2');
+      window.__SHICI_THEME_PREFERENCE__ = preference;
+    })();
+  </script>
   <style id="criticalShellStyles">
     :root{--paper:#f5f4f2;--ink:#20262d;--ink-soft:#59636d;--line:rgba(32,38,45,.1);--accent:#3d5f75}
+    :root[data-theme="dark"]{--paper:#171b1f;--ink:#edf1f3;--ink-soft:#a8b2ba;--line:rgba(237,241,243,.11);--accent:#8cb8cf}
     *,*::before,*::after{box-sizing:border-box}
     [hidden]{display:none!important}
     html{background:var(--paper)}
@@ -24,6 +42,7 @@
     .icon{display:block;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
     .app-shell{display:flex;min-height:100vh}
     .sidebar{position:fixed;inset:0 auto 0 0;z-index:30;display:flex;width:240px;flex-direction:column;padding:24px 16px 18px;border-right:1px solid var(--line);background:#f1f2f3}
+    [data-theme="dark"] .sidebar{background:#1a2025}
     .sidebar__top{flex:1}.sidebar__bottom,.nav-label,.sidebar-branch{display:none}
     .brand{display:flex;align-items:center;gap:10px;margin:0 8px 32px;color:inherit;text-decoration:none}
     .brand__mark{display:grid;place-items:center;width:40px;height:40px;border-radius:9px;background:#26343f;color:#fff;font-size:20px;font-weight:600}
@@ -31,12 +50,14 @@
     .main-nav{display:flex;flex-direction:column;gap:2px}
     .nav-item{display:flex;height:40px;align-items:center;gap:12px;padding:0 12px;border-radius:8px;color:var(--ink-soft);font-size:14px;text-decoration:none}
     .nav-item.is-active{background:#fff;color:var(--ink);box-shadow:inset 3px 0 0 var(--accent)}
+    [data-theme="dark"] .nav-item.is-active{background:#252d34}
     .nav-item .icon{width:18px;height:18px}.nav-bubble{margin-left:auto}
     .main-shell{min-width:0;flex:1;margin-left:240px}
     .topbar{display:flex;height:64px;align-items:center;justify-content:space-between;padding:0 32px}
     .topbar__left,.topbar__actions{display:flex;align-items:center;gap:10px}
     .topbar__date{margin:0;color:var(--ink-soft);font-size:12px}.mobile-brand{display:none}
     .global-search{display:flex;width:248px;height:36px;align-items:center;gap:8px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:#fff}
+    [data-theme="dark"] .global-search,[data-theme="dark"] .streak-pill{background:#20262c}
     .global-search input{min-width:0;flex:1;border:0;outline:0;background:transparent;color:var(--ink)}.global-search kbd{font-size:10px}
     .streak-pill{display:flex;height:36px;align-items:center;gap:7px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
     .avatar--top{width:36px;height:36px;border:0;border-radius:50%;background:#26343f;color:#fff}
@@ -44,10 +65,12 @@
     .page-head{margin:8px 0 24px}.page-title{margin:0;font-size:clamp(32px,3.2vw,40px);font-weight:600;letter-spacing:-.02em;line-height:1.18}
     .page-head__desc{max-width:640px;margin:8px 0 0;color:var(--ink-soft);font-size:14px;line-height:1.7}
     .startup-state{display:grid;max-width:1040px;min-height:280px;align-content:center;gap:16px;padding:32px;border:1px solid var(--line);border-radius:16px;background:#fff}
+    [data-theme="dark"] .startup-state{background:#1f252b}
     .startup-state__status{display:flex;align-items:center;gap:10px;color:var(--ink-soft);font-size:13px}
     .startup-state__status i{width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:var(--accent)}
     .startup-state__status strong{color:var(--ink);font-size:14px}.startup-state__status span{margin-left:auto;color:#7e878f}
     .startup-state__line{width:min(420px,72%);height:14px;border-radius:4px;background:#eceff1}
+    [data-theme="dark"] .startup-state__line,[data-theme="dark"] .startup-state__actions span{background:#2b333b}
     .startup-state__line--wide{width:min(620px,90%);height:36px;margin-top:4px}
     .startup-state__actions{display:flex;gap:8px;margin-top:8px}.startup-state__actions span{width:116px;height:42px;border-radius:9px;background:#eceff1}.startup-state__actions span:first-child{background:#344451}
     .mobile-nav,.site-footer{display:none}
@@ -66,9 +89,9 @@
       window.setTimeout(finish, 6000);
     });
   </script>
-  <link rel="preload" href="css/styles.css?v=42" as="style">
-  <link id="appStyles" rel="stylesheet" href="css/styles.css?v=42" media="print" onload="this.media='all';this.dataset.loaded='true';window.__SHICI_STYLE_READY_RESOLVE__&&window.__SHICI_STYLE_READY_RESOLVE__()" onerror="window.__SHICI_STYLE_READY_RESOLVE__&&window.__SHICI_STYLE_READY_RESOLVE__()">
-  <noscript><link rel="stylesheet" href="css/styles.css?v=42"></noscript>
+  <link rel="preload" href="css/styles.css?v=43" as="style">
+  <link id="appStyles" rel="stylesheet" href="css/styles.css?v=43" media="print" onload="this.media='all';this.dataset.loaded='true';window.__SHICI_STYLE_READY_RESOLVE__&&window.__SHICI_STYLE_READY_RESOLVE__()" onerror="window.__SHICI_STYLE_READY_RESOLVE__&&window.__SHICI_STYLE_READY_RESOLVE__()">
+  <noscript><link rel="stylesheet" href="css/styles.css?v=43"></noscript>
   <script>
     (function () {
       try {
@@ -412,15 +435,15 @@
       try { performance.mark('shici-static-shell-ready'); } catch (error) {}
     })();
   </script>
-  <script defer src="js/product-analytics.js?v=42"></script>
-  <script defer src="js/premium-config.js?v=42"></script>
-  <script defer src="js/domain/state-schema.js?v=42"></script>
-  <script defer src="js/domain/srs-engine.js?v=42"></script>
-  <script defer src="js/storage/state-integrity.js?v=42"></script>
-  <script defer src="js/domain/entitlements.js?v=42"></script>
-  <script defer src="js/data.js?v=42"></script>
-  <script defer src="js/store.js?v=42"></script>
-  <script defer src="js/ui.js?v=42"></script>
-  <script defer src="js/app.js?v=42"></script>
+  <script defer src="js/product-analytics.js?v=43"></script>
+  <script defer src="js/premium-config.js?v=43"></script>
+  <script defer src="js/domain/state-schema.js?v=43"></script>
+  <script defer src="js/domain/srs-engine.js?v=43"></script>
+  <script defer src="js/storage/state-integrity.js?v=43"></script>
+  <script defer src="js/domain/entitlements.js?v=43"></script>
+  <script defer src="js/data.js?v=43"></script>
+  <script defer src="js/store.js?v=43"></script>
+  <script defer src="js/ui.js?v=43"></script>
+  <script defer src="js/app.js?v=43"></script>
 </body>
 </html>

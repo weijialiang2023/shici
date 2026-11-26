@@ -11,13 +11,18 @@
 
   const ROUTES = ['home', 'study', 'library', 'books', 'report', 'print'];
   const LIBRARY_PAGE_SIZE = 30;
+  const THEME_STORAGE_KEY = 'shici.theme.v1';
+  const THEME_VALUES = ['system', 'light', 'dark'];
+  const systemThemeQuery = window.matchMedia
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null;
   // This revision changes only when book payloads change, so app-only releases
   // can reuse the already cached 3500-word book instead of downloading it again.
   const BOOK_ASSET_VERSION = '27';
   const ASSET_VERSION = (function () {
     const source = document.currentScript && document.currentScript.src;
     const match = source && source.match(/[?&]v=([^&]+)/);
-    return match ? decodeURIComponent(match[1]) : '42';
+    return match ? decodeURIComponent(match[1]) : '43';
   })();
   const bookCache = new Map();
   const bookScriptPromises = new Map();
@@ -30,6 +35,7 @@
 
   const app = {
     route: 'home',
+    theme: 'system',
     bootLoading: true,
     bootMeta: null,
     bootError: null,
@@ -67,6 +73,60 @@
     saveFailureNoticeShown: false,
     conflictNoticeShown: false
   };
+
+  function normalizeThemePreference(value) {
+    return THEME_VALUES.indexOf(value) !== -1 ? value : 'system';
+  }
+
+  function readThemePreference() {
+    try {
+      return normalizeThemePreference(window.localStorage.getItem(THEME_STORAGE_KEY));
+    } catch (error) {
+      return normalizeThemePreference(window.__SHICI_THEME_PREFERENCE__);
+    }
+  }
+
+  function resolvedTheme(preference) {
+    if (preference === 'light' || preference === 'dark') return preference;
+    return systemThemeQuery && systemThemeQuery.matches ? 'dark' : 'light';
+  }
+
+  function syncThemeControls() {
+    document.querySelectorAll('[data-action="set-theme"]').forEach(function (button) {
+      const active = button.getAttribute('data-theme-choice') === app.theme;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    const status = document.getElementById('settingsThemeStatus');
+    if (status) {
+      const theme = resolvedTheme(app.theme);
+      status.textContent = app.theme === 'system'
+        ? '当前跟随系统，显示为' + (theme === 'dark' ? '深色' : '浅色') + '。'
+        : '当前固定为' + (theme === 'dark' ? '深色' : '浅色') + '。';
+    }
+  }
+
+  function applyThemePreference(value, persist) {
+    app.theme = normalizeThemePreference(value);
+    const theme = resolvedTheme(app.theme);
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.themePreference = app.theme;
+    document.documentElement.style.colorScheme = theme;
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.setAttribute('content', theme === 'dark' ? '#171B1F' : '#F5F4F2');
+    window.__SHICI_THEME_PREFERENCE__ = app.theme;
+    if (persist) {
+      try {
+        window.localStorage.setItem(THEME_STORAGE_KEY, app.theme);
+      } catch (error) {
+        // The current session still follows the chosen theme when storage is unavailable.
+      }
+    }
+    syncThemeControls();
+    return theme;
+  }
+
+  applyThemePreference(readThemePreference(), false);
 
   const page = document.getElementById('page');
   const overlayRoot = document.getElementById('overlayRoot');
@@ -703,7 +763,7 @@
       const word = Store.getWord(app.wordDrawerId);
       if (word) html = UI.wordDrawer(word);
     } else if (app.settingsOpen) {
-      html = UI.settingsDrawer(Store.getProfile());
+      html = UI.settingsDrawer(Store.getProfile(), app.theme);
     }
     overlayRoot.innerHTML = html;
     syncBodyState();
@@ -1940,6 +2000,9 @@
       case 'set-voice-gender':
         setVoiceGender(element.getAttribute('data-gender'), element);
         break;
+      case 'set-theme':
+        applyThemePreference(element.getAttribute('data-theme-choice'), true);
+        break;
       case 'preview-voice':
         previewVoice();
         break;
@@ -2402,6 +2465,14 @@
   }
 
   window.addEventListener('hashchange', handleHashChange);
+
+  if (systemThemeQuery) {
+    const handleSystemThemeChange = function () {
+      if (app.theme === 'system') applyThemePreference('system', false);
+    };
+    if (systemThemeQuery.addEventListener) systemThemeQuery.addEventListener('change', handleSystemThemeChange);
+    else if (systemThemeQuery.addListener) systemThemeQuery.addListener(handleSystemThemeChange);
+  }
 
   window.addEventListener('scroll', function () {
     const topbar = document.getElementById('topbar');

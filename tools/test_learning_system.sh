@@ -245,6 +245,7 @@ try {
 
   await page.click("#topbarProfile");
   await page.waitForSelector('.drawer a[href^="feedback.html"]');
+  await page.waitForTimeout(400);
   const supportLinks = await page.evaluate(() => ({
     feedback: Boolean(document.querySelector('.drawer a[href^="feedback.html"]')),
     privacy: Boolean(document.querySelector('.drawer a[href="privacy.html"]')),
@@ -253,6 +254,39 @@ try {
   if (!supportLinks.feedback || !supportLinks.privacy || !supportLinks.terms) {
     throw new Error("settings support links missing");
   }
+  await page.evaluate(() => localStorage.setItem("shici.theme.v1", "system"));
+  await page.evaluate(() => document.querySelector('[data-action="set-theme"][data-theme-choice="dark"]')?.click());
+  const darkTheme = await page.evaluate(() => ({
+    theme: document.documentElement.dataset.theme,
+    preference: document.documentElement.dataset.themePreference,
+    stored: localStorage.getItem("shici.theme.v1"),
+    active: document.querySelector('[data-theme-choice="dark"]')?.classList.contains("is-active")
+  }));
+  if (darkTheme.theme !== "dark" || darkTheme.preference !== "dark" ||
+      darkTheme.stored !== "dark" || !darkTheme.active) {
+    throw new Error("dark theme selection failed: " + JSON.stringify(darkTheme));
+  }
+  await page.reload({ timeout: 30000 });
+  await waitForAppReady(page);
+  if (await page.evaluate(() => document.documentElement.dataset.theme) !== "dark") {
+    throw new Error("dark theme was not restored after reload");
+  }
+  await page.click("#topbarProfile");
+  await page.waitForSelector('[data-action="set-theme"]');
+  await page.waitForTimeout(400);
+  await page.evaluate(() => document.querySelector('[data-action="set-theme"][data-theme-choice="light"]')?.click());
+  if (await page.evaluate(() => document.documentElement.dataset.theme) !== "light") {
+    throw new Error("light theme selection failed");
+  }
+  await page.evaluate(() => document.querySelector('[data-action="set-theme"][data-theme-choice="system"]')?.click());
+  await page.cdp("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-color-scheme", value: "dark" }]
+  });
+  await page.waitForFunction(() => document.documentElement.dataset.theme === "dark");
+  await page.cdp("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-color-scheme", value: "light" }]
+  });
+  await page.waitForFunction(() => document.documentElement.dataset.theme === "light");
   await page.evaluate(() => {
     const close = document.querySelector('button[data-action="close-drawer"]');
     if (!close) throw new Error("settings close button missing");

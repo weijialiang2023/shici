@@ -7,7 +7,22 @@
   <meta name="description" content="拾词反馈、内容纠错与备份帮助。">
   <title>反馈与帮助 · 拾词</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/info-pages.css?v=42">
+  <script>
+    (function () {
+      var preference = 'system';
+      try {
+        var saved = localStorage.getItem('shici.theme.v1');
+        if (saved === 'light' || saved === 'dark' || saved === 'system') preference = saved;
+      } catch (error) {}
+      var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var theme = preference === 'system' ? (dark ? 'dark' : 'light') : preference;
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.style.colorScheme = theme;
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#171B1F' : '#F5F4F2');
+    })();
+  </script>
+  <link rel="stylesheet" href="css/info-pages.css?v=43">
 </head>
 <body>
   <header class="info-header">
@@ -135,6 +150,6 @@
     </nav>
   </footer>
 
-  <script src="js/feedback.js?v=42"></script>
+  <script src="js/feedback.js?v=43"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = '42';
+  const APP_VERSION = '43';
   const REPO_ISSUES = 'https://github.com/weijialiang2023/shici/issues/new';
   const form = document.getElementById('feedbackForm');
   const diagnosticsToggle = document.getElementById('includeDiagnostics');
